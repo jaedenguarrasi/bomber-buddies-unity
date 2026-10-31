@@ -53,7 +53,8 @@ jobs:
           targetPlatform: iOS
           buildName: BomberBuddies
           buildMethod: BomberBuddies.Editor.BuildScript.Build
-          versioning: Semantic
+          versioning: Custom
+          version: 2.0.${{ github.run_number }}
           allowDirtyBuild: true
           customParameters: -iosBuildNumber ${{ github.run_number }}
       - uses: actions/upload-artifact@v4
