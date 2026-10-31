@@ -78,11 +78,11 @@ jobs:
             echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo
             echo '```'
-            if ls artifacts/*.log artifacts/**/*.log artifacts/*.xml >/dev/null 2>&1; then
-              grep -h -E -i "error CS|error:|exception|Failed|failed|Licens|not found|Assertion|test-results|Tests run|passed|<failure" artifacts/*.log artifacts/**/*.log artifacts/*.xml 2>/dev/null | grep -v -i "warning CS" | head -120
-            else
-              echo "(no log files in artifacts/)"; ls -R artifacts 2>/dev/null | head -40
-            fi
+            ls -R artifacts 2>/dev/null | head -20
+            echo "--- key lines ---"
+            grep -r -h -E -i "error CS|error:|exception|Failed|failed|Licens|not found|Assertion|Tests run|passed|<failure|Aborting|Scripts have compiler errors" artifacts 2>/dev/null | grep -v -i "warning CS" | sort | uniq -c | sort -rn | head -80
+            echo "--- last 60 lines of the editor log ---"
+            tail -n 60 artifacts/editmode.log 2>/dev/null
             echo '```'
           } > report.md
           gh issue create --title "Build failed: ${{ github.workflow }} #${{ github.run_number }}" --body-file report.md --label build-failure || gh issue create --title "Build failed: ${{ github.workflow }} #${{ github.run_number }}" --body-file report.md
