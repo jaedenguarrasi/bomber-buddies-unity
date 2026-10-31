@@ -81,15 +81,16 @@ jobs:
             ls -R artifacts 2>/dev/null | head -20
             echo "--- key lines ---"
             grep -r -h -E -i "error CS|error:|exception|Failed|failed|Licens|not found|Assertion|Tests run|passed|<failure|Aborting|Scripts have compiler errors" artifacts 2>/dev/null | grep -v -i "warning CS" | sort | uniq -c | sort -rn | head -80
-            echo "--- last 60 lines of the editor log ---"
-            tail -n 60 artifacts/editmode.log 2>/dev/null
+            echo "--- test failures ---"
+            grep -h -A6 "<failure>" artifacts/*.xml 2>/dev/null | grep -v "^--$" | sed 's/^ *//' | head -60
+            echo "--- editor log: errors ---"
+            grep -h -n -E "Exception|Error|error" artifacts/editmode.log 2>/dev/null | grep -v -i -E "shader|warning|Licens|ValidationExceptions|LogScope|NullReferenceException:$" | head -40
             echo '```'
           } > report.md
           gh issue create --title "Build failed: ${{ github.workflow }} #${{ github.run_number }}" --body-file report.md --label build-failure || gh issue create --title "Build failed: ${{ github.workflow }} #${{ github.run_number }}" --body-file report.md
 
   windows:
     name: Windows build
-    needs: test
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
@@ -128,7 +129,6 @@ jobs:
 
   android:
     name: Android APK
-    needs: test
     if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || (github.event_name == 'workflow_dispatch' && inputs.android)
     runs-on: ubuntu-latest
     steps:
