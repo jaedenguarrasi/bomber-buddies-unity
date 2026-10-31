@@ -40,3 +40,8 @@ crashlytics-build.properties
 /Assets/BomberBuddies/Scenes/
 /Assets/BomberBuddies/Scenes.meta
 /Assets/UniversalRenderPipelineGlobalSettings.asset*
+
+# The character model is 115 MB (over GitHub's file limit): it lives on the "assets-v1" release and is downloaded by CI
+/Assets/BomberBuddies/Characters/Resources/Soldier.fbx
+/Assets/BomberBuddies/Characters/Resources/Textures/
+/Assets/BomberBuddies/Characters/Resources/Textures.meta
