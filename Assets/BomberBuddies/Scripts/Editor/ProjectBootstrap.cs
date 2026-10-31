@@ -22,7 +22,7 @@ namespace BomberBuddies.Editor
     [InitializeOnLoad]
     public static class ProjectBootstrap
     {
-        public const int SetupVersion = 1;
+        public const int SetupVersion = 2;
         const string Root = "Assets/BomberBuddies";
         const string SettingsDir = Root + "/Settings", MaterialsDir = Root + "/Materials", ScenesDir = Root + "/Scenes";
         public const string ScenePath = ScenesDir + "/Island.unity";
@@ -61,6 +61,7 @@ namespace BomberBuddies.Editor
             var lib = SetupMaterials(force);
             SetupScene(lib, force || !File.Exists(ScenePath));
             SetupPlayerSettings();
+            SetupIcons();
             SetupLayers();
             bool restart = SetupInputHandler();
 
@@ -312,6 +313,34 @@ namespace BomberBuddies.Editor
             PlayerSettings.allowedAutorotateToPortrait = false;
             PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
             PlayerSettings.runInBackground = true;
+        }
+
+        /// <summary>One 1024x1024 icon, handed to every platform; Unity scales it to each size the store wants.</summary>
+        static void SetupIcons()
+        {
+            var icon = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/Icons/AppIcon.png");
+            if (icon == null) { Debug.LogWarning("Bomber Buddies: no app icon at " + Root + "/Icons/AppIcon.png"); return; }
+            foreach (var target in new[] { NamedBuildTarget.Unknown, NamedBuildTarget.Standalone, NamedBuildTarget.Android, NamedBuildTarget.iOS })
+            {
+                try
+                {
+                    var kinds = PlayerSettings.GetSupportedIconKinds(target);
+                    foreach (var kind in kinds)
+                    {
+                        var icons = PlayerSettings.GetPlatformIcons(target, kind);
+                        for (int i = 0; i < icons.Length; i++) icons[i].SetTextures(icon);
+                        PlayerSettings.SetPlatformIcons(target, kind, icons);
+                    }
+                    if (kinds.Length == 0)
+                    {
+                        var sizes = PlayerSettings.GetIconSizes(target);
+                        var arr = new Texture2D[sizes.Length];
+                        for (int i = 0; i < arr.Length; i++) arr[i] = icon;
+                        PlayerSettings.SetIcons(target, arr, IconKind.Any);
+                    }
+                }
+                catch (System.Exception e) { Debug.LogWarning("Bomber Buddies: icon for " + target.TargetName + ": " + e.Message); }
+            }
         }
 
         static void SetupLayers()
