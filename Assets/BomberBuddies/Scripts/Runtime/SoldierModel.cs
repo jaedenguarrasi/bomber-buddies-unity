@@ -64,7 +64,7 @@ namespace BomberBuddies
             animator.applyRootMotion = false;
             animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
             renderers = body.GetComponentsInChildren<Renderer>(true);
-            foreach (var r in renderers) { r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On; r.updateWhenOffscreen = true; }
+            foreach (var r in renderers) { r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On; var sk = r as SkinnedMeshRenderer; if (sk != null) sk.updateWhenOffscreen = true; }
             TintTeam();
 
             if (animator.isHuman)
