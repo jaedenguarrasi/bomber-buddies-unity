@@ -91,11 +91,12 @@ jobs:
         run: |
           find "$IOS_BUILD_PATH" -type f -name "*.sh" -exec chmod +x {} \;
           find "$IOS_BUILD_PATH" -type f -iname "usymtool*" -exec chmod +x {} \;
-          fastlane ios beta
+          set -o pipefail
+          fastlane ios beta 2>&1 | tee fastlane.log
       - name: Report errors as an issue
         if: failure()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          { echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"; echo; echo '```'; tail -n 80 ~/Library/Logs/gym/*.log 2>/dev/null || echo "(no gym log)"; echo '```'; } > report.md
+          { echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"; echo; echo '```'; grep -v -E "^\s+from /" fastlane.log | tail -n 60; echo; tail -n 40 ~/Library/Logs/gym/*.log 2>/dev/null || echo "(no gym log)"; echo '```'; } > report.md
           gh issue create --title "iOS build failed #${{ github.run_number }}" --body-file report.md

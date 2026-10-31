@@ -4,11 +4,19 @@
 default_platform(:ios)
 
 platform :ios do
+  # The .p8 arrives through a copy-paste; rebuild its line breaks so OpenSSL accepts it however it was pasted
+  def normalized_p8
+    raw = (ENV["APPSTORE_P8"] || "").gsub("\r", "").gsub("\\n", "\n").strip
+    body = raw.gsub(/-----BEGIN[^-]*-----/, "").gsub(/-----END[^-]*-----/, "").gsub(/\s+/, "")
+    UI.user_error!("APPSTORE_P8 secret is empty") if body.empty?
+    "-----BEGIN PRIVATE KEY-----\n" + body.scan(/.{1,64}/).join("\n") + "\n-----END PRIVATE KEY-----\n"
+  end
+
   def api_key
     app_store_connect_api_key(
       key_id: ENV["APPSTORE_KEY_ID"],
       issuer_id: ENV["APPSTORE_ISSUER_ID"],
-      key_content: ENV["APPSTORE_P8"],
+      key_content: normalized_p8,
       is_key_content_base64: false
     )
   end
