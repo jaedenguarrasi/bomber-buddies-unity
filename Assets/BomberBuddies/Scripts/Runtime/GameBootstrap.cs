@@ -169,7 +169,7 @@ namespace BomberBuddies
             player.rifle = rifle;
 
             playerHealth.OnDamaged += info => { if (GameState.Hud != null) GameState.Hud.Damaged(info.amount); };
-            playerHealth.OnDied += info => { if (!respawning) StartCoroutine(Respawn()); };
+            playerHealth.OnDied += info => { Debug.Log("Player down: " + info.amount + " damage from " + (info.source != null ? info.source.name : "?") + " at " + player.transform.position); if (!respawning) StartCoroutine(Respawn()); };
             GameState.Player = player;
             GameState.Rig = rig;
         }

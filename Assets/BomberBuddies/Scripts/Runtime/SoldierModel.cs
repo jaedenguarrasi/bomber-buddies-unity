@@ -45,7 +45,7 @@ namespace BomberBuddies
         AnimationMixerPlayable mixer;
         readonly float[] weights = new float[ClipNames.Length];
         Renderer[] renderers = new Renderer[0];
-        Transform spine, chest, head, rightHand;
+        Transform spine, chest, head, rightHand, leftHand, rifleT;
         float aimPitchSmooth, deathT, crouchK, speedK;
         bool dead, lastAirborne;
         Quaternion baseRot;
@@ -73,6 +73,7 @@ namespace BomberBuddies
                 chest = animator.GetBoneTransform(HumanBodyBones.Chest);
                 head = animator.GetBoneTransform(HumanBodyBones.Head);
                 rightHand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+                leftHand = animator.GetBoneTransform(HumanBodyBones.LeftHand);
             }
             BuildRifle(lib);
 
@@ -111,12 +112,11 @@ namespace BomberBuddies
 
         void BuildRifle(MaterialLibrary lib)
         {
-            var parent = rightHand != null ? rightHand : transform;
+            // not parented to a bone: every frame it is laid from the right hand (grip) towards the left hand (handguard),
+            // which works whatever the rig's bone axes are
             var rifle = new GameObject("Rifle").transform;
-            rifle.SetParent(parent, false);
-            // held in the right hand: grip in the palm, barrel along the forearm's forward
-            rifle.localPosition = new Vector3(0.05f, -0.02f, 0.03f);
-            rifle.localRotation = Quaternion.Euler(0f, 90f, 90f);
+            rifle.SetParent(transform, false);
+            rifleT = rifle;
             var metal = lib != null ? lib.Get("gunmetal") : null; var wood = lib != null ? lib.Get("wood") : null;
             Part(PrimitiveType.Cube, "Receiver", rifle, new Vector3(0f, 0f, 0.1f), new Vector3(0.045f, 0.08f, 0.45f), metal);
             Part(PrimitiveType.Cube, "Stock", rifle, new Vector3(0f, -0.02f, -0.22f), new Vector3(0.045f, 0.09f, 0.2f), wood);
@@ -190,11 +190,26 @@ namespace BomberBuddies
         void LateUpdate()
         {
             // after the animation has posed the body: bend the spine and head to the aim pitch
-            if (dead || animator == null) return;
+            if (animator == null) return;
+            if (dead) { PlaceRifle(); return; }
             float p = Mathf.Clamp(aimPitchSmooth, -60f, 60f);
             if (spine != null) spine.localRotation = spine.localRotation * Quaternion.AngleAxis(-p * 0.35f, Vector3.right);
             if (chest != null) chest.localRotation = chest.localRotation * Quaternion.AngleAxis(-p * 0.35f, Vector3.right);
             if (head != null) head.localRotation = head.localRotation * Quaternion.AngleAxis(-p * 0.2f, Vector3.right);
+            PlaceRifle();
+        }
+
+        void PlaceRifle()
+        {
+            if (rifleT == null || rightHand == null) return;
+            Vector3 grip = rightHand.position;
+            Vector3 fwd = leftHand != null ? leftHand.position - grip : transform.forward;
+            if (fwd.sqrMagnitude < 0.0004f) fwd = transform.forward;
+            Vector3 up = chest != null ? chest.up : Vector3.up;
+            var rot = Quaternion.LookRotation(fwd.normalized, up);
+            // the grip sits a little below and ahead of the palm; the handguard lands under the left hand
+            rifleT.position = grip + rot * new Vector3(0f, -0.04f, 0.02f);
+            rifleT.rotation = rot;
         }
 
         public override void Die(Vector3 fromDirection)
