@@ -303,7 +303,7 @@ namespace BomberBuddies.Editor
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Standalone, "com.guarrasi.bomberbuddies");
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
-            PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel24;
+            PlayerSettings.Android.minSdkVersion = (AndroidSdkVersions)25;
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
             PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, false);
             PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new[] { GraphicsDeviceType.Vulkan, GraphicsDeviceType.OpenGLES3 });
@@ -333,7 +333,7 @@ namespace BomberBuddies.Editor
                     }
                     if (kinds.Length == 0)
                     {
-                        var sizes = PlayerSettings.GetIconSizes(target);
+                        var sizes = PlayerSettings.GetIconSizes(target, IconKind.Any);
                         var arr = new Texture2D[sizes.Length];
                         for (int i = 0; i < arr.Length; i++) arr[i] = icon;
                         PlayerSettings.SetIcons(target, arr, IconKind.Any);

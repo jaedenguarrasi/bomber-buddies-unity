@@ -50,8 +50,6 @@ namespace BomberBuddies.Editor
                 string exportType = Get(args, "androidExportType", "androidPackage");
                 EditorUserBuildSettings.buildAppBundle = exportType == "androidAppBundle";
                 EditorUserBuildSettings.exportAsGoogleAndroidProject = exportType == "androidStudioProject";
-                string symbols = Get(args, "androidSymbolType", "none");
-                EditorUserBuildSettings.androidCreateSymbols = symbols == "public" ? AndroidCreateSymbols.Public : symbols == "debugging" ? AndroidCreateSymbols.Debugging : AndroidCreateSymbols.Disabled;
                 string sdk = Get(args, "androidTargetSdkVersion", "");
                 int sdkInt; if (!string.IsNullOrEmpty(sdk) && int.TryParse(sdk, out sdkInt) && sdkInt > 0) PlayerSettings.Android.targetSdkVersion = (AndroidSdkVersions)sdkInt;
             }
