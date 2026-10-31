@@ -11,7 +11,7 @@ namespace BomberBuddies
         public MaterialLibrary library;
         public FootController player;
         public int baseCount = 4, perWave = 2, maxAlive = 18;
-        public float minDistance = 55f, maxDistance = 140f, breather = 6f;
+        public float minDistance = 70f, maxDistance = 150f, breather = 8f;
         public Vector3 villageCenter;
         public float villageRadius = 70f;
 
@@ -53,7 +53,7 @@ namespace BomberBuddies
                 var p = player.transform.position + new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
                 // most of them come in from the village side so the fight gathers round the square
                 if (Random.value < 0.6f) p = villageCenter + new Vector3(Random.Range(-villageRadius, villageRadius), 0f, Random.Range(-villageRadius, villageRadius));
-                if (Vector3.Distance(p, player.transform.position) < 30f) continue;
+                if (Vector3.Distance(p, player.transform.position) < (GameState.Wave <= 1 ? 60f : 35f)) continue;
                 NavMeshHit hit;
                 if (!NavMesh.SamplePosition(p, out hit, 10f, NavMesh.AllAreas)) continue;
                 var e = Spawn(hit.position);

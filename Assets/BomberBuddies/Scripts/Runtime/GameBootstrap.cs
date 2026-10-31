@@ -168,7 +168,7 @@ namespace BomberBuddies
             rifle.BuildViewModel(library);
             player.rifle = rifle;
 
-            playerHealth.OnDamaged += info => { if (GameState.Hud != null) GameState.Hud.Damaged(info.amount); };
+            playerHealth.OnDamaged += info => { lastHurt = Time.time; if (GameState.Hud != null) GameState.Hud.Damaged(info.amount); };
             playerHealth.OnDied += info => { Debug.Log("Player down: " + info.amount + " damage from " + (info.source != null ? info.source.name : "?") + " at " + player.transform.position); if (!respawning) StartCoroutine(Respawn()); };
             GameState.Player = player;
             GameState.Rig = rig;
@@ -195,8 +195,15 @@ namespace BomberBuddies
             respawning = false;
         }
 
+        float lastHurt = -99f;
+
         void Update()
         {
+            // health comes back after a few seconds out of fire, like most modern shooters
+            if (playerHealth != null && playerHealth.alive && !respawning)
+            {
+                if (Time.time - lastHurt > 4f && playerHealth.current < playerHealth.max) playerHealth.Heal(22f * Time.deltaTime);
+            }
             if (player != null && playerHealth != null && playerHealth.alive && player.transform.position.y < seaLevel - 1.4f && !respawning)
             {
                 playerHealth.TakeDamage(new DamageInfo { amount = 9999f, point = player.transform.position, direction = Vector3.down, source = gameObject });

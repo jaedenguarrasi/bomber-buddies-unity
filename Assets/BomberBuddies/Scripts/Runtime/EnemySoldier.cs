@@ -9,7 +9,7 @@ namespace BomberBuddies
     public class EnemySoldier : MonoBehaviour
     {
         public float sightRange = 75f, fieldOfView = 150f, attackRange = 26f, loseAfter = 6f;
-        public float damage = 9f, burstGap = 0.11f, pauseBetweenBursts = 1.3f, spreadDeg = 3.2f;
+        public float damage = 7f, burstGap = 0.12f, pauseBetweenBursts = 2.2f, spreadDeg = 6.5f, reactionTime = 1.6f;
         public SoldierModelBase model;
         public Health health;
 
@@ -42,6 +42,8 @@ namespace BomberBuddies
             health.OnDamaged += OnDamaged;
             wanderT = Random.Range(0.5f, 3f);
         }
+
+        float noticedAt = -99f;
 
         void OnDamaged(DamageInfo info)
         {
@@ -102,7 +104,7 @@ namespace BomberBuddies
 
             Vector3 target;
             bool seen = CanSee(out target);
-            if (seen) { lastKnown = player.transform.position; lastSeen = Time.time; }
+            if (seen) { if (Time.time - lastSeen > 3f) noticedAt = Time.time; lastKnown = player.transform.position; lastSeen = Time.time; }
             float dist = player != null ? Vector3.Distance(transform.position, player.transform.position) : 999f;
 
             switch (state)
@@ -139,7 +141,7 @@ namespace BomberBuddies
                     }
                     if (agent.hasPath && !agent.pathPending && agent.remainingDistance < 0.8f) agent.ResetPath();
                     agent.speed = 3.2f;
-                    if (seen) Fire(target, dt);
+                    if (seen && Time.time - noticedAt > reactionTime) Fire(target, dt);
                     break;
             }
 
