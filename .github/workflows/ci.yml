@@ -22,6 +22,11 @@ on:
         type: boolean
         default: true
 
+permissions:
+  contents: read
+  checks: write
+  issues: write
+
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
@@ -62,6 +67,25 @@ jobs:
         with:
           name: test-results
           path: artifacts
+
+      # The raw logs are only downloadable through a browser, so the interesting lines are also posted as an issue
+      - name: Report errors as an issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            echo '```'
+            if ls artifacts/*.log artifacts/**/*.log artifacts/*.xml >/dev/null 2>&1; then
+              grep -h -E -i "error CS|error:|exception|Failed|failed|Licens|not found|Assertion|test-results|Tests run|passed|<failure" artifacts/*.log artifacts/**/*.log artifacts/*.xml 2>/dev/null | grep -v -i "warning CS" | head -120
+            else
+              echo "(no log files in artifacts/)"; ls -R artifacts 2>/dev/null | head -40
+            fi
+            echo '```'
+          } > report.md
+          gh issue create --title "Build failed: ${{ github.workflow }} #${{ github.run_number }}" --body-file report.md --label build-failure || gh issue create --title "Build failed: ${{ github.workflow }} #${{ github.run_number }}" --body-file report.md
 
   windows:
     name: Windows build
