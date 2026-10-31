@@ -8,10 +8,9 @@ namespace BomberBuddies
     /// Everything that will later come from a rigged model is behind the same handful of calls, so the switch to Mixamo
     /// bodies is a swap of this class, not of the game around it.
     /// </summary>
-    public class Mannequin : MonoBehaviour
+    public class Mannequin : SoldierModelBase
     {
-        public int team;
-        public Transform pelvis, upperBody, head, rifle, muzzle;
+        public Transform pelvis, upperBody, head, rifle;
         public Transform thighL, thighR, shinL, shinR, armL, armR, foreL, foreR;
         public Renderer[] renderers = new Renderer[0];
 
@@ -59,7 +58,7 @@ namespace BomberBuddies
             return pivot;
         }
 
-        public void Build(MaterialLibrary lib, int teamId)
+        public override void Build(MaterialLibrary lib, int teamId)
         {
             team = teamId;
             var uniform = Uniform(lib, team);
@@ -114,13 +113,13 @@ namespace BomberBuddies
             Animate(0f, 0f, 0f, false, 0f);
         }
 
-        public void SetVisible(bool on)
+        public override void SetVisible(bool on)
         {
             for (int i = 0; i < renderers.Length; i++) if (renderers[i] != null) renderers[i].enabled = on;
         }
 
         /// <summary>Poses the figure: speed in m/s along the ground, aim pitch in degrees (up positive), crouch 0..1, in the air or not.</summary>
-        public void Animate(float speed, float aimPitch, float crouch, bool airborne, float dt)
+        public override void Animate(float speed, float aimPitch, float crouch, bool airborne, float dt)
         {
             if (dead) { AnimateDeath(dt); return; }
             float gait = Mathf.Clamp01(speed / 3.5f);
@@ -164,7 +163,7 @@ namespace BomberBuddies
             foreL.localRotation = Quaternion.Euler(-45f, -40f, 0f);
         }
 
-        public void Die(Vector3 fromDirection)
+        public override void Die(Vector3 fromDirection)
         {
             if (dead) return;
             dead = true;
@@ -191,6 +190,6 @@ namespace BomberBuddies
 
         Quaternion baseRot = Quaternion.identity;
         void LateUpdate() { if (!dead) baseRot = transform.rotation; }
-        public bool IsDead { get { return dead; } }
+        public override bool IsDead { get { return dead; } }
     }
 }

@@ -10,7 +10,7 @@ namespace BomberBuddies
     {
         public float sightRange = 75f, fieldOfView = 150f, attackRange = 26f, loseAfter = 6f;
         public float damage = 9f, burstGap = 0.11f, pauseBetweenBursts = 1.3f, spreadDeg = 3.2f;
-        public Mannequin model;
+        public SoldierModelBase model;
         public Health health;
 
         NavMeshAgent agent;

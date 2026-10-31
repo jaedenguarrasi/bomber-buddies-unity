@@ -76,9 +76,7 @@ namespace BomberBuddies
             var headGo = new GameObject("HeadZone"); headGo.transform.SetParent(go.transform, false); headGo.transform.localPosition = new Vector3(0f, 1.68f, 0f); headGo.layer = 9;
             var hc = headGo.AddComponent<SphereCollider>(); hc.radius = 0.17f;
             var hz = headGo.AddComponent<HitZone>(); hz.owner = hp; hz.multiplier = 2.4f; hz.head = true;
-            var modelGo = new GameObject("Model"); modelGo.transform.SetParent(go.transform, false);
-            var model = modelGo.AddComponent<Mannequin>(); model.Build(library, 1);
-            foreach (Transform t in modelGo.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = 9;
+            var model = SoldierModelBase.Create(go.transform, library, 1, 9);
             var agent = go.AddComponent<NavMeshAgent>();
             var ai = go.AddComponent<EnemySoldier>();
             ai.model = model;

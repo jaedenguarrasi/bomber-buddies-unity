@@ -9,7 +9,7 @@ namespace BomberBuddies
         public float walkSpeed = 4.3f, sprintSpeed = 7.6f, crouchSpeed = 2.3f, aimSpeed = 2.9f, jumpSpeed = 6.6f, gravity = 24f;
         public float standHeight = 1.8f, crouchHeight = 1.25f;
         public CameraRig rig;
-        public Mannequin model;
+        public SoldierModelBase model;
         public Health health;
         public Rifle rifle;
 

@@ -129,7 +129,7 @@ namespace BomberBuddies
         void BuildPlayer()
         {
             float vr = world.villageRadius;
-            spawnPoint = new Vector3(0f, 0f, -vr * 0.8f);
+            spawnPoint = new Vector3(0f, 0f, -vr * 0.12f);   // the open square in the middle of the village
             spawnPoint.y = IslandBuilder.GroundHeight(terrain, spawnPoint.x, spawnPoint.z) + 0.1f;
             spawnYaw = 0f;
 
@@ -142,9 +142,7 @@ namespace BomberBuddies
             player = pgo.AddComponent<FootController>();
             player.health = playerHealth;
 
-            var modelGo = new GameObject("Model"); modelGo.transform.SetParent(pgo.transform, false); modelGo.layer = 8;
-            var model = modelGo.AddComponent<Mannequin>(); model.Build(library, 0);
-            foreach (Transform t in modelGo.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = 8;
+            var model = SoldierModelBase.Create(pgo.transform, library, 0, 8);
             player.model = model;
 
             var camGo = new GameObject("Main Camera");
@@ -186,9 +184,7 @@ namespace BomberBuddies
             yield return new WaitForSeconds(3.2f);
             // a fresh figure: the old one has fallen over
             var old = player.model;
-            var modelGo = new GameObject("Model"); modelGo.transform.SetParent(player.transform, false); modelGo.layer = 8;
-            var model = modelGo.AddComponent<Mannequin>(); model.Build(library, 0);
-            foreach (Transform t in modelGo.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = 8;
+            var model = SoldierModelBase.Create(player.transform, library, 0, 8);
             player.model = model;
             if (old != null) Destroy(old.gameObject);
             player.Teleport(spawnPoint, spawnYaw);
