@@ -1,0 +1,101 @@
+# Bomber Buddies — iPhone build, delivered to TestFlight. Run it from the Actions tab ("Run workflow"); it also runs
+# on pushes to main once the Apple secrets exist. Needs these repository secrets:
+#   APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_P8  — App Store Connect API key (Users and Access → Integrations)
+#   APPLE_TEAM_ID                                      — developer.apple.com → Membership
+#   IOS_BUNDLE_ID                                      — the app's bundle identifier in App Store Connect
+#   MATCH_REPOSITORY (owner/repo of a PRIVATE repo that stores the certificates), MATCH_PASSWORD (any passphrase),
+#   GH_PAT (a GitHub token with read/write access to that private repo)
+#   plus UNITY_LICENSE / UNITY_EMAIL / UNITY_PASSWORD from the main build.
+name: iOS (TestFlight)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths: ['Assets/**', 'Packages/**', 'ProjectSettings/**', 'fastlane/**', '.github/workflows/ios.yml']
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unity:
+    name: Unity → Xcode project
+    runs-on: ubuntu-latest
+    if: ${{ vars.IOS_ENABLED == 'true' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc "$AGENT_TOOLSDIRECTORY" || true
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-ios-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: Library-ios-
+      - name: Fetch the soldier model (too big for git)
+        run: |
+          mkdir -p Assets/BomberBuddies/Characters/Resources
+          curl -sSL -f -o Assets/BomberBuddies/Characters/Resources/Soldier.fbx \
+            "https://github.com/${{ github.repository }}/releases/download/assets-v1/Soldier.fbx" || echo "no model on the release yet; the block figure will be used"
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          IOS_BUNDLE_ID: ${{ secrets.IOS_BUNDLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          unityVersion: auto
+          targetPlatform: iOS
+          buildName: BomberBuddies
+          buildMethod: BomberBuddies.Editor.BuildScript.Build
+          versioning: Semantic
+          allowDirtyBuild: true
+          customParameters: -iosBuildNumber ${{ github.run_number }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xcode-project
+          path: build/iOS
+          retention-days: 1
+
+  testflight:
+    name: Sign and upload to TestFlight
+    needs: unity
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: xcode-project
+          path: build/iOS
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - name: Install fastlane
+        run: gem install fastlane -N
+      - name: Build, sign and upload
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_P8: ${{ secrets.APPSTORE_P8 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          IOS_BUNDLE_ID: ${{ secrets.IOS_BUNDLE_ID }}
+          MATCH_REPOSITORY: ${{ secrets.MATCH_REPOSITORY }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          IOS_BUILD_PATH: ${{ format('{0}/build/iOS', github.workspace) }}
+        run: |
+          find "$IOS_BUILD_PATH" -type f -name "*.sh" -exec chmod +x {} \;
+          find "$IOS_BUILD_PATH" -type f -iname "usymtool*" -exec chmod +x {} \;
+          fastlane ios beta
+      - name: Report errors as an issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          { echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"; echo; echo '```'; tail -n 80 ~/Library/Logs/gym/*.log 2>/dev/null || echo "(no gym log)"; echo '```'; } > report.md
+          gh issue create --title "iOS build failed #${{ github.run_number }}" --body-file report.md

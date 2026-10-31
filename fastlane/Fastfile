@@ -1,0 +1,64 @@
+# Bomber Buddies — iOS signing and TestFlight upload, run by GitHub Actions on a Mac runner.
+# Certificates live encrypted in a private git repo (fastlane match), reached over HTTPS with a GitHub token.
+
+default_platform(:ios)
+
+platform :ios do
+  def api_key
+    app_store_connect_api_key(
+      key_id: ENV["APPSTORE_KEY_ID"],
+      issuer_id: ENV["APPSTORE_ISSUER_ID"],
+      key_content: ENV["APPSTORE_P8"],
+      is_key_content_base64: false
+    )
+  end
+
+  desc "Fetch (or create) the App Store signing certificate and profile"
+  lane :sync_certificates do
+    api_key
+    match(
+      type: "appstore",
+      storage_mode: "git",
+      git_url: "https://github.com/#{ENV['MATCH_REPOSITORY']}.git",
+      git_basic_authorization: Base64.strict_encode64("x-access-token:#{ENV['GH_PAT']}"),
+      app_identifier: ENV["IOS_BUNDLE_ID"],
+      readonly: false
+    )
+  end
+
+  desc "Build the .ipa from the Xcode project Unity produced"
+  lane :build do
+    setup_ci
+    sync_certificates
+    project = "#{ENV['IOS_BUILD_PATH']}/BomberBuddies/Unity-iPhone.xcodeproj"
+
+    update_info_plist(
+      xcodeproj: project,
+      plist_path: "Info.plist",
+      block: proc do |plist|
+        plist["ITSAppUsesNonExemptEncryption"] = false
+      end
+    )
+
+    # Unity's project wants automatic signing switched off and the match profile pinned (fastlane discussion 17458)
+    update_code_signing_settings(use_automatic_signing: true, path: project)
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      team_id: ENV["sigh_#{ENV['IOS_BUNDLE_ID']}_appstore_team-id"],
+      code_sign_identity: "iPhone Distribution",
+      targets: "Unity-iPhone",
+      path: project,
+      profile_name: ENV["sigh_#{ENV['IOS_BUNDLE_ID']}_appstore_profile-name"],
+      profile_uuid: ENV["sigh_#{ENV['IOS_BUNDLE_ID']}_appstore"]
+    )
+
+    build_app(project: project, scheme: "Unity-iPhone", xcargs: "-allowProvisioningUpdates", output_directory: "#{ENV['IOS_BUILD_PATH']}/ipa")
+  end
+
+  desc "Build and send to TestFlight"
+  lane :beta do
+    build
+    api_key
+    upload_to_testflight(skip_waiting_for_build_processing: true)
+  end
+end

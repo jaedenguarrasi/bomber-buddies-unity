@@ -31,7 +31,7 @@ namespace BomberBuddies.Editor
             string path = Get(args, "customBuildPath", null);
             string name = Get(args, "customBuildName", "BomberBuddies");
             if (string.IsNullOrEmpty(path)) path = Path.Combine("Builds", targetName);
-            if (!Path.HasExtension(path)) path = Path.Combine(path, name + ExtensionFor(target));
+            if (target != BuildTarget.iOS && !Path.HasExtension(path)) path = Path.Combine(path, name + ExtensionFor(target));   // iOS output is a folder (an Xcode project)
             string version = Get(args, "buildVersion", "0.1.0");
             int code; if (!int.TryParse(Get(args, "androidVersionCode", "1"), out code)) code = 1;
 
@@ -56,6 +56,15 @@ namespace BomberBuddies.Editor
                 int sdkInt; if (!string.IsNullOrEmpty(sdk) && int.TryParse(sdk, out sdkInt) && sdkInt > 0) PlayerSettings.Android.targetSdkVersion = (AndroidSdkVersions)sdkInt;
             }
 
+            if (target == BuildTarget.iOS)
+            {
+                string bundle = Environment.GetEnvironmentVariable("IOS_BUNDLE_ID"), teamId = Environment.GetEnvironmentVariable("APPLE_TEAM_ID"), buildNo = Get(args, "iosBuildNumber", "");
+                if (!string.IsNullOrEmpty(bundle)) PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.iOS, bundle);
+                if (!string.IsNullOrEmpty(teamId)) { PlayerSettings.iOS.appleDeveloperTeamID = teamId; PlayerSettings.iOS.appleEnableAutomaticSigning = false; }
+                if (!string.IsNullOrEmpty(buildNo)) PlayerSettings.iOS.buildNumber = buildNo;
+                PlayerSettings.iOS.targetOSVersionString = "15.0";
+                PlayerSettings.iOS.requiresPersistentWiFi = false;
+            }
             var report = Run(target, path, version, code);
             if (report == null) { EditorApplication.Exit(121); return; }
             var summary = report.summary;
