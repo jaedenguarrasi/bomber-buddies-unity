@@ -30,6 +30,8 @@ namespace BomberBuddies
             { "strike", new Mode { id = "strike", name = "Strike", group = "Missions", desc = "Five enemy fuel depots, each ringed with flak and missiles. Destroy all five in six minutes." } },
             { "assassin", new Mode { id = "assassin", name = "Assassination", group = "Missions", desc = "An enemy general is somewhere on the island with his bodyguards. He will try to get to his escape helicopter. Kill him in five minutes." } },
             { "convoy", new Mode { id = "convoy", name = "Convoy Escort", group = "Missions", desc = "Three of your trucks have to cross the island. Keep at least two of them alive to the far side." } },
+            { "monster", new Mode { id = "monster", name = "Monster Hunt", group = "Battles", desc = "Goblin bands, apes and raptor packs pour out of the hills, and every third wave something much bigger comes with them.", comp = new[] { "gob", "ape", "raptor", "trex", "inf" } } },
+            { "scary", new Mode { id = "scary", name = "Stalkers", group = "Battles", desc = "Tall, pale and quick. They circle out in the dark, rush in to slash, and melt away again. Nothing else on the island.", comp = new[] { "stalk" } } },
             { "galactic", new Mode { id = "galactic", name = "Galactic Assault", group = "Battles", desc = "Take the posts, kill the shield generator, board their carrier." } },
         };
 
@@ -50,7 +52,14 @@ namespace BomberBuddies
                 { "ejet", n >= 4 ? Mathf.Min(3, (n - 2) / 2) : 0 },
                 { "sam", n >= 4 ? Mathf.Min(4, (n - 2) / 2) : 0 },
                 { "bunker", n >= 2 ? Mathf.Min(3, 1 + (n - 2) / 3) : 0 },
+                { "gob", 8 + 4 * n },
+                { "ape", 1 + n / 2 },
+                { "raptor", 2 + n },
+                { "stalk", 6 + 3 * n },
+                { "trex", n % 3 == 0 ? 1 : 0 },
             };
+            // creatures only come where the mode asks for them
+            foreach (var k in new[] { "gob", "ape", "raptor", "stalk", "trex" }) if (mode == null || mode.comp == null || System.Array.IndexOf(mode.comp, k) < 0) c[k] = 0;
             if (mode != null)
             {
                 if (mode.comp != null) { var keys = new List<string>(c.Keys); foreach (var k in keys) if (System.Array.IndexOf(mode.comp, k) < 0) c[k] = 0; }

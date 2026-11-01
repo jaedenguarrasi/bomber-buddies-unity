@@ -22,6 +22,62 @@ namespace BomberBuddies
         /// <summary>The special soldiers: "inf" rifleman, "medic" (heals friends nearby), "egun" (light machine gun), "vest" (a
         /// sewer slider: runs at you and blows up), "ejet" (jetpack trooper: hovers and fires).</summary>
         public string kind = "inf";
+        /// <summary>Creatures (DEF ape/gob/raptor/stalk/trex): melee, fast, built from the soldier body scaled and tinted until they get bodies of their own.</summary>
+        public bool melee; public int score = 10;
+        float meleeDmg, meleeReach = 1.6f, meleeT, creatureSpeed = 4f, leapT;
+
+        public void MakeCreature(string k)
+        {
+            kind = k; melee = true;
+            float K = GalacticMode.K; Vector3 scale = Vector3.one; Color tint = Color.white;
+            switch (k)
+            {
+                case "gob": health.max = 18f * K; creatureSpeed = 36f * GalacticMode.U * 1.6f; meleeDmg = 9f; meleeReach = 1.5f; score = 15; scale = new Vector3(0.75f, 0.7f, 0.75f); tint = new Color(0.55f, 0.8f, 0.35f); break;
+                case "ape": health.max = 70f * K; creatureSpeed = 64f * GalacticMode.U * 1.2f; meleeDmg = 38f; meleeReach = 2.6f; score = 90; scale = new Vector3(1.9f, 1.6f, 1.9f); tint = new Color(0.45f, 0.32f, 0.22f); break;
+                case "raptor": health.max = 45f * K; creatureSpeed = 150f * GalacticMode.U * 0.8f; meleeDmg = 14f; meleeReach = 2.0f; score = 80; scale = new Vector3(0.9f, 1.0f, 1.6f); tint = new Color(0.45f, 0.6f, 0.3f); break;
+                case "stalk": health.max = 60f * K; creatureSpeed = 60f * GalacticMode.U * 1.3f; meleeDmg = 24f; meleeReach = 2.2f; score = 70; scale = new Vector3(0.8f, 1.7f, 0.8f); tint = new Color(0.85f, 0.85f, 0.9f); break;
+                case "trex": health.max = 950f * K; health.armor = 0.7f; creatureSpeed = 88f * GalacticMode.U * 0.9f; meleeDmg = 70f; meleeReach = 5f; score = 900; scale = new Vector3(3.2f, 3.5f, 4.5f); tint = new Color(0.4f, 0.5f, 0.3f); break;
+            }
+            health.current = health.max; health.aimHeight = 1.1f * scale.y;
+            sightRange = 140f;
+            if (model != null)
+            {
+                model.transform.localScale = scale;
+                foreach (var r in model.GetComponentsInChildren<Renderer>()) { foreach (var m in r.materials) if (m.HasProperty("_Tint")) m.SetVector("_Tint", new Vector4(tint.r, tint.g, tint.b, 1f)); }
+            }
+            if (agent != null) { agent.speed = creatureSpeed; agent.radius = 0.35f * scale.x; agent.height = 1.8f * scale.y; agent.acceleration = 30f; agent.stoppingDistance = meleeReach * 0.6f; }
+        }
+
+        /// <summary>A creature: run straight at the nearest thing on the ground and hit it; apes and raptors leap the last stretch.</summary>
+        void Creature(float dt)
+        {
+            if (target == null || !target.alive) { moveSpeed = 0f; if (model != null) model.Animate(0f, 0f, 0f, false, dt); return; }
+            var to = target.transform.position - transform.position; float dist = to.magnitude; to.y = 0f;
+            bool reach = dist < meleeReach + 0.3f;
+            meleeT -= dt; leapT -= dt;
+            if (reach)
+            {
+                if (agent != null && agent.enabled && agent.isOnNavMesh) agent.ResetPath();
+                if (meleeT <= 0f) { meleeT = kind == "trex" ? 1.6f : kind == "ape" ? 1.1f : 0.8f; target.TakeDamage(new DamageInfo { amount = meleeDmg * GalacticMode.K * 0.45f, point = target.transform.position + Vector3.up, direction = to.normalized, source = gameObject, foot = true }); if (Gunfire.Instance != null) Gunfire.Instance.Impact(target.transform.position + Vector3.up * 0.9f, -to.normalized, true); }
+                moveSpeed = 0f;
+            }
+            else if (agent != null && agent.enabled && agent.isOnNavMesh)
+            {
+                if (retargetT < 0.2f) agent.SetDestination(target.transform.position);
+                moveSpeed = agent.velocity.magnitude;
+                // the leap: apes and raptors cover the last 12 m in one bound
+                if ((kind == "ape" || kind == "raptor") && dist < 12f && dist > 4f && leapT <= 0f) { leapT = 2.5f; agent.Warp(Vector3.Lerp(transform.position, target.transform.position, 0.7f)); }
+            }
+            else
+            {
+                var step = to.normalized * creatureSpeed * dt;
+                var p = transform.position + step; p.y = GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : p.y;
+                if (p.y > GalacticMode.SeaY + 0.3f) transform.position = p;
+                moveSpeed = creatureSpeed;
+            }
+            if (to.sqrMagnitude > 0.01f) transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to), 540f * dt);
+            if (model != null) model.Animate(moveSpeed, 0f, 0f, false, dt);
+        }
         float healT, hoverT;
         public int Team { get { return health != null ? health.team : 1; } }
 
@@ -72,7 +128,7 @@ namespace BomberBuddies
             if (agent != null && agent.enabled) agent.enabled = false;
             foreach (var c in GetComponentsInChildren<Collider>()) c.enabled = false;
             if (model != null) model.Die(info.direction);
-            if (Team != 0) GameState.EnemyKilled(info.headshot);
+            if (Team != 0) GameState.EnemyKilled(info.headshot, score);
             deadT = 0f;
         }
 
@@ -129,6 +185,7 @@ namespace BomberBuddies
             }
             retargetT -= dt;
             if (retargetT <= 0f) Retarget();
+            if (melee) { Creature(dt); return; }
             if (kind == "medic") Medic(dt);
             if (kind == "vest") { Vest(dt); return; }
             if (kind == "ejet") { Jet(dt); return; }

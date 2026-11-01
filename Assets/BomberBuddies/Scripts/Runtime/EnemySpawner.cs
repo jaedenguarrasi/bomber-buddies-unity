@@ -58,7 +58,7 @@ namespace BomberBuddies
             for (int i = 0; i < nCamps; i++) camps.Add(LandSpot(GameState.Wave <= 1 ? 90f : 60f, 180f));
             queue.Clear();
             // emplacements first, then the heavy stuff, then the men; aircraft arrive on their own from the edge
-            foreach (var t in new[] { "bunker", "aa", "sam", "tank", "jeep", "inf", "egun", "medic", "vest", "ejet", "eplane", "eheli" })
+            foreach (var t in new[] { "bunker", "aa", "sam", "tank", "jeep", "inf", "egun", "medic", "vest", "ejet", "trex", "ape", "stalk", "raptor", "gob", "eplane", "eheli" })
             {
                 int k; if (!counts.TryGetValue(t, out k)) continue;
                 for (int i = 0; i < k; i++) queue.Add(t);
@@ -106,7 +106,15 @@ namespace BomberBuddies
                 if (h <= seaLevel + 1f) continue;
                 p.y = h;
                 if (player != null && Vector3.Distance(p, player.transform.position) < (GameState.Wave <= 1 ? 60f : 35f)) continue;
-                if (type == "inf" || type == "medic" || type == "egun" || type == "vest" || type == "ejet")
+                if (type == "gob" || type == "ape" || type == "raptor" || type == "stalk" || type == "trex")
+                {
+                    NavMeshHit hit = default(NavMeshHit);
+                    bool onMesh = NavMesh.SamplePosition(p, out hit, 10f, NavMesh.AllAreas);
+                    var e = Spawn(onMesh ? hit.position : p, onMesh);
+                    e.MakeCreature(type);
+                    alive.Add(e.health);
+                }
+                else if (type == "inf" || type == "medic" || type == "egun" || type == "vest" || type == "ejet")
                 {
                     NavMeshHit hit = default(NavMeshHit);
                     bool onMesh = type != "ejet" && NavMesh.SamplePosition(p, out hit, 10f, NavMesh.AllAreas);
