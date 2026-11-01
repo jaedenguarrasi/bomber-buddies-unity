@@ -168,13 +168,14 @@ namespace BomberBuddies
             Throttle = Mathf.Clamp(throttle.ReadValue<float>(), -1f, 1f);
 
             // desktop: the mouse is captured while playing (Escape frees it)
-            if (!Application.isMobilePlatform && Mouse.current != null)
+            if (!Application.isMobilePlatform && Mouse.current != null && !IsTouch)
             {
                 if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) Cursor.lockState = CursorLockMode.None;
                 else if (Mouse.current.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked && (EventSystem.current == null || !EventSystem.current.IsPointerOverGameObject())) Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = Cursor.lockState != CursorLockMode.Locked;
                 if (Cursor.lockState != CursorLockMode.Locked && fromMouse) Look = Vector2.zero;   // no spinning while the mouse is free
             }
+            else if (IsTouch && Cursor.lockState == CursorLockMode.Locked) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
         }
     }
 }
