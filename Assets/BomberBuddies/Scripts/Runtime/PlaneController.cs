@@ -48,6 +48,7 @@ namespace BomberBuddies
         Transform model, muzzleL, muzzleR, propT, rotor, tailRotor;
         float fwdU, vyU;            // the helicopter's forward and vertical speeds (original units)
         public bool Landed { get; private set; }
+        public bool Boosting { get; private set; }
         /// <summary>Cockpit view (the original's default) or the chase camera behind the aircraft.</summary>
         public bool cockpit = true;
         float fireT, bombCd, hurtTick, boostLock, camShakeT;
@@ -246,7 +247,7 @@ namespace BomberBuddies
             float sy = Mathf.Clamp(input.Move.y - ly * 0.02f, -1f, 1f);
             if (Mathf.Abs(sx) < 0.12f) sx = 0f; if (Mathf.Abs(sy) < 0.12f) sy = 0f;
             thr = Mathf.Clamp01(thr + input.Throttle * 0.9f * dt);
-            bool boosting = input.Sprint && !boostOut && boost > 0f && docked == null;
+            bool boosting = input.Sprint && !boostOut && boost > 0f && docked == null; Boosting = boosting;
             float bsec = st != null ? st.boostSec : 2.4f, brk = st != null ? st.boostRegenK : 1f;
             if (boosting) { boost -= dt / bsec; if (boost <= 0f) { boost = 0f; boostOut = true; } }
             else { boost = Mathf.Min(1f, boost + dt * brk / (bsec * 2.3f)); if (boostOut && boost > 0.25f) boostOut = false; }

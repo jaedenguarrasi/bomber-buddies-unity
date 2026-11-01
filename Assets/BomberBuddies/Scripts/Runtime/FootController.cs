@@ -17,6 +17,8 @@ namespace BomberBuddies
         Vector3 horizontal;
         float vy, crouchK, nadeCd;
         bool crouching, grounded, sprinting;
+        public bool Crouching { get { return crouching; } } public bool Sprinting { get { return sprinting; } } public bool Grounded { get { return grounded; } } public bool Aiming { get { return rifle != null && rifle.Aiming; } }
+        public int ShotsFired;
         public bool Sprinting { get { return sprinting; } }
         public float MoveSpeed { get { return horizontal.magnitude; } }
         public bool Crouching { get { return crouching; } }

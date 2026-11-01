@@ -140,6 +140,7 @@ namespace BomberBuddies
         };
 
         public static int Bank { get { return PlayerPrefs.GetInt("bb_bank", 0); } set { PlayerPrefs.SetInt("bb_bank", Mathf.Max(0, value)); } }
+        public static int Campaign { get { return PlayerPrefs.GetInt("bb_campaign", 0); } set { PlayerPrefs.SetInt("bb_campaign", value); } }
         public static int Best { get { return PlayerPrefs.GetInt("bb_best", 0); } set { PlayerPrefs.SetInt("bb_best", value); } }
         /// <summary>A mode that decides what you fly (Abduction: raid): overrides the chosen craft for the match.</summary>
         public static string Forced;
