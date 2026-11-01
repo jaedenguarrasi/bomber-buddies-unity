@@ -33,7 +33,6 @@ namespace BomberBuddies
         CameraRig rig;
         Vector3 spawnPoint;
         float spawnYaw;
-        bool respawning;
 
         /// <summary>The mode chosen in the menu survives the scene reload that starts a game.</summary>
         public static string ChosenMode;
@@ -67,6 +66,7 @@ namespace BomberBuddies
             if (mode == Mode.Island) BuildNavMesh();
             BuildPlayer();
             GameState.Hud = Hud.Create(transform);
+            var pm = PlayerManager.Create(transform, library, player, rig, cam);
             var spawner = new GameObject("Enemies").AddComponent<EnemySpawner>();
             spawner.transform.SetParent(transform, false);
             spawner.library = library; spawner.player = player; spawner.baseCount = waveBase; spawner.perWave = wavePerWave;
@@ -81,7 +81,10 @@ namespace BomberBuddies
                 return;
             }
             GameState.Spawner = spawner;
-            GameState.Hud.Announce(spawner.Mode.name + ": hold the village");
+            // like the original: you start in your plane over the island, and come back the same way
+            pm.placeOnRespawn = () => { pm.SpawnInAir(world.spawn + new Vector3(Random.Range(-40f, 40f), 0f, Random.Range(-40f, 40f))); return true; };
+            pm.SpawnInAir(world.spawn);
+            GameState.Hud.Announce(spawner.Mode.name);
             GameState.Touch();
         }
 
@@ -127,6 +130,7 @@ namespace BomberBuddies
             var profile = ScriptableObject.CreateInstance<VolumeProfile>();
             var vig = profile.Add<Vignette>(true); vig.intensity.Override(0.26f); vig.smoothness.Override(0.6f);
             var grain = profile.Add<FilmGrain>(true); grain.type.Override(FilmGrainLookup.Thin1); grain.intensity.Override(0.12f);
+            var lens = profile.Add<LensDistortion>(true); lens.intensity.Override(-0.18f); lens.scale.Override(1.0f);
             vol.profile = profile;
         }
 
@@ -199,7 +203,7 @@ namespace BomberBuddies
             var rigGo = new GameObject("CameraRig");
             rigGo.transform.SetParent(transform, false);
             rig = rigGo.AddComponent<CameraRig>();
-            rig.cam = cam; rig.player = player; rig.yaw = spawnYaw; rig.pitch = 6f; rig.baseFov = 58f; rig.fpFov = 58f; rig.aimFov = 36f;
+            rig.cam = cam; rig.player = player; rig.yaw = spawnYaw; rig.pitch = 6f; rig.baseFov = 58f; rig.fpFov = 92f; rig.aimFov = 48f;
             player.rig = rig;
 
             var rifle = pgo.AddComponent<Rifle>();
@@ -208,30 +212,9 @@ namespace BomberBuddies
             player.rifle = rifle;
 
             playerHealth.OnDamaged += info => { lastHurt = Time.time; if (GameState.Hud != null) GameState.Hud.Damaged(info.amount); };
-            playerHealth.OnDied += info => { Debug.Log("Player down: " + info.amount + " damage from " + (info.source != null ? info.source.name : "?") + " at " + player.transform.position); if (!respawning && mode == Mode.Island) StartCoroutine(Respawn()); };
+            playerHealth.OnDied += info => { Debug.Log("Player down: " + info.amount + " damage from " + (info.source != null ? info.source.name : "?") + " at " + player.transform.position); };
             GameState.Player = player;
             GameState.Rig = rig;
-        }
-
-        IEnumerator Respawn()
-        {
-            respawning = true;
-            GameState.Deaths++;
-            player.ControlsLocked = true;
-            if (player.model != null) player.model.Die(Vector3.forward);
-            if (GameState.Hud != null) GameState.Hud.Announce("You're down");
-            yield return new WaitForSeconds(3.2f);
-            // a fresh figure: the old one has fallen over
-            var old = player.model;
-            var model = SoldierModelBase.Create(player.transform, library, 0, 8);
-            player.model = model;
-            if (old != null) Destroy(old.gameObject);
-            player.Teleport(spawnPoint, spawnYaw);
-            playerHealth.ResetFull();
-            player.rifle.ammo = player.rifle.magSize;
-            player.ControlsLocked = false;
-            if (GameState.Hud != null) GameState.Hud.Announce("Back in the fight");
-            respawning = false;
         }
 
         float lastHurt = -99f;
@@ -239,15 +222,11 @@ namespace BomberBuddies
         void Update()
         {
             // health comes back after a few seconds out of fire, like most modern shooters
-            if (playerHealth != null && playerHealth.alive && !respawning)
+            if (playerHealth != null && playerHealth.alive)
             {
                 if (Time.time - lastHurt > 4f && playerHealth.current < playerHealth.max) playerHealth.Heal(22f * Time.deltaTime);
             }
             if (cam != null && world != null) SetSky(Mathf.Clamp01((cam.transform.position.y / World3.U - 1500f) / 2300f));
-            if (mode == Mode.Island && player != null && playerHealth != null && playerHealth.alive && player.transform.position.y < seaY - 1.4f && !respawning)
-            {
-                playerHealth.TakeDamage(new DamageInfo { amount = 9999f, point = player.transform.position, direction = Vector3.down, source = gameObject });
-            }
         }
     }
 }

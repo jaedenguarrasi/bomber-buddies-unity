@@ -137,7 +137,7 @@ namespace BomberBuddies
             if (launchT > 0f) launchT -= dt;
             health.isAir = docked == null;
             Carrier hs = null;
-            if (launchT <= 0f && gm != null) hs = gm.HangarAt(transform.position);
+            if (launchT <= 0f && PlayerManager.Instance != null && PlayerManager.Instance.hangarAt != null) hs = PlayerManager.Instance.hangarAt(transform.position);
             if (hs != null || docked != null) { DockStep(hs != null ? hs : docked, sx, boosting, dt); }
             else if (IsHeli) FlyHeli(sx, sy, boosting, dt);
             else Fly(sx, sy, boosting, dt);
@@ -153,8 +153,10 @@ namespace BomberBuddies
             if (input.BombPressed && docked == null && bombs > 0 && bombCd <= 0f) DropBomb();
             if (input.InteractPressed)
             {
-                if (docked != null || (IsHeli && Landed)) { if (gm != null) gm.ExitToFoot(); return; }
-                else if (gm != null && transform.position.y > gm.ObstacleHeight(transform.position.x, transform.position.z) + 18f * U) { gm.BailOut(); return; }
+                var pm = PlayerManager.Instance;
+                float obst = gm != null ? gm.ObstacleHeight(transform.position.x, transform.position.z) : (GameState.GroundHeight != null ? GameState.GroundHeight(transform.position.x, transform.position.z) : 0f);
+                if (docked != null || (IsHeli && Landed)) { if (pm != null) pm.ExitToFoot(); return; }
+                else if (pm != null && transform.position.y > obst + 18f * U) { pm.BailOut(); return; }
                 else if (GameState.Hud != null) GameState.Hud.Announce(IsHeli ? "Land first to get out" : "Land in a hangar to get out");
             }
             if (input.ViewPressed) cockpit = !cockpit;
@@ -261,7 +263,7 @@ namespace BomberBuddies
             var from = transform.position; var to = from + v * dt;
             var gm = GalacticMode.Instance;
             float ground = GameState.GroundHeight != null ? GameState.GroundHeight(to.x, to.z) : 0f;
-            if (gm != null) { float f = gm.HangarFloorOrNaN(to); if (!float.IsNaN(f)) ground = Mathf.Max(ground, f); }
+            if (PlayerManager.Instance != null && PlayerManager.Instance.cockpitFloor != null) { float f = PlayerManager.Instance.cockpitFloor(to); if (!float.IsNaN(f)) ground = Mathf.Max(ground, f); }
             // the skids
             if (to.y <= ground + 0.9f && vyU <= 0f)
             {
