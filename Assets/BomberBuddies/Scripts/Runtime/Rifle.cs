@@ -17,11 +17,15 @@ namespace BomberBuddies
         public Transform viewModel, viewMuzzle;
 
         float cooldown, reloadT, kick, swayX, swayY, bobT;
-        Vector3 vmRest = new Vector3(0.24f, -0.21f, 0.48f), vmAim = new Vector3(0f, -0.145f, 0.36f);
+        Vector3 vmRest = new Vector3(0.26f, -0.22f, 0.44f), vmAim = new Vector3(0f, -0.15f, 0.34f);
 
         public void BuildViewModel(MaterialLibrary lib)
         {
-            var metal = lib.Get("gunmetal"); var wood = lib.Get("wood"); var glove = lib.Get("dark"); var sleeve = lib.Get("uniform");
+            // the original's service rifle: a black boxy gun held in tan hands with olive sleeves
+            var metal = lib.Instance("gunmetal"); metal.SetColor("_BaseColor", new Color(0.09f, 0.09f, 0.1f)); metal.SetFloat("_Metallic", 0.3f); metal.SetFloat("_Smoothness", 0.45f);
+            var wood = lib.Instance("dark"); wood.SetColor("_BaseColor", new Color(0.12f, 0.11f, 0.11f));
+            var glove = lib.Instance("skin"); glove.SetColor("_BaseColor", new Color(214f / 255f, 170f / 255f, 130f / 255f));
+            var sleeve = lib.Instance("uniform"); sleeve.SetColor("_BaseColor", new Color(76f / 255f, 91f / 255f, 46f / 255f));
             viewModel = new GameObject("RifleView").transform;
             viewModel.SetParent(rig.cam.transform, false);
             viewModel.localPosition = vmRest;
