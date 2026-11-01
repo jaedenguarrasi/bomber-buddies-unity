@@ -55,6 +55,7 @@ namespace BomberBuddies
                     posts.Add(CommandPost.Build(transform, lib, names[i], at, i == 0 ? 1 : i < 3 ? 0 : -1));
                 }
                 if (GameState.Hud != null) GameState.Hud.Announce("Conquest: take the posts, run their reinforcements to zero", 5f);
+                foreach (var cp in posts) { var p = cp; GameState.Hud.AddMarker(() => p.transform.position + Vector3.up * 6f, () => p.postName, () => p.own == 1 ? new Color(0.45f, 0.65f, 1f) : p.own == -1 ? new Color(1f, 0.3f, 0.25f) : Color.white); }
             }
             else if (modeId == "strike")
             {
@@ -67,6 +68,7 @@ namespace BomberBuddies
                     var d = EnemyVehicle.Build(transform, lib, EnemyVehicle.Kind.Bunker, q, 1);
                     d.name = "Fuel depot"; d.health.max *= 2.5f; d.health.current = d.health.max;
                     depots.Add(d.health);
+                    if (GameState.Hud != null) { var dp = d.health; GameState.Hud.AddMarker(() => dp.transform.position + Vector3.up * 5f, () => "Depot", () => new Color(1f, 0.55f, 0.2f), () => dp != null && dp.alive); }
                     EnemyVehicle.Build(transform, lib, EnemyVehicle.Kind.AA, LandNear(q + Random.insideUnitSphere.Flat() * 70f * U), 1);
                     EnemyVehicle.Build(transform, lib, EnemyVehicle.Kind.Sam, LandNear(q + Random.insideUnitSphere.Flat() * 70f * U), 1);
                     for (int k = 0; k < 2; k++) { var ai = spawner.Spawn(LandNear(q + Random.insideUnitSphere.Flat() * 70f * U), false, 1); ai.attackRange = 50f; ai.sightRange = 90f; }
@@ -81,6 +83,7 @@ namespace BomberBuddies
                 var g = LandNear(new Vector3(Random.Range(-1f, 1f), 0f, Random.Range(-1f, 1f)).normalized * 600f * U * World3.Spread);
                 var ai = spawner.Spawn(g, false, 1); ai.name = "The general"; ai.attackRange = 40f; ai.health.max = 220f; ai.health.current = 220f; ai.walkSpeed = 1.5f;
                 vip = ai.health;
+                if (GameState.Hud != null) { var v = vip; GameState.Hud.AddMarker(() => v.transform.position + Vector3.up * 2.4f, () => "The general", () => new Color(1f, 0.85f, 0.3f), () => v != null && v.alive); }
                 for (int k = 0; k < 4; k++) { var b = spawner.Spawn(LandNear(g + Random.insideUnitSphere.Flat() * 40f * U), false, 1); b.attackRange = 50f; b.sightRange = 90f; b.damage = 7f; }
                 exitPoint = LandNear(-g.normalized * 700f * U * World3.Spread);
                 var heli = CraftModels.Heli(transform, lib, CraftModels.Foe, 9); heli.transform.position = exitPoint + Vector3.up * 0.9f; heli.name = "Escape helicopter";
@@ -93,11 +96,13 @@ namespace BomberBuddies
                 var s0 = LandNear(new Vector3(-1150f * U * World3.Spread, 0f, Random.Range(-300f, 300f) * U * World3.Spread));
                 var s1 = LandNear(new Vector3(1150f * U * World3.Spread, 0f, Random.Range(-300f, 300f) * U * World3.Spread));
                 convoyGoal = s1;
+                if (GameState.Hud != null) GameState.Hud.AddMarker(() => convoyGoal + Vector3.up * 4f, () => "Far side", () => new Color(0.5f, 1f, 0.6f));
                 for (int i = 0; i < 3; i++)
                 {
                     var t = EnemyVehicle.Build(transform, lib, EnemyVehicle.Kind.Jeep, LandNear(s0 + new Vector3(-i * 40f * U, 0f, i * 8f * U)), 0);
                     t.name = "Truck " + (i + 1); t.health.max *= 3f; t.health.current = t.health.max; t.convoyGoal = convoyGoal; t.speed = 32f * U;
                     trucks.Add(t);
+                    if (GameState.Hud != null) { var tr = t; GameState.Hud.AddMarker(() => tr.transform.position + Vector3.up * 3f, () => tr.name, () => new Color(0.45f, 0.65f, 1f), () => tr != null && tr.health.alive && !tr.arrived); }
                 }
                 spawnT = 6f;
                 if (GameState.Hud != null) GameState.Hud.Announce("Convoy: get two of three trucks across the island", 5f);
@@ -134,6 +139,7 @@ namespace BomberBuddies
                     beacon.transform.SetParent(transform, false); beacon.transform.position = pos + Vector3.up * (h + 60f) * U; beacon.transform.localScale = new Vector3(2.2f * U, 120f * U, 2.2f * U);
                     var m = lib != null ? lib.Instance("glow") : null; if (m != null) { m.SetColor("_BaseColor", new Color(120f / 255f, 200f / 255f, 1f)); m.SetColor("_EmissionColor", new Color(0.4f, 0.75f, 1f) * 4f); beacon.GetComponent<Renderer>().sharedMaterial = m; }
                     towerBeacon = beacon.transform;
+                    if (GameState.Hud != null) { var tw = tower; GameState.Hud.AddMarker(() => tw.transform.position + Vector3.up * 8f, () => "The tower  " + Mathf.RoundToInt(tw.Fraction * 100f) + "%", () => new Color(0.5f, 0.8f, 1f), () => tw != null && tw.alive); }
                     if (GameState.Hud != null) GameState.Hud.Announce("Hold the Tower: keep the marked tower standing through eight waves", 5f);
                 }
             }

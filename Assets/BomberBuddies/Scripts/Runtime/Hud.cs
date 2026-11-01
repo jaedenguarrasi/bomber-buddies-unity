@@ -27,6 +27,41 @@ namespace BomberBuddies
         Rect lastSafe;
         PlaneController flight;
         public GroundVehicle drive;
+        /// <summary>World-space markers for objectives (the original's overlay markers): a diamond and a label, clamped to the screen edge when off it.</summary>
+        public class Marker { public System.Func<Vector3> at; public System.Func<string> label; public System.Func<Color> color; public System.Func<bool> alive; }
+        public readonly List<Marker> markers = new List<Marker>();
+        readonly List<Transform> markerUi = new List<Transform>();
+        public void AddMarker(System.Func<Vector3> at, System.Func<string> label, System.Func<Color> color, System.Func<bool> alive = null) { markers.Add(new Marker { at = at, label = label, color = color, alive = alive }); }
+
+        void UpdateMarkers()
+        {
+            var cam = Camera.main; if (cam == null) return;
+            while (markerUi.Count < markers.Count)
+            {
+                var r = Rect("Marker", transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(16f, 16f));
+                var im = r.gameObject.AddComponent<Image>(); im.sprite = Circle(); im.color = Color.white; im.raycastTarget = false; r.localRotation = Quaternion.Euler(0f, 0f, 45f);
+                var t = Txt("Label", r, new Vector2(0.5f, 0.5f), new Vector2(0f, -22f), new Vector2(220f, 20f), 13, TextAnchor.MiddleCenter, Color.white, true); t.transform.localRotation = Quaternion.Euler(0f, 0f, -45f);
+                markerUi.Add(r);
+            }
+            float k = canvas.scaleFactor; float hw = Screen.width * 0.5f / k - 40f, hh = Screen.height * 0.5f / k - 60f;
+            for (int i = 0; i < markerUi.Count; i++)
+            {
+                var ui = markerUi[i];
+                if (i >= markers.Count || (markers[i].alive != null && !markers[i].alive())) { ui.gameObject.SetActive(false); continue; }
+                var m = markers[i]; var wp = m.at();
+                var sp = cam.WorldToScreenPoint(wp);
+                var p = new Vector2((sp.x - Screen.width * 0.5f) / k, (sp.y - Screen.height * 0.5f) / k);
+                bool behind = sp.z < 0f; if (behind) p = -p;
+                bool clamped = behind || Mathf.Abs(p.x) > hw || Mathf.Abs(p.y) > hh;
+                if (clamped) { float sx = Mathf.Abs(p.x) / hw, sy = Mathf.Abs(p.y) / hh, sc = Mathf.Max(sx, sy, 0.0001f); p /= sc; }
+                ui.gameObject.SetActive(true);
+                ui.GetComponent<RectTransform>().anchoredPosition = p;
+                var col = m.color(); ui.GetComponent<Image>().color = new Color(col.r, col.g, col.b, clamped ? 0.55f : 0.9f);
+                ui.localScale = Vector3.one * (clamped ? 0.7f : 1f);
+                float dist = Vector3.Distance(wp, cam.transform.position) / GalacticMode.U;
+                var t = ui.GetComponentInChildren<Text>(); t.text = m.label() + (clamped ? "" : "  " + Mathf.RoundToInt(dist)); t.color = col;
+            }
+        }
         readonly Dictionary<string, Text> labels = new Dictionary<string, Text>();
         readonly Dictionary<string, Image> buttons = new Dictionary<string, Image>();
         readonly List<Image> radarDots = new List<Image>();
@@ -419,6 +454,7 @@ namespace BomberBuddies
             livesText.text = Lives(Mathf.Max(0, 3 - GameState.Deaths % 3));
             if (canopy != null) canopy.enabled = fly && flight.cockpit;
             UpdateRadar();
+            UpdateMarkers();
             if (hitT > 0f) { hitT -= dt; if (hitT <= 0f) foreach (var im in hitMarkerRoot.GetComponentsInChildren<Image>()) im.color = new Color(1f, 1f, 1f, 0f); }
             if (flashT > 0f) { flashT -= dt; damageFlash.color = new Color(0.65f, 0f, 0f, Mathf.Clamp01(flashT) * 0.45f); } else damageFlash.color = new Color(0.65f, 0f, 0f, 0f);
             if (messageT > 0f) { messageT -= dt; if (messageT <= 0f) message.text = ""; else message.color = new Color(1f, 1f, 1f, Mathf.Clamp01(messageT * 1.5f)); }
