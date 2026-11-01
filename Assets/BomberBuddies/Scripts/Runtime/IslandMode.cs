@@ -41,8 +41,10 @@ namespace BomberBuddies
             return m;
         }
 
+        float survive;   // a timed mode of the plain kind: last this long and it is yours (the hunts), or the clock runs out on the score (Demolition)
         void Setup()
         {
+            ModeDefs.Mode md; if (ModeDefs.All.TryGetValue(modeId, out md) && md.timer > 0f && modeId != "strike" && modeId != "assassin") survive = md.timer;
             if (modeId == "conquest")
             {
                 // five posts spread over the island, on dry open ground
@@ -211,6 +213,11 @@ namespace BomberBuddies
                     inf.objective = best != null ? (Vector3?)best.transform.position : null;
                 }
             }
+            if (survive > 0f)
+            {
+                survive -= dt;
+                if (survive <= 0f) { survive = 0f; End(true, modeId == "demo" ? "Time. " + (World3.Instance != null ? World3.Instance.buildingsDown : 0) + " buildings brought down." : modeId == "hunt" ? "Dawn. You made it through the night." : "Time. You are still standing."); return; }
+            }
             if (timeLeft > 0f && (modeId == "strike" || modeId == "assassin"))
             {
                 timeLeft -= dt;
@@ -316,6 +323,7 @@ namespace BomberBuddies
                 else if (modeId == "assassin") GameState.Hud.SetModeLine(Clock(timeLeft) + " · the general " + (vip != null && vip.alive ? Mathf.RoundToInt(Vector3.Distance(vip.transform.position, exitPoint) / U) + " from his helicopter" : "is down"));
                 else if (modeId == "air") GameState.Hud.SetModeLine("Shot down " + downed + " / " + AirGoal);
                 else if (modeId == "convoy") GameState.Hud.SetModeLine("Trucks across " + trucksThrough + " / 3");
+                else if (survive > 0f) GameState.Hud.SetModeLine(Clock(survive) + (modeId == "demo" ? " · buildings down " + (World3.Instance != null ? World3.Instance.buildingsDown : 0) : " · hold on"));
                 else if (modeId == "conquest") GameState.Hud.SetModeLine("Posts " + PostsHeld + "/" + posts.Count + " · yours " + Mathf.CeilToInt(yourTickets) + " · theirs " + Mathf.CeilToInt(theirTickets));
                 else if (modeId == "defend" && tower != null) GameState.Hud.SetModeLine("Tower " + Mathf.RoundToInt(tower.Fraction * 100f) + "% · wave " + GameState.Wave + "/8");
             }
