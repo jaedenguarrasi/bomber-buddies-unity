@@ -22,6 +22,9 @@ namespace BomberBuddies
         public bool Crouching { get { return crouching; } }
         public float EyeHeight { get { return Mathf.Lerp(1.64f, 1.12f, crouchK); } }
         public bool ControlsLocked { get; set; }
+        /// <summary>Chute open: falls gently and steers. Jump opens it after a second in the air; landing closes it.</summary>
+        public bool parachute;
+        float airT;
 
         void Awake()
         {
@@ -98,10 +101,17 @@ namespace BomberBuddies
 
             if (grounded)
             {
-                vy = -2.5f;
+                if (vy < -20f && health != null) health.TakeDamage(new DamageInfo { amount = (-vy - 20f) * 5f, point = transform.position, direction = Vector3.down, source = gameObject });
+                vy = -2.5f; airT = 0f; parachute = false;
                 if (input.JumpPressed) { vy = jumpSpeed; crouching = false; }
             }
-            else vy -= gravity * dt;
+            else
+            {
+                airT += dt;
+                vy -= gravity * dt;
+                if (airT > 1.2f && input.JumpPressed && !parachute) { parachute = true; if (GameState.Hud != null) GameState.Hud.Announce("Parachute open"); }
+                if (parachute) vy = Mathf.Max(vy, -4.1f);
+            }
 
             var flags = cc.Move((horizontal + Vector3.up * vy) * dt);
             grounded = cc.isGrounded || (flags & CollisionFlags.Below) != 0;

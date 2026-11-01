@@ -11,6 +11,8 @@ namespace BomberBuddies
         public static Hud Hud;
         public static EnemySpawner Spawner;
         public static MaterialLibrary Library;
+        /// <summary>The walkable ground height at (x, z), for anything that moves without a navmesh.</summary>
+        public static Func<float, float, float> GroundHeight;
         public static int Kills, Headshots, Wave, Deaths;
         public static event Action Changed;
         public static event Action<bool> Killed;

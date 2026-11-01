@@ -45,6 +45,7 @@ namespace BomberBuddies
             Projectiles.Create(transform, library);
             BuildLighting();
             terrain = IslandBuilder.Build(transform, seed, islandSize, maxHeight, seaLevel, library);
+            GameState.GroundHeight = (x, z) => IslandBuilder.GroundHeight(terrain, x, z);
             BuildWater();
             world = WorldProps.Build(transform, terrain, seed, islandSize, seaLevel, library, treeCount, rockCount);
             if (mode == Mode.Island) BuildNavMesh();
@@ -151,7 +152,7 @@ namespace BomberBuddies
             pgo.layer = 8;
             pgo.transform.SetParent(transform, false);
             pgo.transform.position = spawnPoint;
-            playerHealth = pgo.AddComponent<Health>(); playerHealth.max = 100f; playerHealth.current = 100f; playerHealth.team = 0;
+            playerHealth = pgo.AddComponent<Health>(); playerHealth.max = 100f; playerHealth.current = 100f; playerHealth.team = 0; playerHealth.aimHeight = 1.3f;
             var zone = pgo.AddComponent<HitZone>(); zone.owner = playerHealth; zone.multiplier = 1f;
             player = pgo.AddComponent<FootController>();
             player.health = playerHealth;

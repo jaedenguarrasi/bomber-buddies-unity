@@ -37,7 +37,7 @@ namespace BomberBuddies
             foreach (var c in go.GetComponentsInChildren<Collider>()) c.gameObject.layer = 0;
             var g = go.AddComponent<ShipGun>();
             g.heavy = heavy; g.under = under; g.ship = ship; g.turret = tur; g.barrels = bar;
-            g.part = ship.AddPart(heavy ? "scannon" : "sgun", lx, ly, lz, heavy ? 538f : 192f, heavy ? 0.35f : 0.5f, 1.2f, go);
+            g.part = ship.AddPart(heavy ? "scannon" : "sgun", lx, ly, lz, (heavy ? 538f : 192f) * GalacticMode.K, heavy ? 0.35f : 0.5f, 1.2f, go);
             if (under) go.transform.localRotation = Quaternion.Euler(180f, 0f, 0f);
             g.cd = Random.Range(1f, 3f);
             ship.guns.Add(g);

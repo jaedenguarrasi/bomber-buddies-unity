@@ -63,20 +63,21 @@ namespace BomberBuddies
             return false;
         }
 
-        public EnemySoldier Spawn(Vector3 at, bool withAgent = true)
+        public EnemySoldier Spawn(Vector3 at, bool withAgent = true, int team = 1)
         {
-            var go = new GameObject("Enemy");
+            var go = new GameObject(team == 0 ? "Squad rifleman" : "Enemy");
             go.transform.SetParent(transform, false);
             go.transform.position = at;
             go.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-            go.layer = 9;
-            var hp = go.AddComponent<Health>(); hp.max = 100f; hp.current = 100f; hp.team = 1;
+            int layer = team == 0 ? 8 : 9;
+            go.layer = layer;
+            var hp = go.AddComponent<Health>(); hp.max = 100f; hp.current = 100f; hp.team = team;
             var body = go.AddComponent<CapsuleCollider>(); body.center = new Vector3(0f, 0.95f, 0f); body.height = 1.5f; body.radius = 0.3f;
             var bz = go.AddComponent<HitZone>(); bz.owner = hp; bz.multiplier = 1f;
-            var headGo = new GameObject("HeadZone"); headGo.transform.SetParent(go.transform, false); headGo.transform.localPosition = new Vector3(0f, 1.68f, 0f); headGo.layer = 9;
+            var headGo = new GameObject("HeadZone"); headGo.transform.SetParent(go.transform, false); headGo.transform.localPosition = new Vector3(0f, 1.68f, 0f); headGo.layer = layer;
             var hc = headGo.AddComponent<SphereCollider>(); hc.radius = 0.17f;
             var hz = headGo.AddComponent<HitZone>(); hz.owner = hp; hz.multiplier = 2.4f; hz.head = true;
-            var model = SoldierModelBase.Create(go.transform, library, 1, 9);
+            var model = SoldierModelBase.Create(go.transform, library, team, layer);
             NavMeshAgent agent = withAgent ? go.AddComponent<NavMeshAgent>() : null;
             var ai = go.AddComponent<EnemySoldier>();
             ai.model = model;

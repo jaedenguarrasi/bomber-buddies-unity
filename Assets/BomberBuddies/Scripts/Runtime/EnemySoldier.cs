@@ -3,28 +3,34 @@ using UnityEngine.AI;
 
 namespace BomberBuddies
 {
-    /// <summary>Enemy infantry: wanders until it sees you, then closes to rifle range, stops, shoots in bursts, and shifts position
-    /// between bursts. Hearing a shot or taking a hit puts it on alert.</summary>
+    /// <summary>
+    /// A rifleman on either side. Wanders until he sees an enemy, closes to rifle range, stops, shoots in bursts, and shifts
+    /// position between bursts. Hearing a shot or taking a hit puts him on alert. Walks the navmesh where there is one, or
+    /// straight over the terrain where there is not (the original had no pathfinding either); a guard never leaves his post.
+    /// </summary>
     public class EnemySoldier : MonoBehaviour
     {
         public float sightRange = 75f, fieldOfView = 150f, attackRange = 26f, loseAfter = 6f;
         public float damage = 7f, burstGap = 0.12f, pauseBetweenBursts = 2.2f, spreadDeg = 6.5f, reactionTime = 1.6f;
+        public float walkSpeed = 1.9f;
         public SoldierModelBase model;
         public Health health;
         /// <summary>A ship's guard: stands his post (no navmesh needed) and shoots whoever comes through the door.</summary>
         public bool guard;
+        public int Team { get { return health != null ? health.team : 1; } }
 
         NavMeshAgent agent;
-        FootController player;
+        Health target;
         enum State { Wander, Chase, Attack, Dead }
         State state = State.Wander;
-        float wanderT, lastSeen = -99f, burstT, burstLeft, pauseT, shiftT, lookYaw, deadT;
-        Vector3 lastKnown, eye = new Vector3(0f, 1.55f, 0f), muzzleFallback = new Vector3(0.2f, 1.35f, 0.4f);
+        float wanderT, lastSeen = -99f, burstT, burstLeft, pauseT, shiftT, lookYaw, deadT, retargetT, moveSpeed;
+        Vector3 lastKnown, eye = new Vector3(0f, 1.55f, 0f), muzzleFallback = new Vector3(0.2f, 1.35f, 0.4f), wanderTo;
 
         void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
-            if (agent == null) { guard = true; gameObject.layer = 9; lookYaw = transform.eulerAngles.y; return; }
+            lookYaw = transform.eulerAngles.y;
+            if (agent == null) return;
             agent.speed = 3.6f;
             agent.angularSpeed = 540f;
             agent.acceleration = 14f;
@@ -32,17 +38,16 @@ namespace BomberBuddies
             agent.height = 1.8f;
             agent.updateRotation = false;
             agent.stoppingDistance = 1.5f;
-            gameObject.layer = 9;
-            lookYaw = transform.eulerAngles.y;
         }
 
-        public void Init(FootController target, Health hp)
+        public void Init(FootController unused, Health hp)
         {
-            player = target;
             health = hp;
+            health.aimHeight = 1.3f;
             health.OnDied += OnDied;
             health.OnDamaged += OnDamaged;
             wanderT = Random.Range(0.5f, 3f);
+            gameObject.layer = Team == 0 ? 8 : 9;
         }
 
         float noticedAt = -99f;
@@ -50,7 +55,8 @@ namespace BomberBuddies
         void OnDamaged(DamageInfo info)
         {
             if (state == State.Dead) return;
-            if (player != null) { lastKnown = player.transform.position; lastSeen = Time.time; if (state == State.Wander) state = State.Chase; }
+            if (target != null) { lastKnown = target.transform.position; lastSeen = Time.time; if (state == State.Wander) state = State.Chase; }
+            else if (info.source != null) { lastKnown = info.source.transform.position; lastSeen = Time.time; if (state == State.Wander) state = State.Chase; }
         }
 
         void OnDied(DamageInfo info)
@@ -60,7 +66,7 @@ namespace BomberBuddies
             if (agent != null && agent.enabled) agent.enabled = false;
             foreach (var c in GetComponentsInChildren<Collider>()) c.enabled = false;
             if (model != null) model.Die(info.direction);
-            GameState.EnemyKilled(info.headshot);
+            if (Team != 0) GameState.EnemyKilled(info.headshot);
             deadT = 0f;
         }
 
@@ -76,9 +82,9 @@ namespace BomberBuddies
         bool CanSee(out Vector3 targetPoint)
         {
             targetPoint = Vector3.zero;
-            if (player == null || player.health == null || !player.health.alive) return false;
+            if (target == null || !target.alive || !target.gameObject.activeInHierarchy) return false;
             var headPos = transform.position + eye;
-            targetPoint = player.transform.position + Vector3.up * (player.EyeHeight - 0.35f);
+            targetPoint = target.transform.position + Vector3.up * target.aimHeight;
             var to = targetPoint - headPos;
             float d = to.magnitude;
             if (d > sightRange) return false;
@@ -88,11 +94,21 @@ namespace BomberBuddies
                 if (ang > fieldOfView * 0.5f && d > 7f) return false;
             }
             RaycastHit hit;
-            if (Physics.Raycast(headPos, to / d, out hit, d, ~(1 << 9), QueryTriggerInteraction.Ignore))
+            int mask = ~(1 << (Team == 0 ? 8 : 9));
+            if (Physics.Raycast(headPos, to / d, out hit, d, mask, QueryTriggerInteraction.Ignore))
             {
-                return hit.collider.gameObject.layer == 8 || hit.collider.GetComponentInParent<FootController>() != null;
+                var h = hit.collider.GetComponentInParent<Health>();
+                return h == target;
             }
             return true;
+        }
+
+        void Retarget()
+        {
+            retargetT = Random.Range(0.3f, 0.6f);
+            if (target != null && target.alive && target.gameObject.activeInHierarchy && Vector3.Distance(target.transform.position, transform.position) < sightRange * 1.2f) return;
+            // ground troops only deal with things on the ground
+            target = Health.Nearest(Team, transform.position, sightRange, false);
         }
 
         void Update()
@@ -105,13 +121,14 @@ namespace BomberBuddies
                 if (deadT > 12f) { transform.position += Vector3.down * dt * 0.4f; if (deadT > 16f) Destroy(gameObject); }
                 return;
             }
-            if (guard || agent == null) { GuardUpdate(dt); return; }
-            if (!agent.isOnNavMesh) { if (model != null) model.Animate(0f, 0f, 0f, false, dt); return; }
+            retargetT -= dt;
+            if (retargetT <= 0f) Retarget();
+            if (guard || agent == null || !agent.isOnNavMesh) { SimpleUpdate(dt, !guard); return; }
 
-            Vector3 target;
-            bool seen = CanSee(out target);
-            if (seen) { if (Time.time - lastSeen > 3f) noticedAt = Time.time; lastKnown = player.transform.position; lastSeen = Time.time; }
-            float dist = player != null ? Vector3.Distance(transform.position, player.transform.position) : 999f;
+            Vector3 tp;
+            bool seen = CanSee(out tp);
+            if (seen) { if (Time.time - lastSeen > 3f) noticedAt = Time.time; lastKnown = target.transform.position; lastSeen = Time.time; }
+            float dist = target != null ? Vector3.Distance(transform.position, target.transform.position) : 999f;
 
             switch (state)
             {
@@ -147,47 +164,67 @@ namespace BomberBuddies
                     }
                     if (agent.hasPath && !agent.pathPending && agent.remainingDistance < 0.8f) agent.ResetPath();
                     agent.speed = 3.2f;
-                    if (seen && Time.time - noticedAt > reactionTime) Fire(target, dt);
+                    if (seen && Time.time - noticedAt > reactionTime) Fire(tp, dt);
                     break;
             }
-
-            // turning: face the way we walk, or the target when we have one
-            Vector3 face = state == State.Attack || (state == State.Chase && seen) ? (lastKnown - transform.position) : (agent.velocity.sqrMagnitude > 0.2f ? agent.velocity : Vector3.zero);
-            face.y = 0f;
-            if (face.sqrMagnitude > 0.01f)
-            {
-                float wantYaw = Mathf.Atan2(face.x, face.z) * Mathf.Rad2Deg;
-                lookYaw = Mathf.MoveTowardsAngle(lookYaw, wantYaw, 420f * dt);
-            }
-            transform.rotation = Quaternion.Euler(0f, lookYaw, 0f);
-            if (model != null)
-            {
-                float aimPitch = 0f;
-                if (state == State.Attack && player != null) { var to = target - (transform.position + eye); aimPitch = Mathf.Atan2(to.y, new Vector2(to.x, to.z).magnitude) * Mathf.Rad2Deg; }
-                model.Animate(agent.velocity.magnitude, aimPitch, 0f, false, dt);
-            }
+            moveSpeed = agent.velocity.magnitude;
+            Turn(seen, agent.velocity, dt);
+            Pose(seen ? tp : lastKnown, dt);
         }
 
-        void GuardUpdate(float dt)
+        /// <summary>No navmesh: walk straight at the last known position over the terrain, stop at rifle range, shoot.</summary>
+        void SimpleUpdate(float dt, bool canMove)
         {
-            Vector3 target;
-            bool seen = CanSee(out target);
-            if (seen) { if (Time.time - lastSeen > 3f) noticedAt = Time.time; lastKnown = player.transform.position; lastSeen = Time.time; state = State.Attack; }
+            Vector3 tp;
+            bool seen = CanSee(out tp);
+            if (seen) { if (Time.time - lastSeen > 3f) noticedAt = Time.time; lastKnown = target.transform.position; lastSeen = Time.time; if (state != State.Attack) state = Vector3.Distance(transform.position, lastKnown) < attackRange ? State.Attack : State.Chase; }
             else if (Time.time - lastSeen > loseAfter) state = State.Wander;
-            if (state == State.Attack && seen && Time.time - noticedAt > reactionTime) Fire(target, dt);
-            Vector3 face = state == State.Attack ? lastKnown - transform.position : Vector3.zero;
+            float dist = Vector3.Distance(transform.position, lastKnown);
+            if (state == State.Attack && dist > attackRange * 1.3f) state = State.Chase;
+            if (state == State.Chase && seen && dist < attackRange) state = State.Attack;
+            Vector3 vel = Vector3.zero;
+            if (canMove)
+            {
+                Vector3 goal = Vector3.zero; bool go = false;
+                if (state == State.Chase) { goal = lastKnown; go = dist > attackRange * 0.8f; }
+                else if (state == State.Wander)
+                {
+                    wanderT -= dt;
+                    if (wanderT <= 0f) { wanderT = Random.Range(4f, 9f); wanderTo = transform.position + new Vector3(Random.Range(-20f, 20f), 0f, Random.Range(-20f, 20f)); }
+                    goal = wanderTo; go = Vector3.Distance(transform.position, wanderTo) > 1.5f && wanderT < 7f;
+                }
+                if (go)
+                {
+                    var d = goal - transform.position; d.y = 0f;
+                    if (d.sqrMagnitude > 0.01f) vel = d.normalized * (state == State.Chase ? walkSpeed * 1.6f : walkSpeed);
+                }
+                var p = transform.position + vel * dt;
+                if (GameState.GroundHeight != null) p.y = GameState.GroundHeight(p.x, p.z);
+                transform.position = p;
+            }
+            if (state == State.Attack && seen && Time.time - noticedAt > reactionTime) Fire(tp, dt);
+            moveSpeed = vel.magnitude;
+            Turn(seen || state == State.Attack, vel, dt);
+            Pose(state == State.Attack ? (seen ? tp : lastKnown) : lastKnown, dt);
+        }
+
+        void Turn(bool facingTarget, Vector3 vel, float dt)
+        {
+            Vector3 face = facingTarget || state == State.Attack ? (lastKnown - transform.position) : (vel.sqrMagnitude > 0.2f ? vel : Vector3.zero);
             face.y = 0f;
             if (face.sqrMagnitude > 0.01f) lookYaw = Mathf.MoveTowardsAngle(lookYaw, Mathf.Atan2(face.x, face.z) * Mathf.Rad2Deg, 420f * dt);
             transform.rotation = Quaternion.Euler(0f, lookYaw, 0f);
-            if (model != null)
-            {
-                float aimPitch = 0f;
-                if (state == State.Attack) { var to = target - (transform.position + eye); aimPitch = Mathf.Atan2(to.y, new Vector2(to.x, to.z).magnitude) * Mathf.Rad2Deg; }
-                model.Animate(0f, aimPitch, 0f, false, dt);
-            }
         }
 
-        void Fire(Vector3 target, float dt)
+        void Pose(Vector3 aimAt, float dt)
+        {
+            if (model == null) return;
+            float aimPitch = 0f;
+            if (state == State.Attack) { var to = aimAt - (transform.position + eye); aimPitch = Mathf.Atan2(to.y, new Vector2(to.x, to.z).magnitude) * Mathf.Rad2Deg; }
+            model.Animate(moveSpeed, aimPitch, 0f, false, dt);
+        }
+
+        void Fire(Vector3 at, float dt)
         {
             if (pauseT > 0f) { pauseT -= dt; if (pauseT <= 0f) burstLeft = Random.Range(3, 6); return; }
             burstT -= dt;
@@ -196,12 +233,13 @@ namespace BomberBuddies
             burstLeft--;
             burstT = burstGap;
             var from = model != null && model.muzzle != null ? model.muzzle.position : transform.TransformPoint(muzzleFallback);
-            float spread = spreadDeg * (!guard && agent != null && agent.enabled && agent.velocity.magnitude > 0.5f ? 1.6f : 1f) * Mathf.Lerp(0.6f, 1.4f, Mathf.InverseLerp(5f, attackRange, Vector3.Distance(from, target)));
-            var dir = (target - from).normalized;
+            float spread = spreadDeg * (moveSpeed > 0.5f ? 1.6f : 1f) * Mathf.Lerp(0.6f, 1.4f, Mathf.InverseLerp(5f, attackRange, Vector3.Distance(from, at)));
+            var dir = (at - from).normalized;
             dir = Quaternion.AngleAxis(Random.Range(0f, 360f), dir) * Quaternion.Euler(Random.Range(0f, spread), 0f, 0f) * dir;
             var end = from + dir * 200f;
             RaycastHit hit;
-            if (Physics.Raycast(from, dir, out hit, 200f, ~(1 << 9), QueryTriggerInteraction.Ignore))
+            int mask = ~(1 << (Team == 0 ? 8 : 9));
+            if (Physics.Raycast(from, dir, out hit, 200f, mask, QueryTriggerInteraction.Ignore))
             {
                 end = hit.point;
                 var d = hit.collider.GetComponent<IDamageable>(); if (d == null) d = hit.collider.GetComponentInParent<IDamageable>();
@@ -210,7 +248,7 @@ namespace BomberBuddies
             }
             if (Gunfire.Instance != null)
             {
-                Gunfire.Instance.TracerLine(from, end, new Color(1f, 0.55f, 0.3f), 0.025f, 0.07f);
+                Gunfire.Instance.TracerLine(from, end, Team == 0 ? new Color(1f, 0.9f, 0.6f) : new Color(1f, 0.55f, 0.3f), 0.025f, 0.07f);
                 Gunfire.Instance.MuzzleFlash(from, dir, 0.8f);
             }
         }

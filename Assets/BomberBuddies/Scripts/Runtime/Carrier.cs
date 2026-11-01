@@ -328,7 +328,7 @@ namespace BomberBuddies
                 for (int q = -3; q <= 3; q++)
                 {
                     var at = L2W(q * 110f, 0f, 0f); at.y = ground + 1f;
-                    if (Projectiles.Instance != null) Projectiles.Instance.Explode(at, 60f * U, 220f * U, 900f, gameObject, side);
+                    if (Projectiles.Instance != null) Projectiles.Instance.Explode(at, 60f * U, 220f * U, 900f * GalacticMode.K, gameObject, side);
                 }
                 if (GalacticMode.Instance != null) GalacticMode.Instance.Shake(1f);
                 if (OnDestroyed != null) OnDestroyed(this);

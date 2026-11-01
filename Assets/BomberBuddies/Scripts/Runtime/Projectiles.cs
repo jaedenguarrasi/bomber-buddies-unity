@@ -68,6 +68,14 @@ namespace BomberBuddies
             shots.Add(s);
         }
 
+        /// <summary>A tank shell or a carrier's bombardment bolt: flies, drops a little, and bursts where it lands.</summary>
+        public void FireShell(Vector3 from, Vector3 dir, float speed, float coreR, float dmgR, float dmg, int team, GameObject source, bool bolt = false)
+        {
+            var s = new Shot { pos = from, vel = dir.normalized * speed, life = 16f, damage = 0f, width = bolt ? 0.25f : 0.08f, team = team, source = source, bomb = true, bolt = bolt, gravity = bolt ? 0f : 60f * GalacticMode.U, blastCore = coreR, blastRadius = dmgR, blastDamage = dmg, color = new Color(1f, 0.6f, 0.3f) };
+            if (bolt) s.visual = TakeVisual(boltPool, "Bolt", PrimitiveType.Sphere, 0.5f, boltMat);
+            shots.Add(s);
+        }
+
         Transform TakeVisual(Stack<Transform> pool, string name, PrimitiveType type, float size, Material mat)
         {
             Transform t;
@@ -94,7 +102,7 @@ namespace BomberBuddies
                 var s = shots[i];
                 s.life -= dt;
                 s.vel.y -= s.gravity * dt;
-                if (s.bomb)
+                if (s.bomb && s.damage == 0f && s.width == 0f)
                 {
                     // bombs: terminal speed and a touch of horizontal drag, like the original
                     if (s.vel.y < -GalacticMode.BombVMax) s.vel.y = -GalacticMode.BombVMax;
@@ -110,7 +118,7 @@ namespace BomberBuddies
                 {
                     done = true;
                     next = hit.point;
-                    if (s.bomb) Explode(hit.point + hit.normal * 0.3f, s.blastCore, s.blastRadius, s.blastDamage, s.source, 0);
+                    if (s.bomb) Explode(hit.point + hit.normal * 0.3f, s.blastCore, s.blastRadius, s.blastDamage, s.source, s.team);
                     else
                     {
                         var d = hit.collider.GetComponent<IDamageable>();
@@ -126,7 +134,7 @@ namespace BomberBuddies
                         if (s.bolt) Flash(hit.point, 1.6f);
                     }
                 }
-                if (!s.bomb && Gunfire.Instance != null && s.width > 0f)
+                if (Gunfire.Instance != null && s.width > 0f)
                 {
                     var tail = s.pos - s.vel.normalized * Mathf.Min(len * 3f + 0.6f, s.bolt ? 2.5f : 1.2f);
                     Gunfire.Instance.TracerLine(tail, next, s.color, s.width, 0.05f);
@@ -139,8 +147,8 @@ namespace BomberBuddies
                 }
                 if (done || s.life <= 0f || s.pos.y < -50f)
                 {
-                    if (s.bomb && !done) Explode(s.pos, s.blastCore, s.blastRadius, s.blastDamage, s.source, 0);
-                    if (s.visual != null) { s.visual.gameObject.SetActive(false); (s.bomb ? bombPool : boltPool).Push(s.visual); }
+                    if (s.bomb && !done) Explode(s.pos, s.blastCore, s.blastRadius, s.blastDamage, s.source, s.team);
+                    if (s.visual != null) { s.visual.gameObject.SetActive(false); (s.bomb && !s.bolt ? bombPool : boltPool).Push(s.visual); }
                     shots.RemoveAt(i);
                 }
             }

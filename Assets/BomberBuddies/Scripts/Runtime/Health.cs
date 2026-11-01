@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BomberBuddies
@@ -27,6 +28,44 @@ namespace BomberBuddies
         public int team = 0;                 // 0 player side, 1 enemy
         public bool alive = true;
         public bool invulnerable;
+        public bool isAir;                   // flying right now (turrets and AA only shoot these; ground troops ignore them)
+        public bool stationary;              // a gun emplacement: does not count for capturing posts
+        public float aimHeight = 1.2f;       // where others aim, above the feet
+        public float armor = 1f, bombMult = 1f;   // bullets do amount × armor, blasts amount × bombMult
+
+        /// <summary>Everyone alive in the fight, so AI can pick targets by side without knowing what they are.</summary>
+        public static readonly List<Health> All = new List<Health>();
+        void OnEnable() { All.Add(this); }
+        void OnDisable() { All.Remove(this); }
+
+        /// <summary>The nearest live enemy of a side within range; air = true/false restricts to flying or grounded targets.</summary>
+        public static Health Nearest(int myTeam, Vector3 from, float range, bool? air = null)
+        {
+            Health best = null; float bestD = range * range;
+            for (int i = 0; i < All.Count; i++)
+            {
+                var h = All[i];
+                if (h == null || !h.alive || h.team == myTeam || !h.gameObject.activeInHierarchy) continue;
+                if (air.HasValue && h.isAir != air.Value) continue;
+                float d = (h.transform.position - from).sqrMagnitude;
+                if (d < bestD) { bestD = d; best = h; }
+            }
+            return best;
+        }
+
+        public static int Count(int team, Vector3 from, float range, bool groundOnly, bool movingOnly)
+        {
+            int n = 0; float r2 = range * range;
+            for (int i = 0; i < All.Count; i++)
+            {
+                var h = All[i];
+                if (h == null || !h.alive || h.team != team || !h.gameObject.activeInHierarchy) continue;
+                if (groundOnly && h.isAir) continue;
+                if (movingOnly && h.stationary) continue;
+                if ((h.transform.position - from).sqrMagnitude < r2) n++;
+            }
+            return n;
+        }
 
         public event Action<DamageInfo> OnDamaged;
         public event Action<DamageInfo> OnDied;
@@ -42,7 +81,7 @@ namespace BomberBuddies
         public void TakeDamage(DamageInfo info)
         {
             if (!alive || invulnerable) return;
-            current -= info.amount;
+            current -= info.explosive ? info.amount * bombMult : info.amount * armor;
             if (OnDamaged != null) OnDamaged(info);
             if (current <= 0f)
             {

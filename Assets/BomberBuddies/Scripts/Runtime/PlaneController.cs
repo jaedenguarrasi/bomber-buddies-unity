@@ -36,7 +36,7 @@ namespace BomberBuddies
             go.layer = 8;
             var p = go.AddComponent<PlaneController>();
             p.lib = lib; p.cam = cam;
-            p.health = go.AddComponent<Health>(); p.health.max = 100f; p.health.current = 100f; p.health.team = 0;
+            p.health = go.AddComponent<Health>(); p.health.max = 100f; p.health.current = 100f; p.health.team = 0; p.health.aimHeight = 0f; p.health.isAir = true;
             var zone = go.AddComponent<HitZone>(); zone.owner = p.health; zone.multiplier = 1f;
             var col = go.AddComponent<SphereCollider>(); col.radius = 1.3f;
             p.BuildModel();
@@ -125,6 +125,7 @@ namespace BomberBuddies
             else { boost = Mathf.Min(1f, boost + dt / (2.4f * 2.3f)); if (boostOut && boost > 0.25f) boostOut = false; }
 
             if (launchT > 0f) launchT -= dt;
+            health.isAir = docked == null;
             Carrier hs = null;
             if (launchT <= 0f && gm != null) hs = gm.HangarAt(transform.position);
             if (hs != null || docked != null) { DockStep(hs != null ? hs : docked, sx, boosting, dt); }
@@ -140,6 +141,7 @@ namespace BomberBuddies
             if (input.InteractPressed)
             {
                 if (docked != null) { if (gm != null) gm.ExitToFoot(); return; }
+                else if (gm != null && transform.position.y > gm.ObstacleHeight(transform.position.x, transform.position.z) + 18f * U) { gm.BailOut(); return; }
                 else if (GameState.Hud != null) GameState.Hud.Announce("Land in a hangar to get out");
             }
             ApplyPose();
@@ -250,7 +252,7 @@ namespace BomberBuddies
             var m = lastFire ? muzzleL : muzzleR;
             var dir = Forward;
             dir = Quaternion.AngleAxis(Random.Range(0f, 360f), dir) * Quaternion.Euler(Random.Range(0f, 0.6f), 0f, 0f) * dir;
-            if (Projectiles.Instance != null) Projectiles.Instance.FireRound(m.position, dir, 640f * U, 10f, 640f * U, 0, gameObject, new Color(1f, 0.9f, 0.6f), 0.04f);
+            if (Projectiles.Instance != null) Projectiles.Instance.FireRound(m.position, dir, 640f * U, 10f * GalacticMode.K, 640f * U, 0, gameObject, new Color(1f, 0.9f, 0.6f), 0.04f);
             if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(m.position, dir, 1.2f);
             if (GameState.Hud != null) GameState.Hud.OnShot();
         }
@@ -259,7 +261,7 @@ namespace BomberBuddies
         {
             bombs--; bombCd = 0.34f;
             var vel = Velocity; vel.y = Mathf.Min(vel.y, 0f) - 25f * U;
-            if (Projectiles.Instance != null) Projectiles.Instance.DropBomb(transform.position - Vector3.up * 0.9f, vel, 36f * U, 86f * U, 175f, gameObject);
+            if (Projectiles.Instance != null) Projectiles.Instance.DropBomb(transform.position - Vector3.up * 0.9f, vel, 36f * U, 86f * U, 175f * GalacticMode.K, gameObject);
         }
 
         void Crash(Vector3 at)
