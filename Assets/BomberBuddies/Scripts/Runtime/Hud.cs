@@ -22,6 +22,7 @@ namespace BomberBuddies
         float hitT, flashT, messageT, crossSpread = 12f, commsT;
         Font font;
         GameObject touchRoot;
+        CanvasGroup touchGroup;   // shown/hidden with a CanvasGroup: toggling the objects off and on breaks the on-screen controls' virtual gamepad
         RectTransform safe;   // everything anchored to the screen edges lives in here, inset by the phone's notch / home bar
         Rect lastSafe;
         PlaneController flight;
@@ -281,7 +282,14 @@ namespace BomberBuddies
             TouchButton("act", "Roll", touchRoot.transform, br, act, 2f * 0.68f * R, "<Gamepad>/buttonSouth", new Color(0.7f, 0.7f, 0.72f, 0.45f), 16);
             TouchButton("pn", "Kick", touchRoot.transform, br, pn, 2f * 0.6f * R, "<Gamepad>/buttonWest", new Color(0.8f, 0.45f, 0.45f, 0.45f), 15);
             TouchButton("gb", "Crouch", touchRoot.transform, br, gb, 2f * 0.6f * R, "<Gamepad>/rightShoulder", new Color(0.7f, 0.7f, 0.72f, 0.45f), 14);
-            touchRoot.SetActive(InputBridge.Instance != null && InputBridge.Instance.IsTouch);
+            touchGroup = touchRoot.AddComponent<CanvasGroup>();
+            ShowTouch(InputBridge.Instance != null && InputBridge.Instance.IsTouch);
+        }
+
+        void ShowTouch(bool on)
+        {
+            if (touchGroup == null) return;
+            touchGroup.alpha = on ? 1f : 0f; touchGroup.blocksRaycasts = on; touchGroup.interactable = on;
         }
 
         void TouchButton(string key, string label, Transform parent, Vector2 anchor, Vector2 pos, float size, string path, Color c, int fontSize)
@@ -407,7 +415,7 @@ namespace BomberBuddies
             if (flashT > 0f) { flashT -= dt; damageFlash.color = new Color(0.65f, 0f, 0f, Mathf.Clamp01(flashT) * 0.45f); } else damageFlash.color = new Color(0.65f, 0f, 0f, 0f);
             if (messageT > 0f) { messageT -= dt; if (messageT <= 0f) message.text = ""; else message.color = new Color(1f, 1f, 1f, Mathf.Clamp01(messageT * 1.5f)); }
             if (commsT > 0f) { commsT -= dt; if (commsT <= 0f) commsText.text = ""; }
-            if (touchRoot != null && InputBridge.Instance != null && touchRoot.activeSelf != InputBridge.Instance.IsTouch) touchRoot.SetActive(InputBridge.Instance.IsTouch);
+            if (touchGroup != null && InputBridge.Instance != null && (touchGroup.alpha > 0.5f) != InputBridge.Instance.IsTouch) ShowTouch(InputBridge.Instance.IsTouch);
             if (InputBridge.Instance != null && InputBridge.Instance.PausePressed && PauseMenu.Instance != null) PauseMenu.Instance.Toggle();
         }
 
