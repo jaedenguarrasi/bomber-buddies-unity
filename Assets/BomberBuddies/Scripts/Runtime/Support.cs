@@ -52,6 +52,9 @@ namespace BomberBuddies
             if (GameState.Deaths != lastDeaths) { lastDeaths = GameState.Deaths; streak = 0; }
             if (uavT > 0f) uavT -= Time.deltaTime;
             if (InputBridge.Instance != null && InputBridge.Instance.SupportPressed && !busy) ToggleTablet();
+#if UNITY_EDITOR
+            if (UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.digit0Key.wasPressedThisFrame) foreach (var c in Calls) earned.Add(c.id);   // editor: 0 earns every call
+#endif
         }
 
         // ---------- the tablet ----------
