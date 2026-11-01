@@ -69,9 +69,9 @@ namespace BomberBuddies
         }
 
         /// <summary>A tank shell or a carrier's bombardment bolt: flies, drops a little, and bursts where it lands.</summary>
-        public void FireShell(Vector3 from, Vector3 dir, float speed, float coreR, float dmgR, float dmg, int team, GameObject source, bool bolt = false)
+        public void FireShell(Vector3 from, Vector3 dir, float speed, float coreR, float dmgR, float dmg, int team, GameObject source, bool bolt = false, float gravity = -1f)
         {
-            var s = new Shot { pos = from, vel = dir.normalized * speed, life = 16f, damage = 0f, width = bolt ? 0.25f : 0.08f, team = team, source = source, bomb = true, bolt = bolt, gravity = bolt ? 0f : 60f * GalacticMode.U, blastCore = coreR, blastRadius = dmgR, blastDamage = dmg, color = new Color(1f, 0.6f, 0.3f) };
+            var s = new Shot { pos = from, vel = dir.normalized * speed, life = 16f, damage = 0f, width = bolt ? 0.25f : 0.08f, team = team, source = source, bomb = true, bolt = bolt, gravity = gravity >= 0f ? gravity : (bolt ? 0f : 60f * GalacticMode.U), blastCore = coreR, blastRadius = dmgR, blastDamage = dmg, color = new Color(1f, 0.6f, 0.3f) };
             if (bolt) s.visual = TakeVisual(boltPool, "Bolt", PrimitiveType.Sphere, 0.5f, boltMat);
             shots.Add(s);
         }

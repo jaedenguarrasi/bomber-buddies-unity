@@ -93,7 +93,7 @@ namespace BomberBuddies
                 float a = Random.Range(0f, Mathf.PI * 2f);
                 var centre = player != null ? player.transform.position : villageCenter;
                 var at = centre + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 420f; at.y = 320f * GalacticMode.U + Mathf.Max(0f, GameState.GroundHeight != null ? GameState.GroundHeight(at.x, at.z) : 0f);
-                var e = EnemyPlane.Build(transform, library, at, Mathf.Atan2(centre.x - at.x, centre.z - at.z), 1);
+                var e = EnemyPlane.Build(transform, library, at, Mathf.Atan2(centre.x - at.x, centre.z - at.z), 1, type == "eheli");
                 alive.Add(e.health);
                 return true;
             }

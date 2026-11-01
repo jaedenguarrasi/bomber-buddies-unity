@@ -16,15 +16,20 @@ namespace BomberBuddies
 
         public int Team { get { return health != null ? health.team : 1; } }
 
-        public static EnemyPlane Build(Transform parent, MaterialLibrary lib, Vector3 pos, float yawRad, int team = 1)
+        /// <summary>An attack helicopter instead of a fighter: closes in, hovers, fires bursts.</summary>
+        public bool heli;
+        float fwdU, vyU;
+        Transform rotor, tailRotor;
+
+        public static EnemyPlane Build(Transform parent, MaterialLibrary lib, Vector3 pos, float yawRad, int team = 1, bool heli = false)
         {
-            var go = new GameObject(team == 0 ? "Wingman" : "Enemy fighter");
+            var go = new GameObject(heli ? (team == 0 ? "Gunship" : "Enemy gunship") : (team == 0 ? "Wingman" : "Enemy fighter"));
             go.transform.SetParent(parent, false);
             go.transform.position = pos;
             go.layer = team == 0 ? 8 : 9;
             var e = go.AddComponent<EnemyPlane>();
-            e.yaw = yawRad;
-            e.health = go.AddComponent<Health>(); e.health.max = (team == 0 ? 250f : 161f) * GalacticMode.K; e.health.current = e.health.max; e.health.team = team; e.health.isAir = true; e.health.aimHeight = 0f;
+            e.yaw = yawRad; e.heli = heli;
+            e.health = go.AddComponent<Health>(); e.health.max = (heli ? 140f * 1.4f * 1.28f : (team == 0 ? 250f : 161f)) * GalacticMode.K; e.health.current = e.health.max; e.health.team = team; e.health.isAir = true; e.health.aimHeight = 0f;
             var zone = go.AddComponent<HitZone>(); zone.owner = e.health; zone.multiplier = 0.9f;
             var col = go.AddComponent<SphereCollider>(); col.radius = 1.4f;
             e.BuildModel(lib);
@@ -41,8 +46,16 @@ namespace BomberBuddies
         {
             model = new GameObject("Model").transform; model.SetParent(transform, false);
             int layer = gameObject.layer;
-            var body = CraftModels.Plane(model, lib, layer == 8 ? CraftModels.Mate : CraftModels.Foe, layer);
-            prop = body.transform.Find("Prop");
+            if (heli)
+            {
+                var body = CraftModels.Heli(model, lib, layer == 8 ? CraftModels.Mate : CraftModels.Foe, layer);
+                rotor = body.transform.Find("Rotor"); tailRotor = body.transform.Find("Tail rotor");
+            }
+            else
+            {
+                var body = CraftModels.Plane(model, lib, layer == 8 ? CraftModels.Mate : CraftModels.Foe, layer);
+                prop = body.transform.Find("Prop");
+            }
         }
 
         Vector3 Forward { get { return Quaternion.Euler(-pitch * Mathf.Rad2Deg, yaw * Mathf.Rad2Deg, 0f) * Vector3.forward; } }
@@ -66,6 +79,7 @@ namespace BomberBuddies
 
             float gnd = GameState.GroundHeight != null ? GameState.GroundHeight(transform.position.x, transform.position.z) : 0f;
             float hold = gnd + 210f * U;
+            if (heli) { HeliUpdate(dt, target, airTarget, gnd); return; }
             if (target.HasValue)
             {
                 var to = target.Value - transform.position;
@@ -100,6 +114,52 @@ namespace BomberBuddies
             transform.position += Velocity * dt;
             bank = Mathf.Lerp(bank, Mathf.Clamp(steer * 0.8f, -60f, 60f), Mathf.Min(1f, 3f * dt));
             transform.rotation = Quaternion.Euler(-pitch * Mathf.Rad2Deg, yaw * Mathf.Rad2Deg, -bank);
+            if (transform.position.y < gnd + 1f) health.TakeDamage(new DamageInfo { amount = 9999f, point = transform.position, direction = Velocity, source = gameObject });
+        }
+
+        /// <summary>The gunship: flies at its target, slows to a hover 200 units out at 150 up, and fires bursts from the chin gun.</summary>
+        void HeliUpdate(float dt, Vector3? target, bool airTarget, float gnd)
+        {
+            float hold = gnd + 150f * U;
+            float wantFwd = 0f;
+            if (target.HasValue)
+            {
+                var to = target.Value - transform.position; var flat = new Vector3(to.x, 0f, to.z);
+                float dist = flat.magnitude;
+                float wantYaw = Mathf.Atan2(to.x, to.z);
+                steer = Mathf.DeltaAngle(yaw * Mathf.Rad2Deg, wantYaw * Mathf.Rad2Deg);
+                yaw = Mathf.MoveTowardsAngle(yaw * Mathf.Rad2Deg, wantYaw * Mathf.Rad2Deg, 1.2f * Mathf.Rad2Deg * dt) * Mathf.Deg2Rad;
+                wantFwd = Mathf.Clamp((dist - 200f * U) / (120f * U), -0.4f, 1f) * 120f * U;
+                if (airTarget) hold = Mathf.Clamp(target.Value.y + 20f * U, gnd + 80f * U, gnd + 500f * U);
+                gunT -= dt;
+                if (Mathf.Abs(steer) < 35f && dist < 500f * U && gunT <= 0f)
+                {
+                    burst += dt;
+                    if (burst < 0.6f)
+                    {
+                        var from = transform.position + Forward * 1.2f - Vector3.up * 0.6f;
+                        var dir = (target.Value - from).normalized;
+                        dir = Quaternion.AngleAxis(Random.Range(0f, 360f), dir) * Quaternion.Euler(Random.Range(0f, 2f), 0f, 0f) * dir;
+                        if (Projectiles.Instance != null) Projectiles.Instance.FireRound(from, dir, 420f * U, 5f * (Team == 0 ? GalacticMode.K : 1f), 500f * U, Team, gameObject, Team == 0 ? new Color(1f, 0.9f, 0.6f) : new Color(1f, 0.45f, 0.3f), 0.04f);
+                        if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(from, dir, 0.8f);
+                        gunT = 0.1f;
+                    }
+                    else { burst = 0f; gunT = Random.Range(1.2f, 2f); }
+                }
+            }
+            var gm = GalacticMode.Instance;
+            float obst = gm != null ? gm.ObstacleHeight(transform.position.x, transform.position.z) : gnd;
+            if (obst + 40f * U > hold) hold = obst + 40f * U;
+            fwdU = Mathf.MoveTowards(fwdU, wantFwd, 60f * U * dt);
+            vyU = Mathf.MoveTowards(vyU, Mathf.Clamp((hold - transform.position.y) * 1.5f, -40f * U, 40f * U), 50f * U * dt);
+            pitch = Mathf.Lerp(pitch, -fwdU / (120f * U) * 0.25f, Mathf.Min(1f, 3f * dt));
+            var flatFwd = Quaternion.Euler(0f, yaw * Mathf.Rad2Deg, 0f) * Vector3.forward;
+            Velocity = flatFwd * fwdU + Vector3.up * vyU;
+            transform.position += Velocity * dt;
+            bank = Mathf.Lerp(bank, Mathf.Clamp(steer * 0.3f, -25f, 25f), Mathf.Min(1f, 3f * dt));
+            transform.rotation = Quaternion.Euler(-pitch * Mathf.Rad2Deg, yaw * Mathf.Rad2Deg, -bank);
+            if (rotor != null) rotor.Rotate(0f, 1800f * dt, 0f);
+            if (tailRotor != null) tailRotor.Rotate(0f, 0f, 2600f * dt);
             if (transform.position.y < gnd + 1f) health.TakeDamage(new DamageInfo { amount = 9999f, point = transform.position, direction = Velocity, source = gameObject });
         }
     }

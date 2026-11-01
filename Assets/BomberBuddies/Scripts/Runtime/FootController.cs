@@ -15,7 +15,7 @@ namespace BomberBuddies
 
         CharacterController cc;
         Vector3 horizontal;
-        float vy, crouchK;
+        float vy, crouchK, nadeCd;
         bool crouching, grounded, sprinting;
         public bool Sprinting { get { return sprinting; } }
         public float MoveSpeed { get { return horizontal.magnitude; } }
@@ -128,6 +128,16 @@ namespace BomberBuddies
                 model.SetVisible(!rig.firstPerson);
             }
             if (rifle != null) rifle.Tick(input.Fire, input.Aim, input.ReloadPressed, horizontal.magnitude, sprinting, rig.firstPerson);
+            // grenades: the original soldier's nade (shell v 190, g 250, blast 9/58, 120 damage), one every 2 s
+            nadeCd -= dt;
+            if (input.BombPressed && GameState.Grenades > 0 && nadeCd <= 0f)
+            {
+                nadeCd = 2f; GameState.Grenades--; GameState.Touch();
+                const float U = GalacticMode.U;
+                var from = rig.AimOrigin + rig.AimDirection * 0.6f + Vector3.up * 0.1f;
+                var dir = (rig.AimDirection + Vector3.up * 0.18f).normalized;
+                if (Projectiles.Instance != null) Projectiles.Instance.FireShell(from, dir, 190f * U, 9f * U, 58f * U, 120f * GalacticMode.K, 0, gameObject, false, 250f * U);
+            }
         }
     }
 }
