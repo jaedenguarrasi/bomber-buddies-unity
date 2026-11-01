@@ -17,6 +17,8 @@ namespace BomberBuddies
         public Health health;
         /// <summary>A ship's guard: stands his post (no navmesh needed) and shoots whoever comes through the door.</summary>
         public bool guard;
+        /// <summary>Somewhere to go when there is nothing to shoot at: a command post, the tower.</summary>
+        public Vector3? objective;
         public int Team { get { return health != null ? health.team : 1; } }
 
         NavMeshAgent agent;
@@ -138,11 +140,11 @@ namespace BomberBuddies
                     if (wanderT <= 0f || (!agent.pathPending && agent.remainingDistance < 1.5f && wanderT < 2f))
                     {
                         wanderT = Random.Range(4f, 9f);
-                        var p = transform.position + new Vector3(Random.Range(-30f, 30f), 0f, Random.Range(-30f, 30f));
+                        var p = objective.HasValue && Vector3.Distance(objective.Value, transform.position) > 8f ? objective.Value + new Vector3(Random.Range(-6f, 6f), 0f, Random.Range(-6f, 6f)) : transform.position + new Vector3(Random.Range(-30f, 30f), 0f, Random.Range(-30f, 30f));
                         NavMeshHit nh;
                         if (NavMesh.SamplePosition(p, out nh, 6f, NavMesh.AllAreas)) agent.SetDestination(nh.position);
                     }
-                    agent.speed = 2.0f;
+                    agent.speed = objective.HasValue ? 3.2f : 2.0f;
                     break;
                 case State.Chase:
                     agent.speed = 4.2f;
@@ -190,8 +192,12 @@ namespace BomberBuddies
                 else if (state == State.Wander)
                 {
                     wanderT -= dt;
-                    if (wanderT <= 0f) { wanderT = Random.Range(4f, 9f); wanderTo = transform.position + new Vector3(Random.Range(-20f, 20f), 0f, Random.Range(-20f, 20f)); }
-                    goal = wanderTo; go = Vector3.Distance(transform.position, wanderTo) > 1.5f && wanderT < 7f;
+                    if (objective.HasValue && Vector3.Distance(objective.Value, transform.position) > 8f) { goal = objective.Value; go = true; }
+                    else
+                    {
+                        if (wanderT <= 0f) { wanderT = Random.Range(4f, 9f); wanderTo = transform.position + new Vector3(Random.Range(-20f, 20f), 0f, Random.Range(-20f, 20f)); }
+                        goal = wanderTo; go = Vector3.Distance(transform.position, wanderTo) > 1.5f && wanderT < 7f;
+                    }
                 }
                 if (go)
                 {

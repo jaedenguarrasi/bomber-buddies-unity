@@ -25,6 +25,8 @@ namespace BomberBuddies
             { "infantry", new Mode { id = "infantry", name = "Infantry", group = "Battles", desc = "Soldiers only: no vehicles, no aircraft.", comp = new[] { "inf", "medic", "egun", "vest", "bunker" }, infK = 2.2f } },
             { "lightarmor", new Mode { id = "lightarmor", name = "Light armour", group = "Battles", desc = "Soldiers, scout jeeps and gunships, with machine-gun nests. No tanks.", comp = new[] { "inf", "jeep", "eheli", "medic", "egun", "ejet", "bunker", "aa" }, infK = 1.6f } },
             { "air", new Mode { id = "air", name = "Air Superiority", group = "Battles", desc = "The sky is full of enemy fighters and gunships, nothing on the ground. Shoot down forty.", comp = new[] { "eplane", "eheli" } } },
+            { "conquest", new Mode { id = "conquest", name = "Conquest", group = "Battles", desc = "Five command posts across the island. Take them by standing on them. Every post you hold drains the enemy's reinforcements; run them to zero." } },
+            { "defend", new Mode { id = "defend", name = "Hold the Tower", group = "Battles", desc = "Keep the marked tower standing through eight waves. If it falls, you lose." } },
             { "galactic", new Mode { id = "galactic", name = "Galactic Assault", group = "Battles", desc = "Take the posts, kill the shield generator, board their carrier." } },
         };
 

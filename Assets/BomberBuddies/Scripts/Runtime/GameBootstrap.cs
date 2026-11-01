@@ -81,6 +81,7 @@ namespace BomberBuddies
                 return;
             }
             GameState.Spawner = spawner;
+            IslandMode.Create(transform, library, world, spawner, battleMode);
             // like the original: you start in your plane over the island, and come back the same way
             pm.placeOnRespawn = () => { pm.SpawnInAir(world.spawn + new Vector3(Random.Range(-40f, 40f), 0f, Random.Range(-40f, 40f))); return true; };
             pm.SpawnInAir(world.spawn);
