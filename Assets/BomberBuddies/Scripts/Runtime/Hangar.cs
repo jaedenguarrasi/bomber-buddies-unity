@@ -9,7 +9,6 @@ namespace BomberBuddies
     public class Hangar : MonoBehaviour
     {
         public static Hangar Instance { get; private set; }
-        public bool IsOpen { get { return gameObject.activeSelf; } }
         Font font;
         Action onClose;
         string tab = "Upgrades";

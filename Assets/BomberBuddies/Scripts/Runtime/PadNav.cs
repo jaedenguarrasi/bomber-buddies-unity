@@ -39,7 +39,7 @@ namespace BomberBuddies
             // B backs out of whatever is open
             if (gp.buttonEast.wasPressedThisFrame)
             {
-                if (Hangar.Instance != null && Hangar.Instance.IsOpen) Hangar.Instance.Close();
+                if (Hangar.IsOpen) Hangar.Instance.Close();
                 else if (PauseMenu.Instance != null && PauseMenu.Instance.IsOpen) PauseMenu.Instance.Close();
             }
         }
