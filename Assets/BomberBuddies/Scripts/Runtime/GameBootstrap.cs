@@ -110,8 +110,8 @@ namespace BomberBuddies
             RenderSettings.ambientGroundColor = new Color(0.40f, 0.38f, 0.34f);
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
-            RenderSettings.fogStartDistance = 520f * World3.U;
-            RenderSettings.fogEndDistance = 1750f * World3.U;
+            RenderSettings.fogStartDistance = 520f * World3.U * World3.Spread;
+            RenderSettings.fogEndDistance = 1750f * World3.U * World3.Spread;
             RenderSettings.fogColor = new Color(0.80f, 0.87f, 0.86f);
             skyMat = library != null ? library.Get("sky") : null;
             if (skyMat != null && skyMat.shader != null && skyMat.shader.name == "BomberBuddies/Sky")
@@ -226,7 +226,13 @@ namespace BomberBuddies
             {
                 if (Time.time - lastHurt > 4f && playerHealth.current < playerHealth.max) playerHealth.Heal(22f * Time.deltaTime);
             }
-            if (cam != null && world != null) SetSky(Mathf.Clamp01((cam.transform.position.y / World3.U - 1500f) / 2300f));
+            if (cam != null && world != null)
+            {
+                float ey = cam.transform.position.y / World3.U, hi = Mathf.Max(0f, ey - 260f);
+                SetSky(Mathf.Clamp01((ey - 1500f) / 2300f));
+                RenderSettings.fogStartDistance = (520f + hi * 0.9f) * World3.U * World3.Spread;
+                RenderSettings.fogEndDistance = (1750f + hi * 3f) * World3.U * World3.Spread;
+            }
         }
     }
 }
