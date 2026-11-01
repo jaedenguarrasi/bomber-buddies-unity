@@ -34,6 +34,7 @@ namespace BomberBuddies
             GameState.Reset();
             GameState.Library = library;
             Random.InitState(seed);
+            if (Application.isMobilePlatform) { treeCount = Mathf.Min(treeCount, 180); rockCount = Mathf.Min(rockCount, 50); IslandBuilder.mobile = true; ProceduralTextures.mobile = true; }
 
             gameObject.AddComponent<InputBridge>();
             Gunfire.Create(transform, library);
@@ -141,6 +142,7 @@ namespace BomberBuddies
             var zone = pgo.AddComponent<HitZone>(); zone.owner = playerHealth; zone.multiplier = 1f;
             player = pgo.AddComponent<FootController>();
             player.health = playerHealth;
+            player.groundHeight = (x, z) => IslandBuilder.GroundHeight(terrain, x, z);
 
             var model = SoldierModelBase.Create(pgo.transform, library, 0, 8);
             player.model = model;
@@ -204,7 +206,7 @@ namespace BomberBuddies
             {
                 if (Time.time - lastHurt > 4f && playerHealth.current < playerHealth.max) playerHealth.Heal(22f * Time.deltaTime);
             }
-            if (player != null && playerHealth != null && playerHealth.alive && player.transform.position.y < seaLevel - 1.4f && !respawning)
+            if (player != null && playerHealth != null && playerHealth.alive && player.transform.position.y < seaLevel - 1.4f && IslandBuilder.GroundHeight(terrain, player.transform.position.x, player.transform.position.z) < seaLevel && !respawning)
             {
                 playerHealth.TakeDamage(new DamageInfo { amount = 9999f, point = player.transform.position, direction = Vector3.down, source = gameObject });
             }

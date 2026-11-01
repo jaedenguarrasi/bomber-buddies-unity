@@ -44,11 +44,30 @@ namespace BomberBuddies
             if (rig != null) { rig.yaw = yawDeg; rig.pitch = 5f; }
         }
 
+        /// <summary>The ground under the feet, from whoever built the world; used as a safety net against falling through.</summary>
+        public System.Func<float, float, float> groundHeight;
+        float settleT = 1.5f;
+
+        void LateUpdate()
+        {
+            // never under the ground: if a long frame (the island generating on a phone) or a stale collider lets the
+            // body through, put it back on the surface
+            if (groundHeight == null) return;
+            var p = transform.position;
+            float g = groundHeight(p.x, p.z);
+            if (p.y < g - 0.3f)
+            {
+                cc.enabled = false; transform.position = new Vector3(p.x, g + 0.1f, p.z); cc.enabled = true;
+                vy = -2f; horizontal = Vector3.zero;
+            }
+        }
+
         void Update()
         {
             var input = InputBridge.Instance;
             if (input == null || rig == null) return;
-            float dt = Time.deltaTime;
+            float dt = Mathf.Min(Time.deltaTime, 0.05f);   // a long frame moves us at most as far as 1/20 s would
+            if (settleT > 0f) { settleT -= Time.deltaTime; vy = -2f; }   // let the world finish appearing before gravity bites
             bool alive = health == null || health.alive;
             if (!alive || ControlsLocked)
             {

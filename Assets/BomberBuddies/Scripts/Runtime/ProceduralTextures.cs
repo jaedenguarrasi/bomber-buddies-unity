@@ -8,10 +8,12 @@ namespace BomberBuddies
     /// </summary>
     public static class ProceduralTextures
     {
+        public static bool mobile;
         public delegate Color Painter(float u, float v);
 
         public static Texture2D Make(int size, Painter paint, bool linear = false)
         {
+            if (mobile) size = Mathf.Max(64, size / 2);
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, true, linear);
             var px = new Color[size * size];
             for (int y = 0; y < size; y++)

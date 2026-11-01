@@ -5,8 +5,9 @@ namespace BomberBuddies
     /// <summary>Builds the island as a Unity Terrain from noise: a central plateau for the village, hills behind it, beaches all round.</summary>
     public static class IslandBuilder
     {
-        public const int HeightRes = 513;
-        public const int SplatRes = 256;
+        public static bool mobile;
+        static int HeightRes { get { return mobile ? 257 : 513; } }
+        static int SplatRes { get { return mobile ? 128 : 256; } }
 
         public static Terrain Build(Transform parent, int seed, float size, float maxHeight, float seaLevel, MaterialLibrary lib)
         {
