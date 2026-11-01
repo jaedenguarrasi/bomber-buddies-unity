@@ -57,7 +57,7 @@ namespace BomberBuddies
         {
             mode = modeId == "galactic" ? Mode.Galactic : Mode.Island;
             battleMode = modeId; LastMode = modeId;
-            { ModeDefs.Mode md; Night = ModeDefs.All.TryGetValue(battleMode, out md) && md.night; Progress.Forced = md != null ? md.craft : null; }
+            { ModeDefs.Mode md; Night = ModeDefs.All.TryGetValue(battleMode, out md) && md.night; Moon = md != null && md.moon; Progress.Forced = md != null ? md.craft : null; }
             Random.InitState(seed);
             bool mobile = Application.isMobilePlatform;
 
@@ -161,13 +161,14 @@ namespace BomberBuddies
 
         /// <summary>The sky at an altitude: day on the ground, blending to space (black overhead, a thin blue band, stars) high up.</summary>
         /// <summary>Night (the Stalkers mode): the sky and fog go near-black, everything is dimmed through the shader, and the player carries a torch.</summary>
-        public static bool Night;
+        public static bool Night, Moon;
         public void SetSky(float altU)
         {
             Color zen = Color.Lerp(new Color(0.36f, 0.62f, 0.78f), new Color(0.005f, 0.01f, 0.04f), altU);
             Color hor = Color.Lerp(new Color(0.87f, 0.91f, 0.87f), new Color(0.28f, 0.44f, 0.7f), altU);
             Color fog = Color.Lerp(new Color(0.80f, 0.87f, 0.86f), new Color(0.62f, 0.74f, 0.86f), altU);
             if (Night) { zen = new Color(0.01f, 0.012f, 0.03f); hor = new Color(0.05f, 0.06f, 0.1f); fog = new Color(0.03f, 0.035f, 0.06f); }
+            if (Night && Moon) { zen = new Color(0.03f, 0.04f, 0.09f); hor = new Color(0.12f, 0.15f, 0.24f); fog = new Color(0.08f, 0.1f, 0.16f); }
             if (skyMat != null)
             {
                 skyMat.SetColor("_Zen", zen); skyMat.SetColor("_Hor", hor); skyMat.SetColor("_Low", fog);
@@ -265,9 +266,9 @@ namespace BomberBuddies
             {
                 float ey = cam.transform.position.y / World3.U, hi = Mathf.Max(0f, ey - 260f);
                 SetSky(Mathf.Clamp01((ey - 1500f) / 2300f));
-                RenderSettings.fogStartDistance = (520f + hi * 0.9f) * World3.U * World3.Spread * (Night ? 0.18f : 1f);
-                RenderSettings.fogEndDistance = (1750f + hi * 3f) * World3.U * World3.Spread * (Night ? 0.3f : 1f);
-                Shader.SetGlobalVector("_NightLight", Night ? new Vector4(0.16f, 0.18f, 0.28f, 1f) : new Vector4(1f, 1f, 1f, 0f));
+                RenderSettings.fogStartDistance = (520f + hi * 0.9f) * World3.U * World3.Spread * (Night ? (Moon ? 0.45f : 0.18f) : 1f);
+                RenderSettings.fogEndDistance = (1750f + hi * 3f) * World3.U * World3.Spread * (Night ? (Moon ? 0.7f : 0.3f) : 1f);
+                Shader.SetGlobalVector("_NightLight", Night ? (Moon ? new Vector4(0.34f, 0.38f, 0.55f, 1f) : new Vector4(0.16f, 0.18f, 0.28f, 1f)) : new Vector4(1f, 1f, 1f, 0f));
                 // the torch: from the camera, along the look, 60 m, only on foot or in a vehicle at night
                 bool torch = Night && !(PlayerManager.Instance != null && PlayerManager.Instance.plane != null && PlayerManager.Instance.plane.Active);
                 Shader.SetGlobalVector("_TorchPos", cam.transform.position);
