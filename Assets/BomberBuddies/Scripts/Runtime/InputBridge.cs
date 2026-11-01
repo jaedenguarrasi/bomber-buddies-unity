@@ -32,6 +32,7 @@ namespace BomberBuddies
         public bool BombPressed { get; private set; }
         /// <summary>Kick (on foot): X or the pad's west button.</summary>
         public bool KickPressed { get; private set; }
+        public bool PausePressed { get; private set; }
         public bool IsTouch { get; private set; }
 
         [Header("Sensitivity")]
@@ -39,8 +40,8 @@ namespace BomberBuddies
         public float stickDegPerSecond = 170f;
         public float touchDegPerPixel = 0.16f;
 
-        InputAction move, look, fire, aim, sprint, jump, crouch, reload, view, throttle, interact, bomb, kick;
-        bool jumpQ, crouchQ, reloadQ, viewQ, interactQ, bombQ, kickQ;
+        InputAction move, look, fire, aim, sprint, jump, crouch, reload, view, throttle, interact, bomb, kick, pause;
+        bool jumpQ, crouchQ, reloadQ, viewQ, interactQ, bombQ, kickQ, pauseQ;
 
         void Awake()
         {
@@ -84,6 +85,11 @@ namespace BomberBuddies
             kick.AddBinding("<Gamepad>/buttonWest");
             kick.performed += _ => kickQ = true;
 
+            pause = new InputAction("Pause", InputActionType.Button);
+            pause.AddBinding("<Keyboard>/p");
+            pause.AddBinding("<Gamepad>/start");
+            pause.performed += _ => pauseQ = true;
+
             interact = new InputAction("Interact", InputActionType.Button);
             interact.AddBinding("<Keyboard>/f");
             interact.AddBinding("<Gamepad>/select");
@@ -116,12 +122,12 @@ namespace BomberBuddies
 
         void OnEnable()
         {
-            move.Enable(); look.Enable(); fire.Enable(); aim.Enable(); sprint.Enable(); jump.Enable(); crouch.Enable(); reload.Enable(); view.Enable(); throttle.Enable(); interact.Enable(); bomb.Enable(); kick.Enable();
+            move.Enable(); look.Enable(); fire.Enable(); aim.Enable(); sprint.Enable(); jump.Enable(); crouch.Enable(); reload.Enable(); view.Enable(); throttle.Enable(); interact.Enable(); bomb.Enable(); kick.Enable(); pause.Enable();
         }
 
         void OnDisable()
         {
-            move.Disable(); look.Disable(); fire.Disable(); aim.Disable(); sprint.Disable(); jump.Disable(); crouch.Disable(); reload.Disable(); view.Disable(); throttle.Disable(); interact.Disable(); bomb.Disable(); kick.Disable();
+            move.Disable(); look.Disable(); fire.Disable(); aim.Disable(); sprint.Disable(); jump.Disable(); crouch.Disable(); reload.Disable(); view.Disable(); throttle.Disable(); interact.Disable(); bomb.Disable(); kick.Disable(); pause.Disable();
         }
 
         void Update()
@@ -144,6 +150,8 @@ namespace BomberBuddies
                 if (Touch.activeTouches.Count > 0) IsTouch = true;
             }
             if (Gamepad.current != null && Gamepad.current.wasUpdatedThisFrame && !Application.isMobilePlatform) IsTouch = false;
+            deg *= PauseMenu.Sensitivity;
+            if (PauseMenu.InvertY) deg.y = -deg.y;
             Look = deg;
 
             Fire = fire.IsPressed();
@@ -156,6 +164,7 @@ namespace BomberBuddies
             InteractPressed = interactQ; interactQ = false;
             BombPressed = bombQ; bombQ = false;
             KickPressed = kickQ; kickQ = false;
+            PausePressed = pauseQ; pauseQ = false;
             Throttle = Mathf.Clamp(throttle.ReadValue<float>(), -1f, 1f);
 
             // desktop: the mouse is captured while playing (Escape frees it)

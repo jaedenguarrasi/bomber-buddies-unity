@@ -190,7 +190,7 @@ namespace BomberBuddies
             creditsText = Txt("Credits", transform, tr, new Vector2(-350f, -36f), new Vector2(120f, 30f), 17, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f), true); creditsText.text = "● 0";
             RoundButton("View", new Vector2(-160f, -36f), "<Gamepad>/buttonNorth", "👁");
             RoundButton("Sound", new Vector2(-100f, -36f), "", "♪");
-            RoundButton("Pause", new Vector2(-40f, -36f), "", "⏸");
+            RoundButton("Pause", new Vector2(-40f, -36f), "", "⏸", () => { if (PauseMenu.Instance != null) PauseMenu.Instance.Toggle(); });
             waveText = Txt("Wave", transform, tr, new Vector2(-250f, -72f), new Vector2(240f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.9f, 0.9f, 0.9f));
             modeText = Txt("Mode", transform, new Vector2(0.5f, 1f), new Vector2(120f, -102f), new Vector2(900f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.75f, 0.85f, 1f, 0.9f));
             commsText = Txt("Comms", transform, new Vector2(1f, 1f), new Vector2(-180f, -112f), new Vector2(300f, 22f), 13, TextAnchor.MiddleRight, new Color(0.95f, 0.95f, 0.95f));
@@ -206,15 +206,18 @@ namespace BomberBuddies
             throttleChip = Txt("Chip", throttleKnob.transform, mid, Vector2.zero, new Vector2(46f, 30f), 14, TextAnchor.MiddleCenter, new Color(0.1f, 0.1f, 0.12f), true);
 
             BuildTouchControls();
+            PauseMenu.Create(transform);
+            ApplyLayoutOptions();
             GameState.Changed += Refresh;
             Refresh();
             SetFlight(null);
         }
 
-        void RoundButton(string name, Vector2 pos, string path, string glyph)
+        void RoundButton(string name, Vector2 pos, string path, string glyph, UnityEngine.Events.UnityAction onClick = null)
         {
-            var im = Disc(name, transform, new Vector2(1f, 1f), pos, 44f, new Color(0.05f, 0.08f, 0.12f, 0.6f), path != "");
+            var im = Disc(name, transform, new Vector2(1f, 1f), pos, 44f, new Color(0.05f, 0.08f, 0.12f, 0.6f), path != "" || onClick != null);
             if (path != "") { var b = im.gameObject.AddComponent<OnScreenButton>(); b.controlPath = path; }
+            if (onClick != null) { var b = im.gameObject.AddComponent<Button>(); b.onClick.AddListener(onClick); }
             Txt("Glyph", im.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(44f, 44f), 18, TextAnchor.MiddleCenter, Color.white).text = glyph;
         }
 
@@ -294,6 +297,17 @@ namespace BomberBuddies
         public void Announce(string text, float seconds) { message.text = text; messageT = seconds; }
         /// <summary>The small comms line under the top-right row ("▸ On foot", "▸ Launch!").</summary>
         public void Comms(string text) { if (commsText != null) { commsText.text = "▸ " + text; commsT = 3f; } }
+        /// <summary>Big buttons (×1.2) and the left-handed mirror, like the original's options.</summary>
+        public void ApplyLayoutOptions()
+        {
+            if (touchRoot == null) return;
+            float k = PauseMenu.BigButtons ? 1.2f : 1f;
+            foreach (var kv in buttons) kv.Value.rectTransform.localScale = new Vector3(k, k, 1f);
+            var rt = touchRoot.GetComponent<RectTransform>();
+            rt.localScale = new Vector3(PauseMenu.Lefty ? -1f : 1f, 1f, 1f);
+            foreach (var t in touchRoot.GetComponentsInChildren<Text>(true)) t.rectTransform.localScale = new Vector3(PauseMenu.Lefty ? -1f : 1f, 1f, 1f);
+        }
+
         public void SetModeLine(string text) { if (modeText != null) modeText.text = text; }
 
         /// <summary>Flying or on foot: relabels the buttons and readouts the way the original did.</summary>
@@ -369,6 +383,7 @@ namespace BomberBuddies
             if (messageT > 0f) { messageT -= dt; if (messageT <= 0f) message.text = ""; else message.color = new Color(1f, 1f, 1f, Mathf.Clamp01(messageT * 1.5f)); }
             if (commsT > 0f) { commsT -= dt; if (commsT <= 0f) commsText.text = ""; }
             if (touchRoot != null && InputBridge.Instance != null && touchRoot.activeSelf != InputBridge.Instance.IsTouch) touchRoot.SetActive(InputBridge.Instance.IsTouch);
+            if (InputBridge.Instance != null && InputBridge.Instance.PausePressed && PauseMenu.Instance != null) PauseMenu.Instance.Toggle();
         }
 
         static string Dots(int n, int max) { var s = ""; for (int i = 0; i < max; i++) s += i < n ? "●" : "○"; return s; }
