@@ -5,7 +5,6 @@ namespace BomberBuddies
 {
     /// <summary>Enemy infantry: wanders until it sees you, then closes to rifle range, stops, shoots in bursts, and shifts position
     /// between bursts. Hearing a shot or taking a hit puts it on alert.</summary>
-    [RequireComponent(typeof(NavMeshAgent))]
     public class EnemySoldier : MonoBehaviour
     {
         public float sightRange = 75f, fieldOfView = 150f, attackRange = 26f, loseAfter = 6f;
@@ -25,6 +24,7 @@ namespace BomberBuddies
         void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
+            if (agent == null) { guard = true; gameObject.layer = 9; lookYaw = transform.eulerAngles.y; return; }
             agent.speed = 3.6f;
             agent.angularSpeed = 540f;
             agent.acceleration = 14f;
@@ -56,8 +56,8 @@ namespace BomberBuddies
         void OnDied(DamageInfo info)
         {
             state = State.Dead;
-            if (agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
-            if (agent.enabled) agent.enabled = false;
+            if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
+            if (agent != null && agent.enabled) agent.enabled = false;
             foreach (var c in GetComponentsInChildren<Collider>()) c.enabled = false;
             if (model != null) model.Die(info.direction);
             GameState.EnemyKilled(info.headshot);
@@ -105,7 +105,7 @@ namespace BomberBuddies
                 if (deadT > 12f) { transform.position += Vector3.down * dt * 0.4f; if (deadT > 16f) Destroy(gameObject); }
                 return;
             }
-            if (guard) { GuardUpdate(dt); return; }
+            if (guard || agent == null) { GuardUpdate(dt); return; }
             if (!agent.isOnNavMesh) { if (model != null) model.Animate(0f, 0f, 0f, false, dt); return; }
 
             Vector3 target;
@@ -196,7 +196,7 @@ namespace BomberBuddies
             burstLeft--;
             burstT = burstGap;
             var from = model != null && model.muzzle != null ? model.muzzle.position : transform.TransformPoint(muzzleFallback);
-            float spread = spreadDeg * (!guard && agent.enabled && agent.velocity.magnitude > 0.5f ? 1.6f : 1f) * Mathf.Lerp(0.6f, 1.4f, Mathf.InverseLerp(5f, attackRange, Vector3.Distance(from, target)));
+            float spread = spreadDeg * (!guard && agent != null && agent.enabled && agent.velocity.magnitude > 0.5f ? 1.6f : 1f) * Mathf.Lerp(0.6f, 1.4f, Mathf.InverseLerp(5f, attackRange, Vector3.Distance(from, target)));
             var dir = (target - from).normalized;
             dir = Quaternion.AngleAxis(Random.Range(0f, 360f), dir) * Quaternion.Euler(Random.Range(0f, spread), 0f, 0f) * dir;
             var end = from + dir * 200f;

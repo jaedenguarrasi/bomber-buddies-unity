@@ -146,9 +146,8 @@ namespace BomberBuddies
                 for (int i = 0; i < g.GetLength(0); i++)
                 {
                     var at = E.L2W(g[i, 0], -30f, g[i, 1]);
-                    var ai = spawner.Spawn(at);
+                    var ai = spawner.Spawn(at, false);
                     ai.guard = true;
-                    var agent = ai.GetComponent<UnityEngine.AI.NavMeshAgent>(); if (agent != null) agent.enabled = false;
                     ai.health.max = 160f; ai.health.current = 160f;
                     ai.transform.SetParent(E.transform, true);
                     var face = g[i, 0] < -40f ? E.LocalDir(1, 0, 0) : g[i, 0] > 120f ? E.LocalDir(-1, 0, 0) : E.MouthDirection;
@@ -239,6 +238,7 @@ namespace BomberBuddies
             onFoot = on;
             if (foot != null) foot.gameObject.SetActive(on);
             if (rig != null) rig.enabled = on;
+            if (foot != null && foot.rifle != null && foot.rifle.viewModel != null) foot.rifle.viewModel.gameObject.SetActive(on && rig != null && rig.firstPerson);
             if (GameState.Hud != null) GameState.Hud.SetFlight(on ? null : plane);
         }
 

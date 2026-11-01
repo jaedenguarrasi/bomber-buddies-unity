@@ -63,7 +63,7 @@ namespace BomberBuddies
             return false;
         }
 
-        public EnemySoldier Spawn(Vector3 at)
+        public EnemySoldier Spawn(Vector3 at, bool withAgent = true)
         {
             var go = new GameObject("Enemy");
             go.transform.SetParent(transform, false);
@@ -77,11 +77,11 @@ namespace BomberBuddies
             var hc = headGo.AddComponent<SphereCollider>(); hc.radius = 0.17f;
             var hz = headGo.AddComponent<HitZone>(); hz.owner = hp; hz.multiplier = 2.4f; hz.head = true;
             var model = SoldierModelBase.Create(go.transform, library, 1, 9);
-            var agent = go.AddComponent<NavMeshAgent>();
+            NavMeshAgent agent = withAgent ? go.AddComponent<NavMeshAgent>() : null;
             var ai = go.AddComponent<EnemySoldier>();
             ai.model = model;
             ai.Init(player, hp);
-            if (!agent.isOnNavMesh) agent.Warp(at);
+            if (agent != null && !agent.isOnNavMesh) agent.Warp(at);
             return ai;
         }
     }
