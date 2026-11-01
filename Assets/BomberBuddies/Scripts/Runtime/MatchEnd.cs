@@ -40,6 +40,9 @@ namespace BomberBuddies
             if (Over) return;
             Over = true;
             if (PlayerManager.Instance != null) PlayerManager.Instance.over = true;
+            if (DeployScreen.Instance != null) DeployScreen.Instance.Hide();
+            if (PauseMenu.Instance != null && PauseMenu.Instance.IsOpen) PauseMenu.Instance.Close();
+            Time.timeScale = 1f;
             int earned = GameState.Credits; int score = GameState.Kills * 10 + GameState.Headshots * 5 + GameState.Wave * 100 + earned;
             bool best = score > Progress.Best; if (best) Progress.Best = score;
             PlayerPrefs.Save();

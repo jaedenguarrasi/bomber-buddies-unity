@@ -248,6 +248,7 @@ namespace BomberBuddies
                 foot.ControlsLocked = false;
             }
             if (GameState.Hud != null) GameState.Hud.Comms("Back in the fight");
+            if (over) yield break;
             bool placed = placeOnRespawn != null && placeOnRespawn();
             if (!placed) SpawnInAir(new Vector3(Random.Range(-60f, 60f), 0f, -300f));
             Respawning = false;

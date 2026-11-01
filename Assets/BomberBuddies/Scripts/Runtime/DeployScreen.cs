@@ -19,6 +19,7 @@ namespace BomberBuddies
         }
 
         public bool IsOpen { get { return root != null && root.activeSelf; } }
+        public void Hide() { if (root != null) root.SetActive(false); onDeploy = null; }
 
         void Build()
         {
