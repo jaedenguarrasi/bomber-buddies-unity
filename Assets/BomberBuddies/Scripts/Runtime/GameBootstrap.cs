@@ -35,7 +35,7 @@ namespace BomberBuddies
         float spawnYaw;
 
         /// <summary>The mode chosen in the menu survives the scene reload that starts a game.</summary>
-        public static string ChosenMode;
+        public static string ChosenMode, LastMode;
         public bool showMenu = true;
 
         void Awake()
@@ -54,7 +54,7 @@ namespace BomberBuddies
         public void Begin(string modeId)
         {
             mode = modeId == "galactic" ? Mode.Galactic : Mode.Island;
-            battleMode = modeId;
+            battleMode = modeId; LastMode = modeId;
             { ModeDefs.Mode md; Night = ModeDefs.All.TryGetValue(battleMode, out md) && md.night; }
             Random.InitState(seed);
             bool mobile = Application.isMobilePlatform;
@@ -69,6 +69,7 @@ namespace BomberBuddies
             if (mode == Mode.Island) BuildNavMesh();
             BuildPlayer();
             GameState.Hud = Hud.Create(transform);
+            MatchEnd.Create(GameState.Hud.transform);
             Support.Create(transform, library, GameState.Hud.transform);
             ItemWheel.Create(transform, library, GameState.Hud.transform);
             var pm = PlayerManager.Create(transform, library, player, rig, cam);

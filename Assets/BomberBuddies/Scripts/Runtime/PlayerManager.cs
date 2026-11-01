@@ -148,6 +148,7 @@ namespace BomberBuddies
             var kind = Progress.Craft == "heli" ? PlaneController.Craft.Heli : Progress.Craft == "heli2" ? PlaneController.Craft.Heli2 : Progress.Craft == "ac130" ? PlaneController.Craft.AC130 : PlaneController.Craft.Plane;
             var c = NewCraft(kind, at, yaw, null);
             Fly(c, at, yaw, null, c.IsHeli ? 60f : 180f);
+            if (GameState.Deaths == 0 && c.st != null) GameState.Lives = c.st.lives;
             StartCoroutine(Grace(c.health, 3f));
         }
 
@@ -228,6 +229,12 @@ namespace BomberBuddies
             Respawning = true;
             GameState.Deaths++;
             if (GameState.Hud != null) GameState.Hud.Announce(why);
+            if (GameState.Deaths >= GameState.Lives)
+            {
+                yield return new WaitForSeconds(2f);
+                if (MatchEnd.Instance != null) MatchEnd.Instance.Show(false, why + "  No lives left.");
+                Respawning = false; yield break;
+            }
             if (OnFoot && foot != null) { foot.ControlsLocked = true; if (foot.model != null) foot.model.Die(Vector3.forward); if (Gore.Instance != null) Gore.Instance.Splat(foot.transform.position, 1f); }
             yield return new WaitForSeconds(respawnDelay);
             if (over) yield break;

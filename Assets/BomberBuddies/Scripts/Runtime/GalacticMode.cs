@@ -441,8 +441,12 @@ namespace BomberBuddies
         {
             if (over) return;
             over = true; endT = 0f; if (pm != null) pm.over = true;
-            if (GameState.Hud != null) GameState.Hud.Announce(won ? "The enemy ship is down! Galactic Assault won." : "Your ship was destroyed.", 6f);
+            string text = won ? "The enemy ship is down! Galactic Assault won." : "Your ship was destroyed.";
+            if (GameState.Hud != null) GameState.Hud.Announce(text, 6f);
+            StartCoroutine(ShowEnd(won, text));
         }
+
+        System.Collections.IEnumerator ShowEnd(bool won, string text) { yield return new WaitForSeconds(3f); if (MatchEnd.Instance != null) MatchEnd.Instance.Show(won, text); }
 
         void Update()
         {

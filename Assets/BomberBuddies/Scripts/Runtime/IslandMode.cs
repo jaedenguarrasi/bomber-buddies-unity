@@ -181,7 +181,10 @@ namespace BomberBuddies
             if (PlayerManager.Instance != null) PlayerManager.Instance.over = true;
             if (spawner != null) spawner.enabled = false;
             if (GameState.Hud != null) GameState.Hud.Announce(text, 6f);
+            StartCoroutine(ShowEnd(won, text));
         }
+
+        System.Collections.IEnumerator ShowEnd(bool won, string text) { yield return new WaitForSeconds(3f); if (MatchEnd.Instance != null) MatchEnd.Instance.Show(won, text); }
 
         void Update()
         {

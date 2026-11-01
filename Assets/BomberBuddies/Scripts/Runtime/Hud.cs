@@ -542,7 +542,7 @@ namespace BomberBuddies
                 bombsText.text = Dots(GameState.Grenades, 8);
                 speedText.text = "Speed " + Mathf.RoundToInt(p.MoveSpeed / GalacticMode.U);
             }
-            livesText.text = Lives(Mathf.Max(0, 3 - GameState.Deaths % 3));
+            livesText.text = Lives(Mathf.Max(0, GameState.Lives - GameState.Deaths));
             if (canopy != null) canopy.enabled = fly && flight.cockpit;
             UpdateRadar();
             UpdateMarkers();
