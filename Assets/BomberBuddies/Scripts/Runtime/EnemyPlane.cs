@@ -18,6 +18,8 @@ namespace BomberBuddies
 
         /// <summary>An attack helicopter instead of a fighter: closes in, hovers, fires bursts.</summary>
         public bool heli, saucer;
+        /// <summary>Where the commander sent it: it hunts around here.</summary>
+        public Vector3? patrol;
         /// <summary>Abduction: a saucer picks an islander to hover over and beam up; the mode supplies them.</summary>
         public static System.Func<Vector3, Health> Abductee;
         Health abducting; float beamT; Transform beam;
@@ -77,11 +79,13 @@ namespace BomberBuddies
                 retargetT = 0.5f;
                 if (saucer && Abductee != null) { var a = Abductee(transform.position); if (a != null) { abducting = a; } }
                 if (abducting != null && (!abducting.alive || !abducting.gameObject.activeInHierarchy)) abducting = null;
-                targetH = Health.Nearest(Team, transform.position, 1400f * U, true);
-                if (targetH == null) targetH = Health.Nearest(Team, transform.position, 1400f * U, false);
+                var from = patrol.HasValue ? patrol.Value : transform.position; float reach = patrol.HasValue ? 260f : 1400f * U;
+                targetH = Health.Nearest(Team, from, reach, true);
+                if (targetH == null) targetH = Health.Nearest(Team, from, reach, false);
             }
             Vector3? target = null; bool airTarget = false;
             if (targetH != null && targetH.alive && targetH.gameObject.activeInHierarchy) { target = targetH.transform.position + Vector3.up * targetH.aimHeight; airTarget = targetH.isAir; }
+            else if (patrol.HasValue) { float g0 = GameState.GroundHeight != null ? GameState.GroundHeight(patrol.Value.x, patrol.Value.z) : 0f; target = new Vector3(patrol.Value.x, g0 + 60f * U, patrol.Value.z); }
 
             float gnd = GameState.GroundHeight != null ? GameState.GroundHeight(transform.position.x, transform.position.z) : 0f;
             float hold = gnd + 210f * U;

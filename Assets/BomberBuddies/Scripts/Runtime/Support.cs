@@ -170,11 +170,14 @@ namespace BomberBuddies
         }
 
         // ---------- Airstrike: a bomber lays a stick along the line you are facing ----------
-        IEnumerator Airstrike()
+        /// <summary>An airstrike on a spot the commander tapped.</summary>
+        public void StrikeAt(Vector3 at) { if (!busy) StartCoroutine(Airstrike(at)); }
+
+        IEnumerator Airstrike(Vector3? where = null)
         {
             busy = true;
             var at = PlayerPos(); var fwd = PlayerFwd(); fwd.y = 0f; if (fwd.sqrMagnitude < 0.01f) fwd = Vector3.forward; fwd.Normalize();
-            var target = at + fwd * 220f; target.y = GroundAt(target);
+            var target = where.HasValue ? where.Value : at + fwd * 220f; if (where.HasValue) { fwd = new Vector3(Random.value - 0.5f, 0f, Random.value - 0.5f).normalized; } target.y = GroundAt(target);
             if (GameState.Hud != null) GameState.Hud.Announce("Airstrike inbound", 2.5f);
             // the bomber itself, for show: a friendly fighter crossing the target at height
             var from = target - fwd * 500f + Vector3.up * 150f;

@@ -43,6 +43,7 @@ namespace BomberBuddies
             Button("Invert look", new Vector2(-180f, -40f), () => { InvertY = !InvertY; Save(); });
             Button("Big buttons", new Vector2(180f, -40f), () => { BigButtons = !BigButtons; Save(); });
             Button("Left-handed", new Vector2(-180f, -130f), () => { Lefty = !Lefty; Save(); });
+            Button("Commander view", new Vector2(180f, -130f), () => { if (Commander.Instance == null) return; Close(); if (Commander.On) Commander.Instance.Leave(); else Commander.Instance.Enter(); });
             Refresh();
             root.SetActive(false);
         }

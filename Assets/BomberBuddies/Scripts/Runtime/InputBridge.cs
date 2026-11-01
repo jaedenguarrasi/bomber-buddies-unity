@@ -40,6 +40,7 @@ namespace BomberBuddies
         /// <summary>A support call (the Predator missile) has the controls: the player's craft sees nothing, the call reads RawLook / RawFire.</summary>
         public static bool Hijacked;
         public Vector2 RawLook { get; private set; }
+        public Vector2 RawMove { get; private set; }
         public bool RawFire { get; private set; }
         public bool SupportPressed { get; private set; }
         public bool SeatPressed { get; private set; }
@@ -193,7 +194,7 @@ namespace BomberBuddies
             deg *= PauseMenu.Sensitivity;
             if (PauseMenu.InvertY) deg.y = -deg.y;
             RawLook = deg; Look = Hijacked ? Vector2.zero : deg;
-            if (Hijacked) Move = Vector2.zero;
+            RawMove = Move; if (Hijacked) Move = Vector2.zero;
 
             LookHeld = freeLook.IsPressed();
             RawFire = fire.IsPressed(); Fire = !Hijacked && RawFire;

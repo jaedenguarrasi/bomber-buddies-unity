@@ -51,6 +51,8 @@ namespace BomberBuddies
         }
 
         /// <summary>Builds the world and starts the chosen mode (a key of ModeDefs.All).</summary>
+        System.Collections.IEnumerator EnterCommandSoon() { yield return null; while (DeployScreen.Instance != null && DeployScreen.Instance.IsOpen) yield return null; yield return new WaitForSeconds(0.5f); if (Commander.Instance != null) Commander.Instance.Enter(); }
+
         public void Begin(string modeId)
         {
             mode = modeId == "galactic" ? Mode.Galactic : Mode.Island;
@@ -88,6 +90,8 @@ namespace BomberBuddies
             }
             GameState.Spawner = spawner;
             IslandMode.Create(transform, library, world, spawner, battleMode);
+            Commander.Create(transform, GameState.Hud.transform, library);
+            if (battleMode == "command") StartCoroutine(EnterCommandSoon());
             if (battleMode == "tutorial" || battleMode == "tutflight" || battleMode == "ch1") Tutorial.Create(transform, library, world, spawner, battleMode);
             // like the original: you start in your plane over the island, and come back the same way
             var team = Teammates.Create(transform, library, spawner, seaLevel);

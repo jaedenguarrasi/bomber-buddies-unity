@@ -47,6 +47,9 @@ namespace BomberBuddies
             return new Vector3(near.x, GameState.GroundHeight != null ? GameState.GroundHeight(near.x, near.z) : 0f, near.z);
         }
 
+        /// <summary>The commander buys one: a squad member, jeep, tank or helicopter near the spot he tapped.</summary>
+        public Health SpawnMate(string id, Vector3 near) { return SpawnOne(id, near); }
+
         Health SpawnOne(string id, Vector3 near)
         {
             switch (id)

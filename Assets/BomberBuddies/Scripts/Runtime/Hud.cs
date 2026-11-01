@@ -414,7 +414,7 @@ namespace BomberBuddies
             ShowTouch(InputBridge.Instance != null && InputBridge.Instance.IsTouch);
         }
 
-        void ShowTouch(bool on)
+        public void ShowTouch(bool on)
         {
             // on a phone the whole HUD is drawn a quarter larger so the buttons are a comfortable thumb size
             var scaler = GetComponent<CanvasScaler>();
