@@ -32,6 +32,73 @@ namespace BomberBuddies
         public readonly List<Marker> markers = new List<Marker>();
         readonly List<Transform> markerUi = new List<Transform>();
         RectTransform ccip;
+        // the map (toggleMap3): the island from above with everyone on it
+        GameObject mapRoot; RawImage mapImage; Texture2D mapTex; readonly List<Image> mapDots = new List<Image>(); Transform mapDotRoot;
+        public bool MapOpen { get { return mapRoot != null && mapRoot.activeSelf; } }
+
+        void BuildMap()
+        {
+            mapRoot = new GameObject("Map", typeof(RectTransform)); mapRoot.transform.SetParent(transform, false);
+            var rt = mapRoot.GetComponent<RectTransform>(); rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f); rt.sizeDelta = new Vector2(640f, 640f);
+            var bg = mapRoot.AddComponent<Image>(); bg.color = new Color(0.03f, 0.05f, 0.09f, 0.9f); bg.raycastTarget = true;
+            var imGo = new GameObject("Island", typeof(RectTransform)); imGo.transform.SetParent(mapRoot.transform, false);
+            var ir = imGo.GetComponent<RectTransform>(); ir.anchorMin = Vector2.zero; ir.anchorMax = Vector2.one; ir.offsetMin = new Vector2(10f, 10f); ir.offsetMax = new Vector2(-10f, -10f);
+            mapImage = imGo.AddComponent<RawImage>(); mapImage.raycastTarget = false;
+            mapDotRoot = imGo.transform;
+            var t = Txt("Title", mapRoot.transform, new Vector2(0.5f, 1f), new Vector2(0f, 16f), new Vector2(400f, 30f), 18, TextAnchor.MiddleCenter, Color.white, true); t.text = "MAP  ·  M / Back closes";
+            mapRoot.SetActive(false);
+        }
+
+        void PaintMap()
+        {
+            var w = World3.Instance; if (w == null) return;
+            const int S = 128; if (mapTex == null) { mapTex = new Texture2D(S, S, TextureFormat.RGBA32, false); mapTex.filterMode = FilterMode.Bilinear; }
+            var px = new Color32[S * S];
+            for (int y = 0; y < S; y++) for (int x = 0; x < S; x++)
+            {
+                int ix = Mathf.Clamp(x * World3.N3 / S, 0, World3.N3 - 1), iz = Mathf.Clamp(y * World3.N3 / S, 0, World3.N3 - 1); int k = iz * World3.N3 + ix;
+                float h = w.hm[k];
+                Color32 c;
+                if (h < World3.SEA) c = new Color32(38, 72, 110, 255);
+                else if (w.house3[k] >= 20 && w.house3[k] < 24) c = new Color32(150, 150, 160, 255);
+                else if (w.house3[k] != 0) c = new Color32(190, 90, 80, 255);
+                else if (w.road3[k] != 0) c = new Color32(90, 90, 95, 255);
+                else { float t = Mathf.Clamp01((h - World3.SEA) / 60f); c = new Color32((byte)(70 + 60 * t), (byte)(120 + 50 * t), (byte)(55 + 40 * t), 255); }
+                px[y * S + x] = c;
+            }
+            mapTex.SetPixels32(px); mapTex.Apply();
+            mapImage.texture = mapTex;
+        }
+
+        public void ToggleMap()
+        {
+            if (mapRoot == null) BuildMap();
+            bool open = !mapRoot.activeSelf;
+            if (open) PaintMap();
+            mapRoot.SetActive(open);
+        }
+
+        void UpdateMap()
+        {
+            if (!MapOpen || mapDotRoot == null) return;
+            float size = mapDotRoot.GetComponent<RectTransform>().rect.width;
+            int used = 0;
+            System.Action<Vector3, Color, float> dot = (wp, c, sz) =>
+            {
+                if (used >= mapDots.Count) { var d = Disc("Dot", mapDotRoot, new Vector2(0.5f, 0.5f), Vector2.zero, 6f, c); d.raycastTarget = false; mapDots.Add(d); }
+                var im = mapDots[used++]; im.enabled = true; im.color = c; im.rectTransform.sizeDelta = new Vector2(sz, sz);
+                float ox = wp.x / (GalacticMode.U * World3.Spread) + World3.MID3, oz = wp.z / (GalacticMode.U * World3.Spread) + World3.MID3;
+                im.rectTransform.anchoredPosition = new Vector2((ox / World3.WORLD3 - 0.5f) * size, (oz / World3.WORLD3 - 0.5f) * size);
+            };
+            foreach (var h in Health.All)
+            {
+                if (h == null || !h.alive || !h.gameObject.activeInHierarchy || h.stationary && h.team == 0) continue;
+                bool me = (GameState.Player != null && h.gameObject == GameState.Player.gameObject) || (flight != null && h.gameObject == flight.gameObject) || (drive != null && h.gameObject == drive.gameObject);
+                dot(h.transform.position, me ? Color.white : h.team == 0 ? new Color(0.45f, 0.65f, 1f) : (h.isAir ? new Color(1f, 0.55f, 0.3f) : new Color(1f, 0.25f, 0.2f)), me ? 10f : 6f);
+            }
+            foreach (var m in markers) if (m.alive == null || m.alive()) dot(m.at(), m.color(), 12f);
+            for (int i = used; i < mapDots.Count; i++) mapDots[i].enabled = false;
+        }
         public void AddMarker(System.Func<Vector3> at, System.Func<string> label, System.Func<Color> color, System.Func<bool> alive = null) { markers.Add(new Marker { at = at, label = label, color = color, alive = alive }); }
 
         void UpdateCcip()
@@ -262,7 +329,7 @@ namespace BomberBuddies
             var tr = new Vector2(1f, 0f + 1f);
             var pill = Img("GetOut", safe, tr, new Vector2(-552f, -40f), new Vector2(130f, 56f), new Color(0.05f, 0.08f, 0.12f, 0.6f), true);
             pill.sprite = Circle(); pill.type = Image.Type.Sliced;
-            var pillBtn = pill.gameObject.AddComponent<OnScreenButton>(); pillBtn.controlPath = "<Gamepad>/select";
+            var pillBtn = pill.gameObject.AddComponent<OnScreenButton>(); pillBtn.controlPath = "<Gamepad>/buttonWest";
             getOutLabel = Txt("Label", pill.transform, mid, Vector2.zero, new Vector2(130f, 56f), 19, TextAnchor.MiddleCenter, Color.white, true); getOutLabel.text = "Get out";
             creditsText = Txt("Credits", safe, tr, new Vector2(-702f, -40f), new Vector2(120f, 30f), 17, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f), true); creditsText.text = "● 0";
             RoundButton("View", new Vector2(-196f, -40f), "<Gamepad>/buttonNorth", "◎");
@@ -480,6 +547,8 @@ namespace BomberBuddies
             UpdateRadar();
             UpdateMarkers();
             UpdateCcip();
+            if (InputBridge.Instance != null && InputBridge.Instance.MapPressed) ToggleMap();
+            UpdateMap();
             if (hitT > 0f) { hitT -= dt; if (hitT <= 0f) foreach (var im in hitMarkerRoot.GetComponentsInChildren<Image>()) im.color = new Color(1f, 1f, 1f, 0f); }
             if (flashT > 0f) { flashT -= dt; damageFlash.color = new Color(0.65f, 0f, 0f, Mathf.Clamp01(flashT) * 0.45f); } else damageFlash.color = new Color(0.65f, 0f, 0f, 0f);
             if (messageT > 0f) { messageT -= dt; if (messageT <= 0f) message.text = ""; else message.color = new Color(1f, 1f, 1f, Mathf.Clamp01(messageT * 1.5f)); }
