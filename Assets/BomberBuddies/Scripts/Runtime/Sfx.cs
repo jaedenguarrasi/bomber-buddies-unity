@@ -46,6 +46,7 @@ namespace BomberBuddies
             music = NewSource("music"); music.loop = true; music.spatialBlend = 0f; music.clip = musicClip; music.volume = 0f;
             musicLp = music.gameObject.AddComponent<AudioLowPassFilter>(); musicLp.cutoffFrequency = 22000f;
             if (musicClip != null) music.Play();
+            if (FindObjectOfType<AudioListener>() == null) ownListener = gameObject.AddComponent<AudioListener>();
         }
 
         AudioSource NewSource(string name)
