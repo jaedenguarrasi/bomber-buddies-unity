@@ -90,7 +90,7 @@ namespace BomberBuddies
             gameObject.SetActive(true);
             Active = true;
             // start the camera behind the plane rather than sliding in from wherever it was
-            if (cam != null) { cam.transform.position = transform.position - Forward * 9f + Vector3.up * 3f; cam.transform.LookAt(transform.position + Forward * 10f); }
+            if (cam != null) { cam.transform.position = transform.position - Forward * 12f + Vector3.up * 3.8f; cam.transform.LookAt(transform.position + Forward * 10f); }
         }
 
         /// <summary>Hand the controls back: the plane stays where it is, parked, until someone gets in again.</summary>
@@ -273,8 +273,8 @@ namespace BomberBuddies
             if (cam == null) return;
             float k = Mathf.Clamp01(speedU / 300f);
             var back = Forward; back.y *= 0.6f;
-            var want = transform.position - back.normalized * (8f + 4f * k) + Vector3.up * (2.6f - 0.8f * pitch);
-            var lookAt = transform.position + Forward * 18f;
+            var want = transform.position - back.normalized * (12f + 5f * k) + Vector3.up * (3.8f - 1.2f * pitch);
+            var lookAt = transform.position + Forward * 30f;
             cam.transform.position = Vector3.SmoothDamp(cam.transform.position, want, ref camVel, 0.12f);
             var rot = Quaternion.LookRotation(lookAt - cam.transform.position, Quaternion.AngleAxis(-bank * 30f, Forward) * Vector3.up);
             cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, rot, Mathf.Min(1f, 8f * dt));
