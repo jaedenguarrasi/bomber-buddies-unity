@@ -29,6 +29,10 @@ namespace BomberBuddies
             return h;
         }
 
+#if UNITY_EDITOR
+        void Update() { if (UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.equalsKey.wasPressedThisFrame) { Progress.Bank += 1000; Render(); } }   // editor: = gives 1,000 credits for testing
+#endif
+
         public static bool IsOpen { get { return Instance != null && Instance.gameObject.activeSelf; } }
 
         void Build()
