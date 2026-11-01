@@ -105,7 +105,7 @@ namespace BomberBuddies
                 }
             }
             // climb over whatever is below (the carriers)
-            float obst = gm != null ? gm.ObstacleHeight(transform.position.x, transform.position.z) : gnd;
+            float obst = gm != null ? gm.ObstacleHeight(transform.position.x, transform.position.z) : (World3.Instance != null ? World3.Instance.ObstacleMetres(transform.position.x + Forward.x * 30f, transform.position.z + Forward.z * 30f) : gnd);
             if (obst + 40f * U > hold) hold = obst + 40f * U;
             float wantPitch = Mathf.Clamp((hold - transform.position.y) / (170f * U), -0.35f, 0.4f);
             pitch = Mathf.MoveTowards(pitch, wantPitch, 1.8f * dt);
@@ -148,7 +148,7 @@ namespace BomberBuddies
                 }
             }
             var gm = GalacticMode.Instance;
-            float obst = gm != null ? gm.ObstacleHeight(transform.position.x, transform.position.z) : gnd;
+            float obst = gm != null ? gm.ObstacleHeight(transform.position.x, transform.position.z) : (World3.Instance != null ? World3.Instance.ObstacleMetres(transform.position.x + Forward.x * 30f, transform.position.z + Forward.z * 30f) : gnd);
             if (obst + 40f * U > hold) hold = obst + 40f * U;
             fwdU = Mathf.MoveTowards(fwdU, wantFwd, 60f * U * dt);
             vyU = Mathf.MoveTowards(vyU, Mathf.Clamp((hold - transform.position.y) * 1.5f, -40f * U, 40f * U), 50f * U * dt);

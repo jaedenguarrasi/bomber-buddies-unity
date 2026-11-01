@@ -86,6 +86,20 @@ namespace BomberBuddies
             return Mathf.Max(SEA, h) * U;
         }
 
+        /// <summary>The highest thing under a point in metres: a tower roof, a house, or the ground (the original's obstH).</summary>
+        public float ObstacleMetres(float x, float z)
+        {
+            float h = GroundMetres(x, z);
+            foreach (var t in towerCells)
+            {
+                int k = (int)t.z * N3 + (int)t.x;
+                var c = ToWorld((int)t.x * BS, hm[k], (int)t.z * BS);
+                float hw = bhw[k] * U;
+                if (Mathf.Abs(x - c.x) <= hw && Mathf.Abs(z - c.z) <= hw) h = Mathf.Max(h, c.y + bfl[k] * FLOOR_H * U);
+            }
+            return h;
+        }
+
         public static Vector3 ToWorld(float ox, float oy, float oz) { return new Vector3((ox - MID3) * U * Spread, oy * U, (oz - MID3) * U * Spread); }
 
         bool Flat(int k) { return k > N3 && k < N3 * N3 - N3 - 1 && Mathf.Abs(hm[k + 1] - hm[k - 1]) + Mathf.Abs(hm[k + N3] - hm[k - N3]) < 7f; }

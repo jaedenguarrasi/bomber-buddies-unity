@@ -133,7 +133,9 @@ namespace BomberBuddies
         /// <summary>A fresh plane in the air over the island, the original's respawnInner for aircraft: y = max(320, ground + 190), facing the centre, speed 180.</summary>
         public void SpawnInAir(Vector3 near)
         {
-            float g = GameState.GroundHeight != null ? GameState.GroundHeight(near.x, near.z) : 0f;
+            float g = World3.Instance != null ? World3.Instance.ObstacleMetres(near.x, near.z) : (GameState.GroundHeight != null ? GameState.GroundHeight(near.x, near.z) : 0f);
+            // and nothing tall on the way in: the highest roof within 120 m sets the floor
+            if (World3.Instance != null) for (int i = 0; i < 12; i++) { float a = i / 12f * Mathf.PI * 2f; g = Mathf.Max(g, World3.Instance.ObstacleMetres(near.x + Mathf.Cos(a) * 60f, near.z + Mathf.Sin(a) * 60f), World3.Instance.ObstacleMetres(near.x + Mathf.Cos(a) * 120f, near.z + Mathf.Sin(a) * 120f)); }
             var at = new Vector3(near.x, Mathf.Max(320f * U, g + 190f * U), near.z);
             var toCentre = -new Vector3(at.x, 0f, at.z);
             float yaw = toCentre.sqrMagnitude > 1f ? Mathf.Atan2(toCentre.x, toCentre.z) * Mathf.Rad2Deg : 0f;
