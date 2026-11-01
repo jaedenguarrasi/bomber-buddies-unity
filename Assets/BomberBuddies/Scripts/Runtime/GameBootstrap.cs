@@ -17,6 +17,8 @@ namespace BomberBuddies
         public enum Mode { Galactic, Island }
         public MaterialLibrary library;
         public Mode mode = Mode.Galactic;
+        /// <summary>Which battle to fight on the island (a key of ModeDefs.All): battle, horde, infantry, lightarmor, air.</summary>
+        public string battleMode = "battle";
         public int seed = 7;
         public float islandSize = 1100f, maxHeight = 85f, seaLevel = 9f;
         public int treeCount = 420, rockCount = 90;
@@ -55,6 +57,7 @@ namespace BomberBuddies
             spawner.transform.SetParent(transform, false);
             spawner.library = library; spawner.player = player; spawner.baseCount = waveBase; spawner.perWave = wavePerWave;
             spawner.villageCenter = world.villageCenter; spawner.villageRadius = world.villageRadius;
+            spawner.modeId = battleMode; spawner.seaLevel = seaLevel;
             if (mode == Mode.Galactic)
             {
                 spawner.enabled = false;   // no waves: the ships' guards come from the mode itself

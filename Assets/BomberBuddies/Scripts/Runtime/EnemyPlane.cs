@@ -63,7 +63,7 @@ namespace BomberBuddies
             float dt = Mathf.Min(Time.deltaTime, 0.05f);
             life -= dt;
             var gm = GalacticMode.Instance;
-            if (life <= 0f || gm == null) { Destroy(gameObject); return; }
+            if (life <= 0f) { Destroy(gameObject); return; }
             // target: the nearest enemy aircraft, else the nearest enemy on the ground
             retargetT -= dt;
             if (retargetT <= 0f)
@@ -75,7 +75,7 @@ namespace BomberBuddies
             Vector3? target = null; bool airTarget = false;
             if (targetH != null && targetH.alive && targetH.gameObject.activeInHierarchy) { target = targetH.transform.position + Vector3.up * targetH.aimHeight; airTarget = targetH.isAir; }
 
-            float gnd = gm.TerrainHeight(transform.position.x, transform.position.z);
+            float gnd = GameState.GroundHeight != null ? GameState.GroundHeight(transform.position.x, transform.position.z) : 0f;
             float hold = gnd + 210f * U;
             if (target.HasValue)
             {
@@ -102,7 +102,7 @@ namespace BomberBuddies
                 }
             }
             // climb over whatever is below (the carriers)
-            float obst = gm.ObstacleHeight(transform.position.x, transform.position.z);
+            float obst = gm != null ? gm.ObstacleHeight(transform.position.x, transform.position.z) : gnd;
             if (obst + 40f * U > hold) hold = obst + 40f * U;
             float wantPitch = Mathf.Clamp((hold - transform.position.y) / (170f * U), -0.35f, 0.4f);
             pitch = Mathf.MoveTowards(pitch, wantPitch, 1.8f * dt);
