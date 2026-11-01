@@ -206,10 +206,10 @@ namespace BomberBuddies
             var pillBtn = pill.gameObject.AddComponent<OnScreenButton>(); pillBtn.controlPath = "<Gamepad>/select";
             getOutLabel = Txt("Label", pill.transform, mid, Vector2.zero, new Vector2(130f, 56f), 19, TextAnchor.MiddleCenter, Color.white, true); getOutLabel.text = "Get out";
             creditsText = Txt("Credits", safe, tr, new Vector2(-702f, -40f), new Vector2(120f, 30f), 17, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f), true); creditsText.text = "● 0";
-            RoundButton("View", new Vector2(-196f, -40f), "<Gamepad>/buttonNorth", "👁");
+            RoundButton("View", new Vector2(-196f, -40f), "<Gamepad>/buttonNorth", "◎");
             RoundButton("Support", new Vector2(-272f, -40f), "<Gamepad>/dpad/up", "✦");
             RoundButton("Seat", new Vector2(-348f, -40f), "<Gamepad>/dpad/left", "⇄");
-            RoundButton("Items", new Vector2(-424f, -40f), "<Gamepad>/dpad/down", "🎒");
+            RoundButton("Items", new Vector2(-424f, -40f), "<Gamepad>/dpad/down", "I");
             RoundButton("Sound", new Vector2(-120f, -40f), "", "♪", () => { if (!Sfx.Muted && Sfx.MusicOn) { Sfx.MusicOn = false; Comms("Music off"); } else if (!Sfx.Muted) { Sfx.Muted = true; Comms("Sound off"); } else { Sfx.Muted = false; Sfx.MusicOn = true; Comms("Sound on"); } PlayerPrefs.Save(); });
             RoundButton("Pause", new Vector2(-44f, -40f), "", "⏸", () => { if (PauseMenu.Instance != null) PauseMenu.Instance.Toggle(); });
             waveText = Txt("Wave", safe, tr, new Vector2(-552f, -82f), new Vector2(240f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.9f, 0.9f, 0.9f));

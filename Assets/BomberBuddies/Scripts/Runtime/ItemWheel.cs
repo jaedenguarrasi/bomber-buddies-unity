@@ -13,11 +13,11 @@ namespace BomberBuddies
         public class Item { public string id, name, icon, note; public float dur, cd; }
         public static readonly Item[] Items =
         {
-            new Item { id = "smoke", name = "Cigarette", icon = "🚬", note = "20 s: move 30% faster, music 30% faster", dur = 20f, cd = 30f },
-            new Item { id = "med", name = "Med kit", icon = "🩹", note = "Heals 60% of your health", cd = 45f },
-            new Item { id = "drink", name = "Energy drink", icon = "🥤", note = "20 s: jump much higher, land softly", dur = 20f, cd = 40f },
-            new Item { id = "flare", name = "Airstrike", icon = "🧨", note = "Five bombs on the spot you are aiming at", cd = 90f },
-            new Item { id = "monkey", name = "Cymbal monkey", icon = "🐒", note = "Wind it up and throw it: everything nearby goes for it, then it blows", cd = 25f },
+            new Item { id = "smoke", name = "Cigarette", icon = "CIG", note = "20 s: move 30% faster, music 30% faster", dur = 20f, cd = 30f },
+            new Item { id = "med", name = "Med kit", icon = "MED", note = "Heals 60% of your health", cd = 45f },
+            new Item { id = "drink", name = "Energy drink", icon = "DRINK", note = "20 s: jump much higher, land softly", dur = 20f, cd = 40f },
+            new Item { id = "flare", name = "Airstrike", icon = "STRIKE", note = "Five bombs on the spot you are aiming at", cd = 90f },
+            new Item { id = "monkey", name = "Cymbal monkey", icon = "MONKEY", note = "Wind it up and throw it: everything nearby goes for it, then it blows", cd = 25f },
             new Item { id = "", name = "Empty" }, new Item { id = "", name = "Empty" }, new Item { id = "", name = "Empty" },
         };
         readonly Dictionary<string, float> cdUntil = new Dictionary<string, float>();
@@ -47,7 +47,7 @@ namespace BomberBuddies
                 var r = go.GetComponent<RectTransform>(); r.anchorMin = r.anchorMax = new Vector2(0.5f, 0.5f); r.anchoredPosition = pos; r.sizeDelta = new Vector2(118f, 118f);
                 var im = go.AddComponent<Image>(); im.color = it.id != "" ? new Color(0.1f, 0.14f, 0.2f, 0.92f) : new Color(0.08f, 0.09f, 0.11f, 0.6f);
                 var b = go.AddComponent<Button>(); b.interactable = it.id != ""; string id = it.id; b.onClick.AddListener(() => Use(id));
-                Txt("Icon", go.transform, new Vector2(0f, 18f), new Vector2(118f, 60f), 40, it.icon ?? "·", Color.white);
+                Txt("Icon", go.transform, new Vector2(0f, 18f), new Vector2(118f, 60f), 18, it.icon ?? "·", new Color(1f, 0.85f, 0.35f));
                 Txt("Name", go.transform, new Vector2(0f, -30f), new Vector2(118f, 24f), 13, it.name, new Color(0.85f, 0.9f, 1f));
                 slots.Add(b);
             }
