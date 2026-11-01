@@ -163,7 +163,7 @@ namespace BomberBuddies
                 if (input.KickPressed && healCd <= 0f)
                 {
                     healCd = 3f; int healed = 0;
-                    foreach (var h in Health.All) if (h != null && h.alive && h.team == 0 && h.gameObject != gameObject && Vector3.Distance(h.transform.position, transform.position) < 8f && h.current < h.max) { h.current = h.max; healed++; }
+                    foreach (var hh in Health.All) if (hh != null && hh.alive && hh.team == 0 && hh.gameObject != gameObject && Vector3.Distance(hh.transform.position, transform.position) < 8f && hh.current < hh.max) { hh.current = hh.max; healed++; }
                     if (health != null) health.current = health.max;
                     if (GameState.Hud != null) GameState.Hud.Comms(healed > 0 ? "Patched up " + healed : "Patched up");
                 }
