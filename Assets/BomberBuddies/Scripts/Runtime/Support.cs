@@ -133,12 +133,12 @@ namespace BomberBuddies
             busy = true;
             var mainCam = Camera.main;
             var at = PlayerPos(); var fwd = PlayerFwd(); fwd.y = 0f; fwd.Normalize();
-            var start = at + fwd * 60f + Vector3.up * 320f;
+            var start = at + fwd * 40f + Vector3.up * 150f;
             var go = new GameObject("Predator missile"); go.transform.position = start;
             var mb = new MeshBuilder(); mb.Frustum(0f, 0f, 0f, 2.4f, 0.5f, 0.5f, 1f, 1f, 0f, MeshBuilder.Rgb(200, 200, 205)); mb.DBox(0f, 0f, -0.9f, 0.05f, 1.2f, 0.4f, MeshBuilder.Rgb(80, 80, 85)); mb.DBox(0f, 0f, -0.9f, 1.2f, 0.05f, 0.4f, MeshBuilder.Rgb(80, 80, 85));
             var body = mb.Spawn("Body", go.transform, lib != null ? lib.Get("lowpoly") : null, false); body.transform.localScale = Vector3.one / GalacticMode.U;   // the builder scales by U; the missile is drawn in metres
             var cam = go.AddComponent<Camera>(); cam.fieldOfView = 62f; cam.nearClipPlane = 0.3f; cam.farClipPlane = 5000f; cam.depth = 20f;
-            var dir = (fwd * 0.55f + Vector3.down * 0.83f).normalized;
+            var dir = (fwd * 0.8f + Vector3.down * 0.6f).normalized;
             float yawD = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg, pitchD = -Mathf.Asin(dir.y) * Mathf.Rad2Deg;
             float speed = 95f; float t = 0f;
             if (mainCam != null) mainCam.enabled = false;
