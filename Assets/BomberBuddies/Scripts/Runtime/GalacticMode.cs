@@ -110,7 +110,7 @@ namespace BomberBuddies
             NewCraft(PlaneController.Craft.Plane, friendly.L2W(-10f, friendly.FloorY + 1f, 12f));
             NewCraft(PlaneController.Craft.Heli, friendly.L2W(45f, friendly.FloorY + 0f, 12f));
             NewCraft(PlaneController.Craft.Plane, friendly.L2W(95f, friendly.FloorY + 1f, 12f));
-            plane = NewCraft(PlaneController.Craft.Plane, friendly.L2W(0f, friendly.FloorY + 4f, -20f));
+            plane = NewCraft(PlaneController.Craft.Plane, friendly.L2W(20f, friendly.FloorY + 4f, -20f));
             if (foot != null)
             {
                 foot.groundHeight = GroundHeight;
@@ -452,7 +452,8 @@ namespace BomberBuddies
             var F = friendly;
             // a parked plane in your hangar if there is one, else a fresh one
             PlaneController use = null;
-            foreach (var c in craft) if (c != null && !c.Active && c.health.alive && !c.IsHeli && F.HangarAt(c.transform.position)) { use = c; break; }
+            if (plane != null && plane.health.alive && !plane.Active && !plane.IsHeli && F.HangarAt(plane.transform.position)) use = plane;
+            if (use == null) foreach (var c in craft) if (c != null && !c.Active && c.health.alive && !c.IsHeli && F.HangarAt(c.transform.position)) { use = c; break; }
             if (use == null) use = NewCraft(PlaneController.Craft.Plane, F.L2W(20f + Random.Range(-25f, 25f), F.FloorY + 4f, -20f));
             plane = use;
             var dir = F.MouthDirection;
