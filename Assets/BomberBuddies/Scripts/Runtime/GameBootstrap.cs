@@ -210,7 +210,7 @@ namespace BomberBuddies
             var zone = pgo.AddComponent<HitZone>(); zone.owner = playerHealth; zone.multiplier = 1f;
             player = pgo.AddComponent<FootController>();
             player.health = playerHealth;
-            player.groundHeight = world.GroundMetres;
+            player.groundHeight = (x, z) => GameState.GroundHeight != null ? GameState.GroundHeight(x, z) : world.GroundMetres(x, z);
 
             var model = SoldierModelBase.Create(pgo.transform, library, 0, 8);
             player.model = model;
