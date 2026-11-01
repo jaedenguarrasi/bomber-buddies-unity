@@ -65,7 +65,7 @@ namespace BomberBuddies
                 }
                 y -= (col == 0 ? 0f : 132f) + 40f;
             }
-            Txt("Hint", transform, new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(1400f, 30f), 18, TextAnchor.MiddleCenter, new Color(0.6f, 0.65f, 0.75f)).text = "Keyboard: WASD move · mouse look · Shift sprint/boost · Space jump/bomb · F get in/out · E/Q throttle · V view";
+            Txt("Hint", transform, new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(1400f, 30f), 18, TextAnchor.MiddleCenter, new Color(0.6f, 0.65f, 0.75f)).text = "Keyboard: WASD move · mouse look · Shift sprint/boost · Space jump/bomb · F get in/out · E/Q throttle · V view · C free look · Tab support";
         }
 
         void Tile(ModeDefs.Mode mode, Vector2 pos)

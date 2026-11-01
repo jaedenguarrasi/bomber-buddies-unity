@@ -66,6 +66,7 @@ namespace BomberBuddies
             if (mode == Mode.Island) BuildNavMesh();
             BuildPlayer();
             GameState.Hud = Hud.Create(transform);
+            Support.Create(transform, library, GameState.Hud.transform);
             var pm = PlayerManager.Create(transform, library, player, rig, cam);
             var spawner = new GameObject("Enemies").AddComponent<EnemySpawner>();
             spawner.transform.SetParent(transform, false);
