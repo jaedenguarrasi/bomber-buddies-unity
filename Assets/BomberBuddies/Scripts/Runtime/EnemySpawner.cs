@@ -58,7 +58,7 @@ namespace BomberBuddies
             for (int i = 0; i < nCamps; i++) camps.Add(LandSpot(GameState.Wave <= 1 ? 90f : 60f, 180f));
             queue.Clear();
             // emplacements first, then the heavy stuff, then the men; aircraft arrive on their own from the edge
-            foreach (var t in new[] { "bunker", "aa", "sam", "tank", "jeep", "inf", "egun", "medic", "vest", "ejet", "grey", "trex", "ape", "stalk", "raptor", "gob", "eplane", "eheli", "ufo", "dragon" })
+            foreach (var t in new[] { "bunker", "aa", "sam", "tank", "jeep", "inf", "egun", "medic", "vest", "ejet", "grey", "trex", "ape", "stalk", "raptor", "gob", "colossus", "beast", "kaiju", "eplane", "eheli", "ufo", "dragon" })
             {
                 int k; if (!counts.TryGetValue(t, out k)) continue;
                 for (int i = 0; i < k; i++) queue.Add(t);
@@ -94,6 +94,22 @@ namespace BomberBuddies
                 var at = centre + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 500f; at.y = 200f * GalacticMode.U + Mathf.Max(0f, GameState.GroundHeight != null ? GameState.GroundHeight(at.x, at.z) : 0f);
                 var dr = Dragon.Build(transform, library, at);
                 alive.Add(dr.health);
+                return true;
+            }
+            if (type == "colossus" || type == "beast" || type == "kaiju")
+            {
+                var centre = player != null ? player.transform.position : villageCenter;
+                for (int attempt = 0; attempt < 40; attempt++)
+                {
+                    float a = Random.Range(0f, Mathf.PI * 2f);
+                    var p = centre + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * Random.Range(260f, 380f);
+                    float h = GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : 0f; if (h <= seaLevel + 1f) continue; p.y = h;
+                    NavMeshHit hit; bool onMesh = NavMesh.SamplePosition(p, out hit, 20f, NavMesh.AllAreas);
+                    var e = Spawn(onMesh ? hit.position : p, onMesh); e.MakeCreature(type, library); alive.Add(e.health);
+                    if (GameState.Hud != null) GameState.Hud.Announce(type == "kaiju" ? "Something has come up out of the sea" : type == "beast" ? "Something enormous is awake in the hills" : "The colossus is coming", 4f);
+                    if (GalacticMode.Instance != null) GalacticMode.Instance.Shake(0.6f);
+                    return true;
+                }
                 return true;
             }
             if (type == "eplane" || type == "eheli" || type == "ufo")

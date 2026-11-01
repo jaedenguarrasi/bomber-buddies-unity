@@ -25,6 +25,49 @@ namespace BomberBuddies
         /// <summary>Creatures (DEF ape/gob/raptor/stalk/trex): melee, fast, built from the soldier body scaled and tinted until they get bodies of their own.</summary>
         public bool melee; public int score = 10;
         float meleeDmg, meleeReach = 1.6f, meleeT, creatureSpeed = 4f, leapT;
+        /// <summary>The giants (colossus / Beast / kaiju): a creature body blown up, boulders, a beam, and the ground shakes.</summary>
+        public bool giant; float giantScale = 1f, throwT = 4f, stompDist, beamT;
+
+        /// <summary>Every step shakes the ground and flattens what it stands on; at range it throws a boulder (or, the kaiju, fires its beam).</summary>
+        void GiantUpdate(float dt, float dist, Vector3 to)
+        {
+            float moved = agent != null && agent.enabled ? agent.velocity.magnitude * dt : creatureSpeed * dt;
+            stompDist += moved;
+            float stride = 3f * giantScale;
+            if (stompDist > stride)
+            {
+                stompDist = 0f;
+                var foot = transform.position + transform.right * (Random.value < 0.5f ? -1f : 1f) * giantScale * 0.6f;
+                Sfx.Play("stomp", 0.9f, 0.5f, foot);
+                if (GalacticMode.Instance != null) GalacticMode.Instance.Shake(Mathf.Clamp01(1f - dist / 120f) * 0.9f);
+                if (World3.Instance != null) World3.Instance.Blast(foot, 4f * giantScale, 120f);
+                // anyone small underfoot
+                foreach (var h in Health.All) if (h != null && h.alive && h.team != health.team && !h.isAir && Vector3.Distance(h.transform.position, foot) < 2.5f * giantScale) h.TakeDamage(new DamageInfo { amount = 60f * GalacticMode.K, point = h.transform.position, direction = Vector3.down, source = gameObject, foot = true });
+            }
+            throwT -= dt; beamT -= dt;
+            if (target == null || !target.alive || Projectiles.Instance == null) return;
+            var hand = transform.position + Vector3.up * (giantScale * 2.2f) + transform.forward * giantScale;
+            if (kind == "kaiju")
+            {
+                // the beam: a stream of bolts for two seconds, every ten
+                if (beamT <= 0f && dist < 220f) { beamT = 10f; Sfx.Play("gun_zap", 0.8f, 0.4f, hand); if (GameState.Hud != null) GameState.Hud.Comms("The giant is charging its beam"); }
+                if (beamT > 8f && Mathf.Repeat(Time.time, 0.1f) < dt)
+                {
+                    var d = (target.transform.position + Vector3.up - hand).normalized; d = Quaternion.Euler(Random.Range(-1.5f, 1.5f), Random.Range(-1.5f, 1.5f), 0f) * d;
+                    Projectiles.Instance.FireShell(hand, d, 420f * GalacticMode.U, 6f * GalacticMode.U, 16f * GalacticMode.U, 12f * GalacticMode.K, health.team, gameObject, true, 0f);
+                }
+            }
+            else if (throwT <= 0f && dist > 18f && dist < 260f)
+            {
+                throwT = kind == "beast" ? 4f : 6f;
+                var tp = target.transform.position; float g = 9.81f * 2.5f;
+                float flight = Mathf.Clamp(dist / 55f, 1.2f, 3.5f);
+                var v = (tp - hand) / flight; v.y += 0.5f * g * flight;
+                Projectiles.Instance.FireShell(hand, v.normalized, v.magnitude, 3f * giantScale * GalacticMode.U * 4f, 14f * GalacticMode.U * 4f, 90f * GalacticMode.K, health.team, gameObject, false, g);
+                Sfx.Play(kind == "beast" ? "roar_big" : "roar_ape", 0.9f, 0.6f, hand); Sfx.Play("swing", 0.7f, 0.6f, hand);
+                if (GameState.Hud != null) GameState.Hud.Comms(kind == "beast" ? "Incoming!" : "It is throwing a boulder");
+            }
+        }
 
         public void MakeCreature(string k, MaterialLibrary lib = null)
         {
@@ -36,6 +79,9 @@ namespace BomberBuddies
                 case "ape": health.max = 70f * K; creatureSpeed = 64f * GalacticMode.U * 1.2f; meleeDmg = 38f; meleeReach = 2.6f; score = 90; scale = new Vector3(1.9f, 1.6f, 1.9f); tint = new Color(0.45f, 0.32f, 0.22f); break;
                 case "raptor": health.max = 45f * K; creatureSpeed = 150f * GalacticMode.U * 0.8f; meleeDmg = 14f; meleeReach = 2.0f; score = 80; scale = new Vector3(0.9f, 1.0f, 1.6f); tint = new Color(0.45f, 0.6f, 0.3f); break;
                 case "stalk": health.max = 60f * K; creatureSpeed = 60f * GalacticMode.U * 1.3f; meleeDmg = 24f; meleeReach = 2.2f; score = 70; scale = new Vector3(0.8f, 1.7f, 0.8f); tint = new Color(0.85f, 0.85f, 0.9f); break;
+                case "colossus": giant = true; giantScale = 4f; health.max = 4000f * K; health.armor = 0.75f; creatureSpeed = 50f * GalacticMode.U * 1.2f; meleeDmg = 140f; meleeReach = 9f; score = 6000; break;
+                case "beast": giant = true; giantScale = 3f; health.max = 3000f * K; health.armor = 0.6f; creatureSpeed = 75f * GalacticMode.U * 1.3f; meleeDmg = 110f; meleeReach = 8f; score = 5000; break;
+                case "kaiju": giant = true; giantScale = 3.5f; health.max = 12000f * K; health.armor = 0.8f; creatureSpeed = 40f * GalacticMode.U; meleeDmg = 220f; meleeReach = 16f; score = 12000; break;
                 case "trex": health.max = 950f * K; health.armor = 0.7f; creatureSpeed = 88f * GalacticMode.U * 0.9f; meleeDmg = 70f; meleeReach = 5f; score = 900; scale = new Vector3(3.2f, 3.5f, 4.5f); tint = new Color(0.4f, 0.5f, 0.3f); break;
             }
             health.current = health.max; health.aimHeight = 1.1f * scale.y;
@@ -44,7 +90,8 @@ namespace BomberBuddies
             {
                 // its own body
                 if (model != null) Destroy(model.gameObject);
-                model = CreatureModel.Create(transform, lib, k, gameObject.layer);
+                model = CreatureModel.Create(transform, lib, giant ? (k == "colossus" ? "ape" : k == "beast" ? "stalk" : "trex") : k, gameObject.layer);
+                if (giant) { model.transform.localScale = Vector3.one * giantScale; foreach (var r in model.GetComponentsInChildren<Renderer>()) foreach (var m in r.materials) if (m.HasProperty("_Tint")) m.SetVector("_Tint", k == "beast" ? new Vector4(0.3f, 0.32f, 0.4f, 1f) : k == "kaiju" ? new Vector4(0.25f, 0.4f, 0.35f, 1f) : new Vector4(0.35f, 0.25f, 0.18f, 1f)); }
                 scale = Vector3.one * (k == "trex" ? 1f : 1f);
             }
             else if (model != null)
@@ -52,11 +99,12 @@ namespace BomberBuddies
                 model.transform.localScale = scale;
                 foreach (var r in model.GetComponentsInChildren<Renderer>()) { foreach (var m in r.materials) if (m.HasProperty("_Tint")) m.SetVector("_Tint", new Vector4(tint.r, tint.g, tint.b, 1f)); }
             }
-            float bodyH = k == "trex" ? 8f : k == "ape" ? 2.6f : k == "stalk" ? 3.2f : k == "raptor" ? 1.6f : 1.1f;
+            float bodyH = giant ? (k == "kaiju" ? 8f * giantScale : k == "colossus" ? 2.6f * giantScale : 3.2f * giantScale) : k == "trex" ? 8f : k == "ape" ? 2.6f : k == "stalk" ? 3.2f : k == "raptor" ? 1.6f : 1.1f;
             health.aimHeight = bodyH * 0.55f;
             var cc = GetComponent<CapsuleCollider>(); if (cc != null) { cc.height = bodyH; cc.center = new Vector3(0f, bodyH * 0.5f, 0f); cc.radius = k == "trex" ? 1.4f : k == "ape" ? 0.7f : 0.35f; }
             var hz = transform.Find("HeadZone"); if (hz != null) { hz.localPosition = new Vector3(0f, k == "trex" ? 6.5f : k == "ape" ? 2.5f : k == "stalk" ? 2.8f : k == "raptor" ? 1.9f : 1.0f, k == "trex" ? 4f : k == "raptor" ? 1.1f : 0f); var sc = hz.GetComponent<SphereCollider>(); if (sc != null) sc.radius = k == "trex" ? 1.2f : k == "ape" ? 0.4f : 0.2f; }
-            if (agent != null) { agent.speed = creatureSpeed; agent.radius = k == "trex" ? 1.4f : k == "ape" ? 0.7f : 0.35f; agent.height = bodyH; agent.acceleration = 30f; agent.stoppingDistance = meleeReach * 0.6f; }
+            if (giant) { var hz2 = transform.Find("HeadZone"); if (hz2 != null) { hz2.localPosition = new Vector3(0f, bodyH * 0.85f, k == "kaiju" ? 4f * giantScale : 0f); var sc2 = hz2.GetComponent<SphereCollider>(); if (sc2 != null) sc2.radius = bodyH * 0.12f; } var cc2 = GetComponent<CapsuleCollider>(); if (cc2 != null) cc2.radius = bodyH * 0.18f; }
+            if (agent != null) { agent.speed = creatureSpeed; agent.radius = giant ? Mathf.Min(bodyH * 0.18f, 2f) : k == "trex" ? 1.4f : k == "ape" ? 0.7f : 0.35f; agent.height = bodyH; agent.acceleration = 30f; agent.stoppingDistance = meleeReach * 0.6f; }
         }
 
         /// <summary>A grey: a small alien with a ray gun that fires dead-straight bolts of light (ray). Jumps about, hard to hit.</summary>
@@ -78,6 +126,7 @@ namespace BomberBuddies
             var to = target.transform.position - transform.position; float dist = to.magnitude; to.y = 0f;
             bool reach = dist < meleeReach + 0.3f;
             meleeT -= dt; leapT -= dt;
+            if (giant) GiantUpdate(dt, dist, to);
             if (reach)
             {
                 if (agent != null && agent.enabled && agent.isOnNavMesh) agent.ResetPath();
