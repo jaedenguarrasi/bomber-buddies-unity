@@ -274,6 +274,7 @@ namespace BomberBuddies
                 es.AddComponent<EventSystem>();
                 es.AddComponent<InputSystemUIInputModule>();
             }
+            PadNav.Create(transform.parent);
 
             safe = Rect("Safe", transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             safe.offsetMin = Vector2.zero; safe.offsetMax = Vector2.zero;

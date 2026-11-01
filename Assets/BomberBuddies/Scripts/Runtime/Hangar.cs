@@ -9,6 +9,7 @@ namespace BomberBuddies
     public class Hangar : MonoBehaviour
     {
         public static Hangar Instance { get; private set; }
+        public bool IsOpen { get { return gameObject.activeSelf; } }
         Font font;
         Action onClose;
         string tab = "Upgrades";
@@ -77,7 +78,7 @@ namespace BomberBuddies
             scroll.content = list; scroll.viewport = vr; scroll.horizontal = false; scroll.movementType = ScrollRect.MovementType.Clamped; scroll.scrollSensitivity = 30f;
         }
 
-        void Close()
+        public void Close()
         {
             gameObject.SetActive(false);
             var cb = onClose; onClose = null;

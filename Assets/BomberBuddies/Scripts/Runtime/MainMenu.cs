@@ -41,6 +41,7 @@ namespace BomberBuddies
             var scaler = gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1280f, 720f); scaler.matchWidthOrHeight = 1f;
             gameObject.AddComponent<GraphicRaycaster>();
+            PadNav.Create(transform.parent);
             if (EventSystem.current == null)
             {
                 var es = new GameObject("EventSystem"); es.transform.SetParent(transform.parent, false);
