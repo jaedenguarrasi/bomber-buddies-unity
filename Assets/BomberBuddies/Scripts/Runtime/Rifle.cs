@@ -9,7 +9,8 @@ namespace BomberBuddies
         public FootController owner;
         public CameraRig rig;
         public float damage = 26f, headMultiplier = 2.2f, roundsPerMinute = 620f, spreadHip = 1.7f, spreadAim = 0.3f, range = 320f;
-        public int magSize = 30, ammo = 30;
+        public int magSize = 30, ammo = 30, pellets = 1;
+        public bool beam;
         public float reloadTime = 2.1f;
         public bool Aiming { get; private set; }
         public bool Reloading { get { return reloadT > 0f; } }
@@ -91,15 +92,9 @@ namespace BomberBuddies
             kick = Mathf.Max(0f, kick - dt * 7f);
         }
 
-        void Shoot()
+        /// <summary>One ray down the barrel: what it hits takes the damage. Returns where it ended.</summary>
+        Vector3 Ray(Vector3 origin, Vector3 dir)
         {
-            cooldown = 60f / roundsPerMinute;
-            ammo--;
-            kick = 1f;
-            float spread = Aiming ? spreadAim : spreadHip * (owner != null && owner.MoveSpeed > 1f ? 1.4f : 1f);
-            var origin = rig.AimOrigin;
-            var dir = Quaternion.Euler(Random.Range(-spread, spread), Random.Range(-spread, spread), 0f) * rig.AimDirection;
-            dir = Quaternion.AngleAxis(Random.Range(0f, 360f), rig.AimDirection) * dir;   // spread spins round the aim line so it is round, not square
             var end = origin + dir * range;
             RaycastHit hit;
             bool flesh = false;
@@ -115,14 +110,43 @@ namespace BomberBuddies
                 }
                 if (Gunfire.Instance != null) Gunfire.Instance.Impact(hit.point, hit.normal, flesh);
             }
+            return end;
+        }
+
+        /// <summary>Fit a gun from the hangar table: damage, rate, reach, magazine, pellets, beam.</summary>
+        public void Fit(Progress.Gun g, Progress.Stats st)
+        {
+            damage = (st != null ? st.dmg : g.dmg) * GalacticMode.K;
+            roundsPerMinute = 60f / (st != null ? st.fireInt : g.interval);
+            range = g.range * GalacticMode.U;
+            spreadHip = g.spread; spreadAim = g.pellets > 1 ? g.spread : Mathf.Min(0.3f, g.spread * 0.25f);
+            magSize = g.mag; ammo = magSize; pellets = g.pellets; beam = g.beam;
+            reloadTime = g.mag <= 2 ? 2.6f : g.mag <= 8 ? 2.4f : g.mag >= 100 ? 4.5f : 2.1f;
+        }
+
+        void Shoot()
+        {
+            cooldown = 60f / roundsPerMinute;
+            ammo--;
+            kick = 1f;
+            float spread = Aiming ? spreadAim : spreadHip * (owner != null && owner.MoveSpeed > 1f ? 1.4f : 1f);
+            if (pellets > 1) spread = spreadHip;   // a shotgun's spread is the gun's, aimed or not
+            var origin = rig.AimOrigin;
+            Vector3 dir = rig.AimDirection, end = origin;
+            for (int pellet = 0; pellet < pellets; pellet++)
+            {
+                dir = Quaternion.Euler(Random.Range(-spread, spread), Random.Range(-spread, spread), 0f) * rig.AimDirection;
+                dir = Quaternion.AngleAxis(Random.Range(0f, 360f), rig.AimDirection) * dir;   // spread spins round the aim line so it is round, not square
+                end = Ray(origin, dir);
+            }
             var muzzle = rig.firstPerson && viewMuzzle != null ? viewMuzzle : (owner != null && owner.model != null && owner.model.muzzle != null ? owner.model.muzzle : null);
             var from = muzzle != null ? muzzle.position : origin;
             if (Gunfire.Instance != null)
             {
-                Gunfire.Instance.TracerLine(from, end, new Color(1f, 0.9f, 0.6f), 0.025f, 0.06f);
+                Gunfire.Instance.TracerLine(from, end, beam ? new Color(0.5f, 0.9f, 1f) : new Color(1f, 0.9f, 0.6f), beam ? 0.06f : 0.025f, beam ? 0.14f : 0.06f);
                 Gunfire.Instance.MuzzleFlash(from, dir, 1f);
             }
-            rig.Kick(Aiming ? 0.55f : 0.95f, Random.Range(-0.25f, 0.25f));
+            rig.Kick((Aiming ? 0.55f : 0.95f) * (pellets > 1 ? 1.8f : damage > 100f ? 1.6f : 1f), Random.Range(-0.25f, 0.25f));
             if (GameState.Hud != null) GameState.Hud.OnShot();
         }
     }

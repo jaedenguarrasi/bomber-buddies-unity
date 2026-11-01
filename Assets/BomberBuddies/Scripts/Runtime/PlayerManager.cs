@@ -143,8 +143,23 @@ namespace BomberBuddies
             Fly(c, at, yaw, null, Progress.Craft == "heli" ? 60f : 180f);
         }
 
-        /// <summary>After the hangar: every aircraft of ours picks up the new upgrades.</summary>
-        public void ApplyLoadout() { foreach (var c in craft) if (c != null) c.ApplyLoadout(); }
+        /// <summary>After the hangar: every aircraft of ours picks up the new upgrades, and so does the soldier.</summary>
+        public void ApplyLoadout() { foreach (var c in craft) if (c != null) c.ApplyLoadout(); if (foot != null) foot.ApplyKit(); }
+
+        /// <summary>A soldier class: start on the ground at the spawn, facing the island's centre.</summary>
+        public void SpawnOnFoot(Vector3 near)
+        {
+            var at = near; at.y = (GameState.GroundHeight != null ? GameState.GroundHeight(near.x, near.z) : near.y) + 0.2f;
+            var toCentre = -new Vector3(at.x, 0f, at.z);
+            float yaw = toCentre.sqrMagnitude > 1f ? Mathf.Atan2(toCentre.x, toCentre.z) * Mathf.Rad2Deg : 0f;
+            if (plane != null && plane.Active) plane.Park();
+            SetOnFoot(true);
+            foot.health.ResetFull();
+            foot.ApplyKit();
+            foot.Teleport(at, yaw);
+            foot.ControlsLocked = false;
+            if (GameState.Hud != null) GameState.Hud.Comms("On foot");
+        }
 
         public IEnumerator Respawn(string why)
         {

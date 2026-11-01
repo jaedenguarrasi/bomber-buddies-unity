@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -110,7 +111,8 @@ namespace BomberBuddies
                     {
                         Header("Guns for the " + (cd != null ? cd.name.ToLower() : craft) + " — the fitted gun is marked");
                         string cur = Progress.GunOf(craft);
-                        foreach (var g in Progress.Guns)
+                        var gunList = new List<Progress.Gun>(); foreach (var g0 in Progress.Guns) if (Progress.GunFits(craft, g0)) gunList.Add(g0); foreach (var g0 in Progress.FootGuns) if (Progress.GunFits(craft, g0)) gunList.Add(g0);
+                        foreach (var g in gunList)
                         {
                             bool own = Progress.OwnsGun(craft, g.id); int price = Progress.GunPrice(craft, g.id);
                             string gid = g.id;

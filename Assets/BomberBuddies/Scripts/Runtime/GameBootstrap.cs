@@ -85,9 +85,9 @@ namespace BomberBuddies
             IslandMode.Create(transform, library, world, spawner, battleMode);
             // like the original: you start in your plane over the island, and come back the same way
             var team = Teammates.Create(transform, library, spawner, seaLevel);
-            pm.placeOnRespawn = () => { var at = world.spawn + new Vector3(Random.Range(-40f, 40f), 0f, Random.Range(-40f, 40f)); pm.SpawnInAir(at); team.Deploy(at); return true; };
-            pm.SpawnInAir(world.spawn);
-            team.Deploy(world.spawn);
+            System.Action<Vector3> spawn = at => { if (Progress.IsFoot(Progress.Craft)) pm.SpawnOnFoot(at); else pm.SpawnInAir(at); team.Deploy(at); };
+            pm.placeOnRespawn = () => { spawn(world.spawn + new Vector3(Random.Range(-40f, 40f), 0f, Random.Range(-40f, 40f))); return true; };
+            spawn(world.spawn);
             GameState.Hud.Announce(spawner.Mode.name);
             GameState.Touch();
         }
@@ -214,6 +214,7 @@ namespace BomberBuddies
             rifle.owner = player; rifle.rig = rig;
             rifle.BuildViewModel(library);
             player.rifle = rifle;
+            player.ApplyKit();
 
             playerHealth.OnDamaged += info => { lastHurt = Time.time; if (GameState.Hud != null) GameState.Hud.Damaged(info.amount); };
             playerHealth.OnDied += info => { Debug.Log("Player down: " + info.amount + " damage from " + (info.source != null ? info.source.name : "?") + " at " + player.transform.position); };

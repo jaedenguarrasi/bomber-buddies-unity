@@ -21,6 +21,7 @@ namespace BomberBuddies
         public bool Aim { get; private set; }
         public bool Sprint { get; private set; }
         public bool JumpPressed { get; private set; }
+        public bool JumpHeld { get; private set; }
         public bool CrouchPressed { get; private set; }
         public bool ReloadPressed { get; private set; }
         public bool ViewPressed { get; private set; }
@@ -180,7 +181,7 @@ namespace BomberBuddies
             SupportPressed = supportQ; supportQ = false;
             Aim = aim.IsPressed();
             Sprint = sprint.IsPressed();
-            JumpPressed = jumpQ; jumpQ = false;
+            JumpPressed = jumpQ; jumpQ = false; JumpHeld = jump.IsPressed() && !Hijacked;
             CrouchPressed = crouchQ; crouchQ = false;
             ReloadPressed = reloadQ; reloadQ = false;
             ViewPressed = viewQ; viewQ = false;

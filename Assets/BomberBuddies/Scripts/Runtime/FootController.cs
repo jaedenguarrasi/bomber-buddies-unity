@@ -25,6 +25,24 @@ namespace BomberBuddies
         /// <summary>Chute open: falls gently and steers. Jump opens it after a second in the air; landing closes it.</summary>
         public bool parachute;
         float airT;
+        /// <summary>The class from the hangar: rocket trooper, medic, jetpack... and its stats.</summary>
+        public Progress.Kit kit;
+        public Progress.Stats st;
+        float healCd, rocketCd, jetFuel = 1f;
+        public bool Jetting { get; private set; }
+
+        /// <summary>Read the hangar: class body, gun, upgrades (statsFrom for a soldier).</summary>
+        public void ApplyKit()
+        {
+            string craft = Progress.IsFoot(Progress.Craft) ? Progress.Craft : "soldier";
+            kit = Progress.KitOf(craft); st = Progress.StatsFor(craft);
+            float spdK = kit.spd / 36f * st.thrustK;
+            walkSpeed = 4.3f * spdK; sprintSpeed = 7.6f * spdK; crouchSpeed = 2.3f * spdK; aimSpeed = 2.9f * spdK; jumpSpeed = 6.6f * kit.jump / 92f;
+            if (health != null) { float f = health.alive ? health.Fraction : 1f; health.max = st.maxHp * 1.25f; health.current = health.max * f; }   // the rifleman's 80 comes out at the 100 it had
+            if (rifle != null) rifle.Fit(Progress.GunDef(Progress.GunOf(craft)), st);
+            if (rig != null) rig.aimFov = kit.scope ? 18f : 48f;
+            GameState.Grenades = st.maxBombs;
+        }
 
         void Awake()
         {
@@ -109,7 +127,7 @@ namespace BomberBuddies
             {
                 airT += dt;
                 vy -= gravity * dt;
-                if (airT > 0.6f && input.JumpPressed && !parachute) { parachute = true; if (GameState.Hud != null) GameState.Hud.Announce("Parachute open"); }
+                if (airT > 0.6f && input.JumpPressed && !parachute && !(kit != null && kit.jetpack)) { parachute = true; if (GameState.Hud != null) GameState.Hud.Announce("Parachute open"); }
                 if (parachute) vy = Mathf.Max(vy, -4.1f);
                 else vy = Mathf.Max(vy, -52f);   // terminal velocity
             }
@@ -129,8 +147,42 @@ namespace BomberBuddies
             }
             if (rifle != null) rifle.Tick(input.Fire, input.Aim, input.ReloadPressed, horizontal.magnitude, sprinting, rig.firstPerson);
             // grenades: the original soldier's nade (shell v 190, g 250, blast 9/58, 120 damage), one every 2 s
-            nadeCd -= dt;
-            if (input.BombPressed && GameState.Grenades > 0 && nadeCd <= 0f)
+            nadeCd -= dt; healCd -= dt; rocketCd -= dt;
+            // the rocket trooper: Bomb fires an anti-tank rocket in a straight line (RPG_W: v 330, dmg 240, blast 12/60)
+            if (kit != null && kit.rocket && input.BombPressed && rocketCd <= 0f)
+            {
+                rocketCd = 1.6f * (st != null ? st.bombReload / 2f : 1f);
+                const float U2 = GalacticMode.U;
+                if (Projectiles.Instance != null) Projectiles.Instance.FireShell(rig.AimOrigin + rig.AimDirection * 0.8f, rig.AimDirection, 330f * U2, 12f * U2, 60f * U2, 240f * GalacticMode.K, 0, gameObject, false, 18f * U2);
+                rig.Kick(1.4f, 0f);
+            }
+            // the medic: Kick (X) patches up everyone near you, and himself slowly
+            if (kit != null && kit.medic)
+            {
+                if (health != null && health.alive && health.current < health.max) health.current = Mathf.Min(health.max, health.current + 2f * dt);
+                if (input.KickPressed && healCd <= 0f)
+                {
+                    healCd = 3f; int healed = 0;
+                    foreach (var h in Health.All) if (h != null && h.alive && h.team == 0 && h.gameObject != gameObject && Vector3.Distance(h.transform.position, transform.position) < 8f && h.current < h.max) { h.current = h.max; healed++; }
+                    if (health != null) health.current = health.max;
+                    if (GameState.Hud != null) GameState.Hud.Comms(healed > 0 ? "Patched up " + healed : "Patched up");
+                }
+            }
+            // the jetpack: hold Jump in the air and the pack lights
+            Jetting = false;
+            if (kit != null && kit.jetpack)
+            {
+                if (grounded) jetFuel = Mathf.Min(1f, jetFuel + dt * 0.5f);
+                else if (input.JumpHeld && airT > 0.25f && jetFuel > 0f)
+                {
+                    Jetting = true; jetFuel -= dt * 0.16f;
+                    vy = Mathf.Min(vy + 30f * dt, 9f);
+                    var flat2 = rig.FlatRotation; var push = (flat2 * Vector3.forward * input.Move.y + flat2 * Vector3.right * input.Move.x) * 14f;
+                    horizontal = Vector3.MoveTowards(horizontal, push, 20f * dt);
+                    parachute = false;
+                }
+            }
+            if ((kit == null || !kit.rocket) && input.BombPressed && GameState.Grenades > 0 && nadeCd <= 0f)
             {
                 nadeCd = 2f; GameState.Grenades--; GameState.Touch();
                 const float U = GalacticMode.U;
