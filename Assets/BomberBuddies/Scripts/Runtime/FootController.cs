@@ -49,7 +49,7 @@ namespace BomberBuddies
         public bool Jetting { get; private set; }
 
         /// <summary>Read the hangar: class body, gun, upgrades (statsFrom for a soldier).</summary>
-        float swingCd, swingT;
+        float swingCd, swingT; bool slamArmed;
         // the Grapple's lines (the original's web-slinger): an anchor and a length per hand, a tap zips, a hold swings
         Vector3?[] anchor = new Vector3?[2]; float[] ropeLen = new float[2], holdT = new float[2]; LineRenderer[] lines = new LineRenderer[2]; float zipT;
         public bool Swinging { get { return anchor[0].HasValue || anchor[1].HasValue; } }
@@ -141,7 +141,17 @@ namespace BomberBuddies
                 nadeCd = kit.id == "clown" ? 2.5f : 2f;
                 var from = transform.position + Vector3.up * (standHeight * 0.8f);
                 var dir = rig != null ? rig.cam.transform.forward : transform.forward;
-                if (kit.id == "clown")
+                if (kit.id == "ninjaL") { if (health != null) { health.current = Mathf.Min(health.max, health.current + health.max * 0.35f); } Sfx.Tone(520f, 0.4f, 0.2f, "sine"); Sfx.Tone(780f, 0.4f, 0.15f, "sine"); if (GameState.Hud != null) GameState.Hud.Comms("The mind mends"); nadeCd = 9f; }
+                else if (kit.id == "ninjaD" && Projectiles.Instance != null) { for (int i = 0; i < 3; i++) Projectiles.Instance.FireShell(from, Quaternion.Euler(Random.Range(-3f, 3f), Random.Range(-6f, 6f), 0f) * dir, 500f * GalacticMode.U, 3f * GalacticMode.U, 8f * GalacticMode.U, 40f * GalacticMode.K, 0, gameObject, true, 0f); Sfx.Play("gun_bolt", 0.7f, 0.9f, transform.position); nadeCd = 1.2f; }
+                else if (kit.id == "neph") { vy = jumpSpeed * 1.6f; horizontal += dir * 6f; Sfx.Play("swing", 0.6f, 0.5f, transform.position); nadeCd = 1.5f; slamArmed = true; }
+                else if (kit.id == "devourer")
+                {
+                    EnemySoldier meal = null; float bd = 4f;
+                    foreach (var h in Health.All) { if (h == null || h.team == 0) continue; var es = h.GetComponent<EnemySoldier>(); float d = Vector3.Distance(h.transform.position, transform.position); if (es != null && d < bd && (!h.alive || d < 2.5f)) { bd = d; meal = es; } }
+                    if (meal != null) { float was = meal.health.max; if (meal.health.alive) meal.health.TakeDamage(new DamageInfo { amount = 9999f, point = meal.transform.position, direction = dir, source = gameObject, foot = true }); Destroy(meal.gameObject, 0.1f); if (health != null) health.current = Mathf.Min(health.max, health.current + was * 0.5f); Sfx.Play("hit_flesh", 0.8f, 0.6f, transform.position); Sfx.Play("roar_big", 0.5f, 0.8f, transform.position); if (GameState.Hud != null) GameState.Hud.Comms("Devoured"); if (Gore.Instance != null) Gore.Instance.Splat(transform.position + dir, 1.2f); }
+                    nadeCd = 1f;
+                }
+                else if (kit.id == "clown")
                 {
                     Sfx.Tone(260f, 0.45f, 0.4f, "square"); Sfx.Tone(390f, 0.45f, 0.25f, "square");
                     foreach (var h in Health.All) { if (h == null || !h.alive || h.team == 0 || h.isAir) continue; var d = h.transform.position - transform.position; if (d.magnitude > 9f) continue; var es = h.GetComponent<EnemySoldier>(); if (es != null) es.Stagger(1.4f, d.normalized * 6f); }
@@ -154,9 +164,28 @@ namespace BomberBuddies
                     Sfx.Play("swing", 0.6f, boulder ? 0.6f : 1.2f, transform.position); if (boulder) Sfx.Play("roar_ape", 0.5f, 0.9f, transform.position);
                 }
             }
+            // the Nephilim's slam: the leap ends in a blast
+            if (kit.id == "neph" && justLanded && slamArmed) { slamArmed = false; if (GalacticMode.Instance != null) GalacticMode.Instance.Shake(0.7f); Sfx.Play("stomp", 0.9f, 0.6f, transform.position); Sfx.Play("expl_big", 0.5f, 0.9f, transform.position); if (Projectiles.Instance != null) Projectiles.Instance.Explode(transform.position, 2f, 8f, 140f * GalacticMode.K, gameObject, 0); }
             // the ape's landing: a stomp that shakes the ground (impact3 on landing)
             if (kit.id == "ape" && justLanded && lastFallSpeed > 7f) { if (GalacticMode.Instance != null) GalacticMode.Instance.Shake(0.5f); Sfx.Play("stomp", 0.8f, 0.8f, transform.position); if (Projectiles.Instance != null) Projectiles.Instance.Explode(transform.position, 1.5f, 5f, 60f * GalacticMode.K, gameObject, 0); }
             justLanded = false;
+        }
+
+        /// <summary>The gunslinger's dive: the world slows to a third for a moment and he throws himself sideways.</summary>
+        System.Collections.IEnumerator SlowDive()
+        {
+            var side = rig != null ? rig.FlatRotation * Vector3.right * (InputBridge.Instance != null && InputBridge.Instance.Move.x < 0f ? -1f : 1f) : transform.right;
+            horizontal += side * 7f; vy = 4.5f; Time.timeScale = 0.35f; Sfx.Play("whoosh", 0.5f, 0.7f); if (GameState.Hud != null) GameState.Hud.Comms("Dive");
+            float t = 0f; while (t < 1.4f && !(PauseMenu.Instance != null && PauseMenu.Instance.IsOpen)) { t += Time.unscaledDeltaTime; yield return null; }
+            if (!(PauseMenu.Instance != null && PauseMenu.Instance.IsOpen)) Time.timeScale = 1f;
+        }
+        /// <summary>Volt's shock grenade: everyone near where it lands is knocked down.</summary>
+        System.Collections.IEnumerator ShockAfter(Vector3 at, float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            at.y = GameState.GroundHeight != null ? GameState.GroundHeight(at.x, at.z) : at.y;
+            foreach (var h in Health.All) { if (h == null || !h.alive || h.team == 0 || h.isAir) continue; var d = h.transform.position - at; if (d.magnitude > 9f) continue; var es = h.GetComponent<EnemySoldier>(); if (es != null) es.Stagger(2.2f, d.normalized * 3f); h.TakeDamage(new DamageInfo { amount = 20f * GalacticMode.K, point = h.transform.position, direction = d.normalized, source = gameObject, foot = true }); }
+            Sfx.Play("gun_bolt", 0.8f, 0.6f, at); if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(at + Vector3.up, Vector3.up, 4f);
         }
 
         public void ApplyKit()
@@ -172,6 +201,9 @@ namespace BomberBuddies
             // a monster's own body
             if (kit.body != null && lib != null && !(model is CreatureModel)) { var old = model; model = CreatureModel.Create(transform, lib, kit.body, 8); if (old != null) Destroy(old.gameObject); }
             else if (kit.body == null && model is CreatureModel && lib != null) { var old = model; model = SoldierModelBase.Create(transform, lib, 0, 8); if (old != null) Destroy(old.gameObject); }
+            if (kit.id == "ninjaD" && model != null) foreach (var r in model.GetComponentsInChildren<Renderer>()) foreach (var m in r.materials) if (m.HasProperty("_Tint")) m.SetVector("_Tint", new Vector4(0.2f, 0.15f, 0.25f, 1f));
+            if (kit.id == "ninjaL" && model != null) foreach (var r in model.GetComponentsInChildren<Renderer>()) foreach (var m in r.materials) if (m.HasProperty("_Tint")) m.SetVector("_Tint", new Vector4(0.95f, 0.95f, 1f, 1f));
+            if (kit.id == "grey" && model != null) foreach (var r in model.GetComponentsInChildren<Renderer>()) foreach (var m in r.materials) if (m.HasProperty("_Tint")) m.SetVector("_Tint", new Vector4(0.6f, 0.7f, 0.65f, 1f));
             if (kit.id == "clown" && model != null) foreach (var r in model.GetComponentsInChildren<Renderer>()) foreach (var m in r.materials) if (m.HasProperty("_Tint")) m.SetVector("_Tint", new Vector4(1f, 0.95f, 0.95f, 1f));
             GameState.Grenades = st.maxBombs;
         }
@@ -296,6 +328,11 @@ namespace BomberBuddies
             if (rifle != null && kit != null && kit.melee == null) rifle.Tick(input.Fire, input.Aim, input.ReloadPressed, horizontal.magnitude, sprinting, rig.firstPerson);
             if (kit != null && kit.melee != null) Melee(dt, input);
             if (kit != null && kit.id == "slinger") Grapple(dt, input);
+            if (kit != null && kit.melee == null && input.BombPressed && nadeCd <= 0f && (kit.id == "gunslinger" || kit.id == "wire"))
+            {
+                if (kit.id == "gunslinger") { nadeCd = 4f; StartCoroutine(SlowDive()); }
+                else { nadeCd = 2.5f; var from = transform.position + Vector3.up * 1.4f; var dir = rig != null ? rig.cam.transform.forward : transform.forward; if (Projectiles.Instance != null) Projectiles.Instance.FireShell(from, (dir + Vector3.up * 0.3f).normalized, 220f * GalacticMode.U, 4f * GalacticMode.U, 50f * GalacticMode.U, 25f * GalacticMode.K, 0, gameObject, false, 250f * GalacticMode.U); Sfx.Play("gun_bolt", 0.5f, 1.3f, transform.position); StartCoroutine(ShockAfter(from + dir * 14f, 1.1f)); }
+            }
             // grenades: the original soldier's nade (shell v 190, g 250, blast 9/58, 120 damage), one every 2 s
             nadeCd -= dt; healCd -= dt; rocketCd -= dt;
             // the rocket trooper: Bomb fires an anti-tank rocket in a straight line (RPG_W: v 330, dmg 240, blast 12/60)
