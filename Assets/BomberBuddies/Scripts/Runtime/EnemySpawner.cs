@@ -18,6 +18,8 @@ namespace BomberBuddies
 
         public string modeId = "battle";
         public float seaLevel = 9f;
+        /// <summary>Somewhere else picks the spots (the underground): a point on its floor, away from the player.</summary>
+        public System.Func<Vector3> SpotOverride;
         readonly List<Health> alive = new List<Health>();
         readonly List<string> queue = new List<string>();     // what is still to come this wave, by type
         readonly List<Vector3> camps = new List<Vector3>();
@@ -69,6 +71,7 @@ namespace BomberBuddies
 
         Vector3 LandSpot(float minR, float maxR)
         {
+            if (SpotOverride != null) return SpotOverride();
             var centre = player != null ? player.transform.position : villageCenter;
             for (int attempt = 0; attempt < 40; attempt++)
             {
@@ -87,6 +90,7 @@ namespace BomberBuddies
         bool SpawnNext()
         {
             string type = queue[0];
+            if (type == "dragon" && SpotOverride != null) { var at0 = SpotOverride() + Vector3.up * 30f; var dr0 = Dragon.Build(transform, library, at0); alive.Add(dr0.health); return true; }
             if (type == "dragon")
             {
                 float a = Random.Range(0f, Mathf.PI * 2f);
@@ -125,8 +129,8 @@ namespace BomberBuddies
             for (int attempt = 0; attempt < 30; attempt++)
             {
                 var camp = camps[Random.Range(0, camps.Count)];
-                float spread = type == "aa" ? 30f : 36f;
-                var p = camp + new Vector3(Random.Range(-spread, spread), 0f, Random.Range(-spread, spread));
+                float spread = SpotOverride != null ? 0f : type == "aa" ? 30f : 36f;
+                var p = SpotOverride != null ? SpotOverride() : camp + new Vector3(Random.Range(-spread, spread), 0f, Random.Range(-spread, spread));
                 float h = GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : camp.y;
                 if (h <= seaLevel + 1f) continue;
                 p.y = h;

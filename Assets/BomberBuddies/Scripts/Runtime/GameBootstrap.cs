@@ -69,6 +69,13 @@ namespace BomberBuddies
             seaY = World3.SEA * World3.U; seaLevel = seaY;
             GameState.GroundHeight = world.GroundMetres;
             if (mode == Mode.Island) BuildNavMesh();
+            if (battleMode == "subway" || battleMode == "bunkers" || battleMode == "hell")
+            {
+                // the underground: built below the island, and the ground is its floor while you are in it
+                var und = Underground.Build(transform, library, battleMode, world.spawn);
+                var island = GameState.GroundHeight; GameState.GroundHeight = (x, z) => und.Contains(x, z) ? und.Ground(x, z) : island(x, z);
+                world.spawn = und.spawn; Night = true;
+            }
             BuildPlayer();
             GameState.Hud = Hud.Create(transform);
             MatchEnd.Create(GameState.Hud.transform);
@@ -89,6 +96,7 @@ namespace BomberBuddies
                 return;
             }
             GameState.Spawner = spawner;
+            if (Underground.Instance != null) { spawner.villageCenter = Underground.Instance.spawn; spawner.seaLevel = -1000f; spawner.SpotOverride = Underground.Instance.RandomSpot; spawner.maxAlive = 16; }
             IslandMode.Create(transform, library, world, spawner, battleMode);
             Commander.Create(transform, GameState.Hud.transform, library);
             if (battleMode == "command") StartCoroutine(EnterCommandSoon());
@@ -98,7 +106,7 @@ namespace BomberBuddies
             System.Action<Vector3> spawn = at => { if (Progress.IsFoot(Progress.Craft)) pm.SpawnOnFoot(at); else if (Progress.IsRide(Progress.Craft)) pm.SpawnDriving(at); else pm.SpawnInAir(at); team.Deploy(at); };
             var deploy = DeployScreen.Create(GameState.Hud.transform);
             // the deploy screen before every spawn: pick what you come back as, then Deploy (the original's oDeploy)
-            pm.placeOnRespawn = () => { deploy.Open(() => spawn(world.spawn + new Vector3(Random.Range(-40f, 40f), 0f, Random.Range(-40f, 40f)))); return true; };
+            pm.placeOnRespawn = () => { deploy.Open(() => spawn(Underground.Instance != null ? world.spawn : world.spawn + new Vector3(Random.Range(-40f, 40f), 0f, Random.Range(-40f, 40f)))); return true; };
             deploy.Open(() => spawn(world.spawn));
             GameState.Hud.Announce(spawner.Mode.name);
             GameState.Touch();

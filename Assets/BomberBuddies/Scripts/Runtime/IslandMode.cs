@@ -48,6 +48,7 @@ namespace BomberBuddies
         void Setup()
         {
             ModeDefs.Mode md; if (ModeDefs.All.TryGetValue(modeId, out md) && md.timer > 0f && modeId != "strike" && modeId != "assassin") survive = md.timer;
+            if (Underground.Instance != null && GameState.Hud != null) { var lad = Underground.Instance.ladder; GameState.Hud.AddMarker(() => lad + Vector3.up * 2f, () => "Ladder out", () => new Color(0.5f, 1f, 0.6f), () => GameState.Wave >= (modeId == "hell" ? 3 : 4)); }
             if (modeId == "abduct_att")
             {
                 PlaneController.Abducted = 0;
@@ -347,6 +348,8 @@ namespace BomberBuddies
                 else if (modeId == "assassin") GameState.Hud.SetModeLine(Clock(timeLeft) + " · the general " + (vip != null && vip.alive ? Mathf.RoundToInt(Vector3.Distance(vip.transform.position, exitPoint) / U) + " from his helicopter" : "is down"));
                 else if (modeId == "air") GameState.Hud.SetModeLine("Shot down " + downed + " / " + AirGoal);
                 else if (modeId == "convoy") GameState.Hud.SetModeLine("Trucks across " + trucksThrough + " / 3");
+                else if (Underground.Instance != null && GameState.Player != null && GameState.Player.health.alive && Vector3.Distance(GameState.Player.transform.position, Underground.Instance.ladder) < 2.5f && GameState.Wave >= (modeId == "hell" ? 3 : 4)) { GameState.Earn(2500); End(true, modeId == "subway" ? "Up the ladder. The line is behind you." : modeId == "bunkers" ? "Up the ladder. The complex is yours." : "Up the ladder, out of hell."); return; }
+                else if (Underground.Instance != null && GameState.Hud != null) { int left = (modeId == "hell" ? 3 : 4) - GameState.Wave; GameState.Hud.SetModeLine(left > 0 ? "Hold " + left + " more wave" + (left == 1 ? "" : "s") + ", then the ladder" : "The ladder is the way out  ·  wave " + GameState.Wave); }
                 else if ((modeId == "dragon" || modeId == "kaiju" || modeId == "colossus" || modeId == "beast") && GameState.Wave >= 1 && spawner != null && spawner.Remaining == 0) { GameState.Earn(modeId == "kaiju" ? 8000 : 4000); End(true, modeId == "dragon" ? "The dragon is dead." : modeId == "kaiju" ? "The giant is down. The city stands." : modeId == "colossus" ? "The colossus has fallen." : "The Beast is dead. The hills are quiet."); return; }
                 else if (modeId == "dragon_def" && GameState.Wave >= 3 && spawner != null && spawner.Remaining == 0) { GameState.Earn(3000); End(true, "The dragon is dead and the village stands: " + (world != null ? world.HomesStanding : 0) + " houses kept."); return; }
                 else if (modeId == "abduct_def" && GameState.Wave >= 4 && spawner != null && spawner.Remaining == 0) { GameState.Earn(3000); End(true, "The saucers are gone. " + (10 - Civilian.Taken_) + " islanders saved."); return; }
