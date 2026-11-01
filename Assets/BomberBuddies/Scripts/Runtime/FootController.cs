@@ -50,6 +50,69 @@ namespace BomberBuddies
 
         /// <summary>Read the hangar: class body, gun, upgrades (statsFrom for a soldier).</summary>
         float swingCd, swingT;
+        // the Grapple's lines (the original's web-slinger): an anchor and a length per hand, a tap zips, a hold swings
+        Vector3?[] anchor = new Vector3?[2]; float[] ropeLen = new float[2], holdT = new float[2]; LineRenderer[] lines = new LineRenderer[2]; float zipT;
+        public bool Swinging { get { return anchor[0].HasValue || anchor[1].HasValue; } }
+        public bool Zipped;
+
+        /// <summary>The lines: fire one from a hand at whatever the camera is looking at within 70 m. Held: you swing on it,
+        /// the rope only ever pulls. Tapped: a zip, straight at the anchor. Jump lets both go with the momentum you had.</summary>
+        void Grapple(float dt, InputBridge input)
+        {
+            bool[] held = { input.LookHeld, input.BombHeld };
+            for (int i = 0; i < 2; i++)
+            {
+                if (held[i] && !anchor[i].HasValue && holdT[i] <= 0f)
+                {
+                    RaycastHit hit; var o = rig.cam.transform.position; var d = rig.cam.transform.forward;
+                    if (Physics.Raycast(o, d, out hit, 70f, ~((1 << 8) | (1 << 9)), QueryTriggerInteraction.Ignore))
+                    {
+                        anchor[i] = hit.point; ropeLen[i] = Vector3.Distance(transform.position + Vector3.up * 1.4f, hit.point); holdT[i] = 0.001f;
+                        Sfx.Play("swing", 0.5f, 1.6f, transform.position); Sfx.Tone(600f, 0.08f, 0.15f, "triangle");
+                        if (grounded && vy < 0f) vy = 3f;   // a hop off the ground so the line can take you
+                    }
+                    else { holdT[i] = -0.3f; Sfx.Tone(200f, 0.08f, 0.1f, "square"); }
+                }
+                if (!held[i] && anchor[i].HasValue)
+                {
+                    // let go: a short hold was a zip
+                    if (holdT[i] < 0.22f) { var to = anchor[i].Value - (transform.position + Vector3.up); float dist = to.magnitude; var v = to.normalized * Mathf.Clamp(dist * 1.6f, 14f, 34f); horizontal = new Vector3(v.x, 0f, v.z); vy = Mathf.Max(v.y, 6f); zipT = Mathf.Clamp(dist / 30f, 0.3f, 1.2f); Zipped = true; Sfx.Play("swing", 0.6f, 2f, transform.position); }
+                    anchor[i] = null; holdT[i] = 0f;
+                }
+                if (holdT[i] < 0f) holdT[i] += dt; else if (anchor[i].HasValue) holdT[i] += dt;
+                if (anchor[i].HasValue && Vector3.Distance(transform.position, anchor[i].Value) < 1.6f) { anchor[i] = null; holdT[i] = 0f; }
+            }
+            if (input.JumpPressed && Swinging) { anchor[0] = anchor[1] = null; holdT[0] = holdT[1] = 0f; vy += 4f; Sfx.Play("jump", 0.4f); }
+            // the lines pull
+            if (zipT > 0f) zipT -= dt;
+            for (int i = 0; i < 2; i++)
+            {
+                if (!anchor[i].HasValue || holdT[i] < 0.22f) continue;
+                var hand = transform.position + Vector3.up * 1.4f; var r = hand - anchor[i].Value; float len = r.magnitude;
+                var v = horizontal + Vector3.up * vy;
+                if (len > ropeLen[i])
+                {
+                    var n = r / len; float outward = Vector3.Dot(v, n);
+                    if (outward > 0f) v -= n * outward;                       // the rope does not stretch
+                    v -= n * (len - ropeLen[i]) * 12f;                        // and hauls you back onto the arc
+                    ropeLen[i] = Mathf.Max(4f, ropeLen[i] - 2.5f * dt);      // reeling in a little gives the swing its height
+                }
+                // pump: pushing forward on the stick adds to the swing
+                var fwd = rig.FlatRotation * Vector3.forward; v += fwd * input.Move.y * 6f * dt;
+                horizontal = new Vector3(v.x, 0f, v.z); vy = v.y;
+                if (horizontal.magnitude > 36f) horizontal = horizontal.normalized * 36f;
+            }
+            // draw them
+            for (int i = 0; i < 2; i++)
+            {
+                if (anchor[i].HasValue)
+                {
+                    if (lines[i] == null) { var go = new GameObject("Line" + i); go.transform.SetParent(transform, false); lines[i] = go.AddComponent<LineRenderer>(); lines[i].material = new Material(Shader.Find("Universal Render Pipeline/Unlit")); lines[i].material.SetColor("_BaseColor", new Color(0.9f, 0.9f, 0.95f)); lines[i].startWidth = lines[i].endWidth = 0.05f; lines[i].positionCount = 2; lines[i].useWorldSpace = true; }
+                    lines[i].enabled = true; lines[i].SetPosition(0, transform.position + Vector3.up * 1.4f + (rig.FlatRotation * Vector3.right) * (i == 0 ? -0.35f : 0.35f)); lines[i].SetPosition(1, anchor[i].Value);
+                }
+                else if (lines[i] != null) lines[i].enabled = false;
+            }
+        }
         /// <summary>A monster's Fire: a club, a fist or a bite at whoever is within reach in front (the original's melee strike).
         /// Bomb: the goblin throws a rock, the ape a boulder, the clown honks everyone off their feet.</summary>
         void Melee(float dt, InputBridge input)
@@ -73,7 +136,7 @@ namespace BomberBuddies
                 if (kit.id == "raptor" && hit == 0 && Random.value < 0.3f) Sfx.Play("screech", 0.4f, 1f, transform.position);
                 if (GameState.Hud != null) GameState.Hud.OnShot();
             }
-            if (input.BombPressed && nadeCd <= 0f)
+            if (input.BombPressed && nadeCd <= 0f && kit.id != "slinger")
             {
                 nadeCd = kit.id == "clown" ? 2.5f : 2f;
                 var from = transform.position + Vector3.up * (standHeight * 0.8f);
@@ -197,12 +260,12 @@ namespace BomberBuddies
             var flat = rig.FlatRotation;
             var want = (flat * Vector3.forward * move.y + flat * Vector3.right * move.x) * speed;
             float accel = grounded ? 34f : 9f;
-            horizontal = Vector3.MoveTowards(horizontal, want, accel * dt);
+            if (!(Swinging || zipT > 0f)) horizontal = Vector3.MoveTowards(horizontal, want, accel * dt);
 
             if (grounded)
             {
-                if (vy < -20f && health != null && !(wheel != null && wheel.drinkT > 0f)) health.TakeDamage(new DamageInfo { amount = (-vy - 20f) * 5f, point = transform.position, direction = Vector3.down, source = gameObject });
-                vy = -2.5f; airT = 0f; parachute = false;
+                if (vy < -20f && health != null && !(wheel != null && wheel.drinkT > 0f) && !(kit != null && kit.id == "slinger")) health.TakeDamage(new DamageInfo { amount = (-vy - 20f) * 5f, point = transform.position, direction = Vector3.down, source = gameObject });
+                if (!Swinging && zipT <= 0f) vy = -2.5f; airT = 0f; parachute = false;
                 if (input.JumpPressed) { vy = jumpSpeed * (wheel != null && wheel.drinkT > 0f ? 1.9f : 1f); crouching = false; Sfx.Play("jump", 0.4f); }
                 if (!wasGrounded) { justLanded = true; Sfx.Play("land", 0.45f); }
                 stepT += horizontal.magnitude * dt; if (stepT > 2.2f) { stepT = 0f; Sfx.Play("footstep", crouching ? 0.12f : 0.25f, sprinting ? 1.15f : 1f); }
@@ -211,7 +274,7 @@ namespace BomberBuddies
             {
                 airT += dt; lastFallSpeed = -vy;
                 vy -= gravity * dt;
-                if (airT > 0.6f && input.JumpPressed && !parachute && !(kit != null && kit.jetpack)) { parachute = true; Sfx.Play("chute", 0.6f); if (GameState.Hud != null) GameState.Hud.Announce("Parachute open"); }
+                if (airT > 0.6f && input.JumpPressed && !parachute && !(kit != null && (kit.jetpack || kit.id == "slinger"))) { parachute = true; Sfx.Play("chute", 0.6f); if (GameState.Hud != null) GameState.Hud.Announce("Parachute open"); }
                 if (parachute) vy = Mathf.Max(vy, -4.1f);
                 else vy = Mathf.Max(vy, -52f);   // terminal velocity
             }
@@ -232,6 +295,7 @@ namespace BomberBuddies
             }
             if (rifle != null && kit != null && kit.melee == null) rifle.Tick(input.Fire, input.Aim, input.ReloadPressed, horizontal.magnitude, sprinting, rig.firstPerson);
             if (kit != null && kit.melee != null) Melee(dt, input);
+            if (kit != null && kit.id == "slinger") Grapple(dt, input);
             // grenades: the original soldier's nade (shell v 190, g 250, blast 9/58, 120 damage), one every 2 s
             nadeCd -= dt; healCd -= dt; rocketCd -= dt;
             // the rocket trooper: Bomb fires an anti-tank rocket in a straight line (RPG_W: v 330, dmg 240, blast 12/60)

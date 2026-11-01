@@ -21,7 +21,7 @@ namespace BomberBuddies
             var go = new GameObject("Tutorial"); go.transform.SetParent(parent, false);
             var tu = go.AddComponent<Tutorial>(); Instance = tu; tu.lib = lib; tu.world = world; tu.spawner = spawner; tu.modeId = modeId;
             if (spawner != null && modeId != "ch1") spawner.enabled = false;
-            if (modeId == "tutorial") tu.BootCamp(); else if (modeId == "tutflight") tu.FlightSchool(); else tu.Chapter1();
+            if (modeId == "tutorial") tu.BootCamp(); else if (modeId == "tutflight") tu.FlightSchool(); else if (modeId == "tutspecial") tu.GrappleSchool(); else tu.Chapter1();
             if (GameState.Hud != null) GameState.Hud.AddMarker(() => tu.flag + Vector3.up * 1.5f, () => "Flag", () => new Color(1f, 0.9f, 0.3f), () => tu.showFlag);
             return tu;
         }
@@ -81,6 +81,16 @@ namespace BomberBuddies
             steps.Add(new Step { say = () => "Wings earned. Every plane in the hangar flies like this. The helicopter hovers and lifts with the throttle; try it when you are ready.", setup = () => { Progress.Campaign = Mathf.Max(Progress.Campaign, 2); t0 = t; }, done = () => t - t0 > 7f });
         }
 
+        void GrappleSchool()
+        {
+            steps.Add(new Step { say = () => "Grapple school. You have two lines. Aim high at the tower and hold " + K("L1", "C", "the view button") + ": the left line sticks and you swing. Let go to drop it.", setup = () => acc = 0f, tick = dt => { if (OnFoot && Foot.Swinging && !Foot.Grounded) acc += dt; }, done = () => acc > 1.5f });
+            steps.Add(new Step { say = () => "Now " + K("R1", "G", "the Bomb button") + " is the right line. Swing to the flag, dropping each line at the bottom of the swing.", setup = () => { flag = Ahead(60f); showFlag = true; }, done = () => Near(8f) });
+            steps.Add(new Step { say = () => "Zip: a quick tap of a line pulls you straight to whatever it hits. Zip up onto a roof.", setup = () => { showFlag = false; Foot.Zipped = false; acc = 0f; }, tick = dt => { if (OnFoot && Foot.Zipped && Foot.transform.position.y - world.GroundMetres(Foot.transform.position.x, Foot.transform.position.z) > 6f) acc = 1f; }, done = () => acc > 0f });
+            steps.Add(new Step { say = () => "Jump while you swing and you let go with everything you had. Cover 40 m in one go to the flag.", setup = () => { flag = Ahead(45f); showFlag = true; }, done = () => Near(8f) });
+            steps.Add(new Step { say = () => "Fists: up close, " + K("R2", "click", "Fire") + ". Two of them ahead.", setup = () => { showFlag = false; Dummies(2, 10f, 0.4f); }, done = DummiesDown });
+            steps.Add(new Step { say = () => "That is the Grapple. He is in the hangar when you want him.", setup = () => { Progress.Campaign = Mathf.Max(Progress.Campaign, 2); t0 = t; }, done = () => t - t0 > 6f });
+        }
+
         void Chapter1()
         {
             steps.Add(new Step { say = () => "Chapter 1. The enemy crossed the river in the night. Hold the crossroads through three waves.", setup = () => { phase = 1; waveStart = GameState.Wave; }, done = () => GameState.Wave >= waveStart + 3 && spawner != null && spawner.Remaining == 0 });
@@ -104,7 +114,7 @@ namespace BomberBuddies
             if (GameState.Hud != null && (int)(t * 2f) % 2 == 0 && !shown) { GameState.Hud.SetModeLine("Step " + (at + 1) + " / " + steps.Count); shown = true; }
             if (s.done != null && s.done())
             {
-                if (at == steps.Count - 1) { if (MatchEnd.Instance != null) MatchEnd.Instance.Show(true, modeId == "ch1" ? "Chapter 1 complete." : modeId == "tutflight" ? "Wings earned." : "Boot camp complete."); at++; return; }
+                if (at == steps.Count - 1) { if (MatchEnd.Instance != null) MatchEnd.Instance.Show(true, modeId == "ch1" ? "Chapter 1 complete." : modeId == "tutflight" ? "Wings earned." : modeId == "tutspecial" ? "Grapple school complete." : "Boot camp complete."); at++; return; }
                 Sfx.Play("ui_click", 0.6f, 1.3f); Next();
             }
         }

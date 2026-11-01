@@ -100,7 +100,7 @@ namespace BomberBuddies
             IslandMode.Create(transform, library, world, spawner, battleMode);
             Commander.Create(transform, GameState.Hud.transform, library);
             if (battleMode == "command") StartCoroutine(EnterCommandSoon());
-            if (battleMode == "tutorial" || battleMode == "tutflight" || battleMode == "ch1") Tutorial.Create(transform, library, world, spawner, battleMode);
+            if (battleMode == "tutorial" || battleMode == "tutflight" || battleMode == "tutspecial" || battleMode == "ch1") Tutorial.Create(transform, library, world, spawner, battleMode);
             // like the original: you start in your plane over the island, and come back the same way
             var team = Teammates.Create(transform, library, spawner, seaLevel);
             System.Action<Vector3> spawn = at => { if (Progress.IsFoot(Progress.Craft)) pm.SpawnOnFoot(at); else if (Progress.IsRide(Progress.Craft)) pm.SpawnDriving(at); else pm.SpawnInAir(at); team.Deploy(at); };

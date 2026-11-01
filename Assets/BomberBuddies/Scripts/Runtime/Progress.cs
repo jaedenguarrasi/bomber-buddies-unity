@@ -70,6 +70,7 @@ namespace BomberBuddies
             new Kit { id = "goblin", gun = "rifle", spd = 58f, hpK = 0.3f, jump = 120f, melee = "club", body = "gob", reach = 2.2f, meleeDmg = 40f, height = 1.3f },
             new Kit { id = "ape", gun = "rifle", spd = 64f, hpK = 1.4f, jump = 140f, melee = "fist", body = "ape", reach = 3.4f, meleeDmg = 90f, height = 2.6f },
             new Kit { id = "raptor", gun = "rifle", spd = 120f, hpK = 0.5f, jump = 150f, melee = "bite", body = "raptor", reach = 2.6f, meleeDmg = 55f, height = 1.6f },
+            new Kit { id = "slinger", gun = "rifle", spd = 44f, hpK = 0.45f, jump = 120f, melee = "fist", body = null, reach = 2.2f, meleeDmg = 45f, height = 1.8f },
             new Kit { id = "clown", gun = "rifle", spd = 40f, hpK = 0.9f, jump = 100f, melee = "horn", body = null, reach = 2.6f, meleeDmg = 45f, height = 1.9f },
         };
         public static Kit KitOf(string id) { foreach (var k in Kits) if (k.id == id) return k; return null; }
@@ -130,7 +131,7 @@ namespace BomberBuddies
             new CraftDef { id = "trike", name = "Triceratops", desc = "A living tank on four legs.", price = 4500 },
             new CraftDef { id = "ninjaL", name = "Mind ninja: Sage", desc = "A glowing blade that sends bullets back.", price = 5000 },
             new CraftDef { id = "ninjaD", name = "Mind ninja: Shade", desc = "A red blade, and lightning from the hands.", price = 5000 },
-            new CraftDef { id = "slinger", name = "Grapple", desc = "A grapnel launcher on each wrist.", price = 6000 },
+            new CraftDef { id = "slinger", name = "Grapple", desc = "A grapnel launcher on each wrist: hold L1 / C for the left line, R1 / G for the right. Aim high, hold to swing, tap to zip; Jump lets go. Fists up close.", price = 6000, available = true },
             new CraftDef { id = "b52", name = "B-52 heavy bomber", desc = "Eight engines, 40 bombs, and Bomb lays a carpet of five.", price = 6000, available = true },
             new CraftDef { id = "devourer", name = "Devourer", desc = "A hulking dark creature that eats the fallen.", price = 7500 },
             new CraftDef { id = "trex", name = "Tyrannosaur", desc = "The biggest thing on two legs.", price = 8000 },
