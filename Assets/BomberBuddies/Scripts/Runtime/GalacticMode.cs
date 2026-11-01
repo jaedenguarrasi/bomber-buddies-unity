@@ -59,6 +59,8 @@ namespace BomberBuddies
         // ---- the world ----
         public float TerrainHeight(float x, float z) { return world != null ? world.GroundMetres(x, z) : 0f; }
         public const float SeaY = World3.SEA * World3.U;
+        /// <summary>The sea at this spot: the island's, or none at all down in the underground.</summary>
+        public static float SeaAt(float x, float z) { return Underground.Instance != null && Underground.Instance.Contains(x, z) ? -10000f : SeaY; }
 
         /// <summary>The highest thing under a point: a carrier's top or the ground.</summary>
         public float ObstacleHeight(float x, float z)

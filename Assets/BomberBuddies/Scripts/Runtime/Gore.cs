@@ -36,7 +36,7 @@ namespace BomberBuddies
         {
             if (splats.Count > 90) { Destroy(splats[0]); splats.RemoveAt(0); }
             float g = GameState.GroundHeight != null ? GameState.GroundHeight(at.x, at.z) : at.y;
-            if (g < GalacticMode.SeaY + 0.2f) return;
+            if (g < GalacticMode.SeaAt(at.x, at.z) + 0.2f) return;
             var mb = new MeshBuilder();
             float s = size * Random.Range(0.8f, 1.4f) / GalacticMode.U;
             var col = MeshBuilder.Rgb(118, 14, 10);

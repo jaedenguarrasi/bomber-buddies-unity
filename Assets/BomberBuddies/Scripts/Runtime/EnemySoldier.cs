@@ -156,7 +156,7 @@ namespace BomberBuddies
             {
                 var step = to.normalized * creatureSpeed * dt;
                 var p = transform.position + step; p.y = GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : p.y;
-                if (p.y > GalacticMode.SeaY + 0.3f) transform.position = p;
+                if (p.y > GalacticMode.SeaAt(p.x, p.z) + 0.3f) transform.position = p;
                 moveSpeed = creatureSpeed;
             }
             if (to.sqrMagnitude > 0.01f) transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to), 540f * dt);

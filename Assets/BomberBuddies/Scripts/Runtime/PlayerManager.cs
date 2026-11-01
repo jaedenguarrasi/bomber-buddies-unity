@@ -264,7 +264,7 @@ namespace BomberBuddies
                 // into the sea
                 var fp = foot.transform.position;
                 float sea = World3.SEA * World3.U;
-                if (fp.y < sea + 0.3f && GameState.GroundHeight != null && GameState.GroundHeight(fp.x, fp.z) < sea + 0.3f && !Respawning && foot.health.alive)
+                if (fp.y < sea + 0.3f && !(Underground.Instance != null && Underground.Instance.Contains(fp.x, fp.z)) && GameState.GroundHeight != null && GameState.GroundHeight(fp.x, fp.z) < sea + 0.3f && !Respawning && foot.health.alive)
                     foot.health.TakeDamage(new DamageInfo { amount = 9999f, point = fp, direction = Vector3.down, source = gameObject });
             }
         }
