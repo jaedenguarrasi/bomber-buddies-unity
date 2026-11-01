@@ -10,10 +10,20 @@ namespace BomberBuddies
     public class PlaneController : MonoBehaviour
     {
         const float U = GalacticMode.U;
-        public enum Craft { Plane, Heli }
+        public enum Craft { Plane, Heli, Heli2, AC130 }
         public Craft craft = Craft.Plane;
-        public bool IsHeli { get { return craft == Craft.Heli; } }
-        public string CraftName { get { return IsHeli ? "attack helicopter" : "fighter-bomber"; } }
+        public bool IsHeli { get { return craft == Craft.Heli || craft == Craft.Heli2; } }
+        public bool IsAC130 { get { return craft == Craft.AC130; } }
+        public int Seats { get { return craft == Craft.Heli2 || craft == Craft.AC130 ? 2 : 1; } }
+        /// <summary>1 pilot, 2 gunner. In the gunner seat the AI flies (a hover for the gunship, an orbit for the AC-130).</summary>
+        public int seat = 1;
+        public bool Gunner { get { return Seats == 2 && seat == 2; } }
+        public string CraftName { get { return craft == Craft.AC130 ? "AC-130 gunship" : craft == Craft.Heli2 ? "two-seat gunship" : IsHeli ? "attack helicopter" : "fighter-bomber"; } }
+        public string ProgressId { get { return craft == Craft.AC130 ? "ac130" : craft == Craft.Heli2 ? "heli2" : IsHeli ? "heli" : "plane"; } }
+        // the gunner's gun: where it looks (degrees, relative to the aircraft), and which of the AC-130's three it is
+        public float gunYaw, gunPitch = -20f; public int ac130Gun;
+        public static readonly string[] AC130Guns = { "25mm Gatling", "40mm Bofors", "105mm howitzer" };
+        float gunT, aiGunT; Vector3 orbitCentre; bool orbitSet; Transform gunMount;
         public Health health;
         public Camera cam;
         public MaterialLibrary lib;
@@ -43,7 +53,7 @@ namespace BomberBuddies
 
         public static PlaneController Build(Transform parent, MaterialLibrary lib, Camera cam, Craft craft = Craft.Plane)
         {
-            var go = new GameObject(craft == Craft.Heli ? "Helicopter" : "Plane");
+            var go = new GameObject(craft == Craft.AC130 ? "AC-130" : craft == Craft.Heli2 ? "Gunship" : craft == Craft.Heli ? "Helicopter" : "Plane");
             go.transform.SetParent(parent, false);
             go.layer = 8;
             var p = go.AddComponent<PlaneController>();
@@ -52,7 +62,11 @@ namespace BomberBuddies
             p.health = go.AddComponent<Health>(); p.health.max = 100f; p.health.current = 100f; p.health.team = 0; p.health.aimHeight = 0f; p.health.isAir = true;
             var zone = go.AddComponent<HitZone>(); zone.owner = p.health; zone.multiplier = 1f;
             var col = go.AddComponent<SphereCollider>(); col.radius = 1.3f;
-            if (craft == Craft.Heli) p.BuildHeliModel(); else p.BuildModel();
+            if (p.IsHeli) p.BuildHeliModel(); else p.BuildModel();
+            if (craft == Craft.Heli2) p.model.localScale = Vector3.one * 1.2f;
+            if (craft == Craft.AC130) { p.model.localScale = Vector3.one * 2.6f; col.radius = 3.2f; }
+            p.gunMount = new GameObject("GunMount").transform; p.gunMount.SetParent(p.model, false);
+            p.gunMount.localPosition = craft == Craft.AC130 ? new Vector3(-2.6f * U, -0.5f * U, 0f) : new Vector3(0f, -4f * U, 9f * U);
             p.ApplyLoadout();
             p.health.OnDamaged += info => { if (GameState.Hud != null && p.Active) GameState.Hud.Damaged(info.amount); };
             go.SetActive(false);
@@ -90,7 +104,7 @@ namespace BomberBuddies
             yaw = yawDeg * Mathf.Deg2Rad; pitch = 0f; bank = 0f;
             docked = dockedIn; speedU = speed; launchT = 0f; thr = IsHeli ? 0.5f : 0.73f; heat = 0f; Overheated = false; boost = 1f; boostOut = false;
             fwdU = IsHeli ? speed : 0f; vyU = 0f; Landed = false;
-            bombs = maxBombs; wingDamage[0] = wingDamage[1] = 0f;
+            bombs = maxBombs; wingDamage[0] = wingDamage[1] = 0f; seat = 1; orbitSet = false; gunYaw = IsAC130 ? -90f : 0f; gunPitch = IsAC130 ? -40f : -15f;
             health.ResetFull();
             Velocity = Vector3.zero;
             ApplyPose();
@@ -133,6 +147,12 @@ namespace BomberBuddies
             var gm = GalacticMode.Instance;
             if (!health.alive) { Velocity = Vector3.zero; return; }
 
+            if (Seats == 2 && input.SeatPressed && docked == null)
+            {
+                seat = 3 - seat; orbitSet = false;
+                if (GameState.Hud != null) GameState.Hud.Announce(seat == 2 ? (IsAC130 ? "Gunner seat  ·  X cycles the gun" : "Gunner seat  ·  the AI holds the aircraft") : "Pilot seat", 2.5f);
+            }
+            if (Gunner) { GunnerUpdate(input, dt); return; }
             // the stick: keyboard/pad plus mouse or touch drag
             float lx = input.Look.x, ly = input.Look.y;
             if (input.LookHeld)
@@ -174,6 +194,7 @@ namespace BomberBuddies
             if (Overheated && heat < 0.35f) Overheated = false;
             fireT -= dt;
             if (input.Fire && !Overheated && fireT <= 0f && docked == null && !Landed) Shoot();
+            if (Seats == 2 && docked == null && !Landed) AiGunner(dt);
             bombCd -= dt;
             if (input.BombPressed && docked == null && bombs > 0 && bombCd <= 0f) DropBomb();
             if (input.InteractPressed)
@@ -363,10 +384,136 @@ namespace BomberBuddies
             }
         }
 
+        // ---------- the second seat ----------
+        /// <summary>The gunner: the AI flies, you look through the gun. Heli: the chin gun swings most of the way round; AC-130: the left side.</summary>
+        void GunnerUpdate(InputBridge input, float dt)
+        {
+            float zk = input.Aim ? 0.35f : 1f;
+            gunYaw += input.Look.x * 0.5f * zk; gunPitch += input.Look.y * 0.45f * zk;
+            if (IsAC130) { gunYaw = Mathf.Clamp(gunYaw, -135f, -45f); gunPitch = Mathf.Clamp(gunPitch, -78f, -4f); }
+            else { gunYaw = Mathf.Clamp(gunYaw, -120f, 120f); gunPitch = Mathf.Clamp(gunPitch, -75f, 22f); }
+            AimOffset = Vector2.zero;
+            if (IsAC130 && (input.KickPressed || input.ReloadPressed)) { ac130Gun = (ac130Gun + 1) % 3; if (GameState.Hud != null) GameState.Hud.Announce(AC130Guns[ac130Gun], 1.5f); }
+
+            if (IsHeli) AiHover(dt); else AiOrbit(dt);
+            if (rotor != null) { rotor.Rotate(0f, 1800f * dt, 0f); if (tailRotor != null) tailRotor.Rotate(0f, 0f, 2600f * dt); }
+            if (propT != null) propT.Rotate(0f, 0f, 2400f * dt);
+
+            heat = Mathf.Max(0f, heat - dt * 0.28f); if (Overheated && heat < 0.35f) Overheated = false;
+            gunT -= dt; bombCd -= dt;
+            if (input.Fire && gunT <= 0f && !Overheated) FireGunnerGun(GunnerDir);
+            if (input.BombPressed && bombs > 0 && bombCd <= 0f && !IsAC130) DropBomb();
+            if (input.ViewPressed) cockpit = !cockpit;
+            if (input.InteractPressed && GameState.Hud != null) GameState.Hud.Announce("Swap back to the pilot seat to get out (d-pad left / B)");
+            EdgeDoom(dt);
+            ApplyPose();
+            GunnerCamera(dt);
+            foreach (var r in model.GetComponentsInChildren<Renderer>()) r.enabled = !cockpit;
+        }
+
+        public Vector3 GunnerDir { get { return transform.rotation * Quaternion.Euler(-gunPitch, gunYaw, 0f) * Vector3.forward; } }
+
+        void GunnerCamera(float dt)
+        {
+            if (cam == null) return;
+            var mount = gunMount != null ? gunMount.position : transform.position;
+            var rot = Quaternion.LookRotation(GunnerDir, transform.up);
+            if (cockpit) { cam.transform.position = mount + GunnerDir * 0.3f; cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, rot, Mathf.Min(1f, 18f * dt)); }
+            else { cam.transform.position = Vector3.Lerp(cam.transform.position, mount - GunnerDir * 6f + transform.up * 2f, Mathf.Min(1f, 8f * dt)); cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, rot, Mathf.Min(1f, 10f * dt)); }
+            var input = InputBridge.Instance;
+            float fov = input != null && input.Aim ? (IsAC130 ? 14f : 24f) : (IsAC130 ? 36f : 58f);
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, fov, Mathf.Min(1f, 6f * dt));
+        }
+
+        /// <summary>The gunner's gun. Heli: the chin gun from the hangar. AC-130: 25 mm (fast), 40 mm (shells), 105 mm (one big round).</summary>
+        void FireGunnerGun(Vector3 dir)
+        {
+            var from = gunMount != null ? gunMount.position : transform.position;
+            if (IsAC130)
+            {
+                switch (ac130Gun)
+                {
+                    case 0: gunT = 0.11f; heat += 0.02f; if (Projectiles.Instance != null) Projectiles.Instance.FireRound(from, Spread(dir, 1.2f), 720f * U, 30f * GalacticMode.K, 1400f * U, 0, gameObject, new Color(1f, 0.85f, 0.5f), 0.05f); break;
+                    case 1: gunT = 0.55f; heat += 0.05f; if (Projectiles.Instance != null) Projectiles.Instance.FireShell(from, Spread(dir, 0.6f), 700f * U, 10f * U, 28f * U, 150f * GalacticMode.K, 0, gameObject, false, 0f); break;
+                    default: gunT = 3.2f; heat += 0.2f; if (Projectiles.Instance != null) Projectiles.Instance.FireShell(from, Spread(dir, 0.3f), 620f * U, 30f * U, 70f * U, 650f * GalacticMode.K, 0, gameObject, false, 0f); camShakeT = 0.3f; break;
+                }
+            }
+            else
+            {
+                var g = st != null ? st.gun : Progress.GunDef("m2");
+                gunT = st != null ? st.fireInt : g.interval; heat += st != null ? st.heatShot : g.heat;
+                float dmg = (st != null ? st.dmg : g.dmg) * GalacticMode.K;
+                if (Projectiles.Instance != null)
+                {
+                    if (g.splash > 0f) Projectiles.Instance.FireShell(from, Spread(dir, g.spread * 0.4f), g.speed * U, g.splash * 0.5f * U, g.splash * 1.6f * U, dmg, 0, gameObject, false, 0f);
+                    else Projectiles.Instance.FireRound(from, Spread(dir, g.spread * 0.4f), g.speed * U, dmg, g.range * U, 0, gameObject, new Color(1f, 0.9f, 0.6f), 0.04f);
+                }
+            }
+            if (heat >= 1f) { Overheated = true; heat = 1f; }
+            if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(from, dir, IsAC130 && ac130Gun == 2 ? 3f : 1.2f);
+            if (GameState.Hud != null) GameState.Hud.OnShot();
+        }
+
+        static Vector3 Spread(Vector3 dir, float deg) { return Quaternion.AngleAxis(Random.Range(0f, 360f), dir) * Quaternion.Euler(Random.Range(0f, deg), 0f, 0f) * dir; }
+
+        /// <summary>While you fly a two-seater the AI works the second gun at whatever is nearest.</summary>
+        void AiGunner(float dt)
+        {
+            aiGunT -= dt; if (aiGunT > 0f) return;
+            var from = gunMount != null ? gunMount.position : transform.position;
+            var t = Health.Nearest(0, from, IsAC130 ? 900f : 320f);
+            if (t == null) { aiGunT = 0.4f; return; }
+            var dir = (t.transform.position + Vector3.up * t.aimHeight - from).normalized;
+            var local = Quaternion.Inverse(transform.rotation) * dir;
+            float ly = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
+            if (IsAC130 ? (ly > -150f && ly < -30f) : Mathf.Abs(ly) < 120f)
+            {
+                int keep = ac130Gun; ac130Gun = 0;
+                FireGunnerGun(Spread(dir, 1.5f));
+                ac130Gun = keep; aiGunT = IsAC130 ? 0.14f : 0.12f;
+            }
+            else aiGunT = 0.3f;
+        }
+
+        /// <summary>The AI pilot of a gunship: holds a hover, turns the nose toward the nearest enemy, and edges closer when it is far.</summary>
+        void AiHover(float dt)
+        {
+            var t = Health.Nearest(0, transform.position, 1200f);
+            float sx = 0f, sy = 0f;
+            if (t != null)
+            {
+                var d = t.transform.position - transform.position; float dist = new Vector2(d.x, d.z).magnitude;
+                float want = Mathf.Atan2(d.x, d.z); float diff = Mathf.DeltaAngle(yaw * Mathf.Rad2Deg, want * Mathf.Rad2Deg);
+                sx = Mathf.Clamp(diff / 30f, -0.6f, 0.6f);
+                sy = dist > 260f ? -0.45f : dist < 120f ? 0.35f : 0f;
+            }
+            float ground = GameState.GroundHeight != null ? GameState.GroundHeight(transform.position.x, transform.position.z) : 0f;
+            float wantH = ground + 55f; thr = Mathf.Clamp01(0.5f + Mathf.Clamp((wantH - transform.position.y) / 40f, -0.3f, 0.3f));
+            FlyHeli(sx, sy, false, dt);
+        }
+
+        /// <summary>The AI pilot of the AC-130: a left-hand orbit, 380 m out and 240 m up, round the nearest fight, so the guns on the left look down at it.</summary>
+        void AiOrbit(float dt)
+        {
+            if (!orbitSet) { var t = Health.Nearest(0, transform.position, 2500f); orbitCentre = t != null ? t.transform.position : transform.position + Forward * 300f; orbitSet = true; }
+            var rel = transform.position - orbitCentre; rel.y = 0f;
+            float r = rel.magnitude; const float R = 380f;
+            var tangent = new Vector3(rel.z, 0f, -rel.x).normalized;   // a left-hand circle
+            var inward = -rel.normalized;
+            var wantDir = (tangent + inward * Mathf.Clamp((r - R) / 120f, -1f, 1f)).normalized;
+            float want = Mathf.Atan2(wantDir.x, wantDir.z); float diff = Mathf.DeltaAngle(yaw * Mathf.Rad2Deg, want * Mathf.Rad2Deg);
+            float sx = Mathf.Clamp(diff / 25f, -0.7f, 0.7f);
+            float ground = GameState.GroundHeight != null ? GameState.GroundHeight(orbitCentre.x, orbitCentre.z) : 0f;
+            float wantH = ground + 240f; float sy = Mathf.Clamp((transform.position.y - wantH) / 60f, -0.5f, 0.5f);
+            thr = 0.62f;
+            Fly(sx, sy, false, dt);
+            if (Time.frameCount % 240 == 0) { var t = Health.Nearest(0, transform.position, 2500f); if (t != null) orbitCentre = Vector3.Lerp(orbitCentre, t.transform.position, 0.5f); }
+        }
+
         /// <summary>Reads the hangar: hull, engine, boost, bombs, gun. Upgrades bought mid-flight take effect at once (applyLoadout).</summary>
         public void ApplyLoadout()
         {
-            var ns = Progress.StatsFor(IsHeli ? "heli" : "plane");
+            var ns = Progress.StatsFor(ProgressId);
             float oldMax = health != null ? health.max : 100f;
             st = ns;
             if (health != null) { health.max = ns.maxHp; if (health.alive) health.current = Mathf.Min(health.max, health.current + Mathf.Max(0f, health.max - oldMax)); }

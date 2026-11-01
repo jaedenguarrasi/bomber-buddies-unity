@@ -112,14 +112,14 @@ namespace BomberBuddies
             new CraftDef { id = "jetpack", name = "Jetpack trooper", desc = "A grey alien on a jetpack. From the air, you fly.", price = 2000, available = true },
             new CraftDef { id = "clowncar", name = "Clown car", desc = "A tiny car; stop and five clowns climb out to fight for you.", price = 2200 },
             new CraftDef { id = "bomber2", name = "Two-seat bomber", desc = "A pilot and a gunner, 8 more bombs and a belly turret.", price = 2500 },
-            new CraftDef { id = "heli2", name = "Two-seat gunship", desc = "A pilot and a gunner on the chin gun.", price = 2500 },
+            new CraftDef { id = "heli2", name = "Two-seat gunship", desc = "A pilot and a gunner on the chin gun.", price = 2500, available = true },
             new CraftDef { id = "ptero", name = "Pterodactyl", desc = "Hold Jump and the wings take you up.", price = 2600 },
             new CraftDef { id = "wire", name = "Volt", desc = "Throws the current himself: bolts, shock grenades, lightning storms.", price = 2800 },
             new CraftDef { id = "gunslinger", name = "Gunslinger", desc = "Twin pistols and a slow-motion dive.", price = 3000 },
             new CraftDef { id = "transport", name = "Transport helicopter", desc = "Three crew: pilot, two door gunners.", price = 3200 },
             new CraftDef { id = "fiend", name = "Skyjack", desc = "A sky pirate on a jet board with razor darts and cluster bombs.", price = 3200 },
             new CraftDef { id = "ape", name = "Ape", desc = "Picks up people and cars and throws them. Climbs buildings.", price = 4000 },
-            new CraftDef { id = "ac130", name = "AC-130 gunship", desc = "Circle a target and rain fire on it.", price = 4200 },
+            new CraftDef { id = "ac130", name = "AC-130 gunship", desc = "Circle a target and rain fire on it.", price = 4200, available = true },
             new CraftDef { id = "grey", name = "Alien grey", desc = "A big head and a ray gun. Hard to hit, jumps high.", price = 4500 },
             new CraftDef { id = "trike", name = "Triceratops", desc = "A living tank on four legs.", price = 4500 },
             new CraftDef { id = "ninjaL", name = "Mind ninja: Sage", desc = "A glowing blade that sends bullets back.", price = 5000 },
@@ -211,12 +211,12 @@ namespace BomberBuddies
             };
             System.Func<string, float, float> over = (k, cap) => Mathf.Max(0f, L(k) - cap);
             var g = GunDef(GunOf(craft));
-            bool heli = craft == "heli";
+            bool heli = craft == "heli" || craft == "heli2";
             var s = new Stats { gun = g };
             s.napalm = L("napalm") > 0;
             var kit = KitOf(craft);
-            s.maxHp = Mathf.Round(((heli ? 125f : 100f) + 25f * L("armor")) * (kit != null ? kit.hpK * 2f : 1f));   /* a soldier on foot has twice the toughness he used to */
-            s.thrustK = 1f + 0.08f * L("engine"); s.turnK = 1f + 0.04f * L("engine");
+            s.maxHp = Mathf.Round(((heli ? 125f : 100f) + 25f * L("armor")) * (kit != null ? kit.hpK * 2f : craft == "ac130" ? 3.2f : craft == "heli2" ? 1.4f : 1f));   /* a soldier on foot has twice the toughness he used to */
+            s.thrustK = (1f + 0.08f * L("engine")) * (craft == "ac130" ? 0.9f : 1f); s.turnK = (1f + 0.04f * L("engine")) * (craft == "ac130" ? 0.8f : 1f);
             s.boostSec = 2.4f * (1f + 0.3f * L("tank")); s.boostRegenK = 1f + 0.2f * Mathf.Min(L("tank"), 6f);
             s.regen = 1.5f * L("repair"); s.lives = 3 + Mathf.RoundToInt(L("life"));
             s.fireInt = Mathf.Max(1f / 40f, g.interval * Mathf.Pow(0.88f, Mathf.Min(L("rate"), 5f)) / (1f + 0.05f * over("rate", 5f)));

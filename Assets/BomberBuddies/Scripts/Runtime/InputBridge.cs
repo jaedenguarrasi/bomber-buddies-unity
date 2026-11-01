@@ -41,7 +41,8 @@ namespace BomberBuddies
         public Vector2 RawLook { get; private set; }
         public bool RawFire { get; private set; }
         public bool SupportPressed { get; private set; }
-        bool supportQ;
+        public bool SeatPressed { get; private set; }
+        bool supportQ, seatQ;
         public bool IsTouch { get; private set; }
         /// <summary>The HUD's throttle slider while a finger drags it (-1..1), else 0.</summary>
         public static float TouchThrottle;
@@ -51,7 +52,7 @@ namespace BomberBuddies
         public float stickDegPerSecond = 170f;
         public float touchDegPerPixel = 0.16f;
 
-        InputAction support, freeLook, move, look, fire, aim, sprint, jump, crouch, reload, view, throttle, interact, bomb, kick, pause;
+        InputAction seatAct, support, freeLook, move, look, fire, aim, sprint, jump, crouch, reload, view, throttle, interact, bomb, kick, pause;
         bool jumpQ, crouchQ, reloadQ, viewQ, interactQ, bombQ, kickQ, pauseQ;
 
         void Awake()
@@ -117,7 +118,7 @@ namespace BomberBuddies
 
             reload = new InputAction("Reload", InputActionType.Button);
             reload.AddBinding("<Keyboard>/r");
-            reload.AddBinding("<Gamepad>/dpad/left");
+            reload.AddBinding("<Gamepad>/dpad/right");
             reload.performed += _ => reloadQ = true;
 
             view = new InputAction("View", InputActionType.Button);
@@ -134,17 +135,22 @@ namespace BomberBuddies
             support.AddBinding("<Gamepad>/dpad/up");
             support.performed += _ => supportQ = true;
 
+            seatAct = new InputAction("Seat", InputActionType.Button);
+            seatAct.AddBinding("<Keyboard>/b");
+            seatAct.AddBinding("<Gamepad>/dpad/left");
+            seatAct.performed += _ => seatQ = true;
+
             EnhancedTouchSupport.Enable();
         }
 
         void OnEnable()
         {
-            support.Enable(); freeLook.Enable(); move.Enable(); look.Enable(); fire.Enable(); aim.Enable(); sprint.Enable(); jump.Enable(); crouch.Enable(); reload.Enable(); view.Enable(); throttle.Enable(); interact.Enable(); bomb.Enable(); kick.Enable(); pause.Enable();
+            seatAct.Enable(); support.Enable(); freeLook.Enable(); move.Enable(); look.Enable(); fire.Enable(); aim.Enable(); sprint.Enable(); jump.Enable(); crouch.Enable(); reload.Enable(); view.Enable(); throttle.Enable(); interact.Enable(); bomb.Enable(); kick.Enable(); pause.Enable();
         }
 
         void OnDisable()
         {
-            support.Disable(); freeLook.Disable(); move.Disable(); look.Disable(); fire.Disable(); aim.Disable(); sprint.Disable(); jump.Disable(); crouch.Disable(); reload.Disable(); view.Disable(); throttle.Disable(); interact.Disable(); bomb.Disable(); kick.Disable(); pause.Disable();
+            seatAct.Disable(); support.Disable(); freeLook.Disable(); move.Disable(); look.Disable(); fire.Disable(); aim.Disable(); sprint.Disable(); jump.Disable(); crouch.Disable(); reload.Disable(); view.Disable(); throttle.Disable(); interact.Disable(); bomb.Disable(); kick.Disable(); pause.Disable();
         }
 
         void Update()
@@ -178,7 +184,7 @@ namespace BomberBuddies
 
             LookHeld = freeLook.IsPressed();
             RawFire = fire.IsPressed(); Fire = !Hijacked && RawFire;
-            SupportPressed = supportQ; supportQ = false;
+            SupportPressed = supportQ; supportQ = false; SeatPressed = seatQ; seatQ = false;
             Aim = aim.IsPressed();
             Sprint = sprint.IsPressed();
             JumpPressed = jumpQ; jumpQ = false; JumpHeld = jump.IsPressed() && !Hijacked;

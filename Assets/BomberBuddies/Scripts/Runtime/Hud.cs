@@ -200,16 +200,17 @@ namespace BomberBuddies
 
             // top-right row: credits, Get out, mark, view, sound, pause
             var tr = new Vector2(1f, 0f + 1f);
-            var pill = Img("GetOut", safe, tr, new Vector2(-400f, -40f), new Vector2(130f, 56f), new Color(0.05f, 0.08f, 0.12f, 0.6f), true);
+            var pill = Img("GetOut", safe, tr, new Vector2(-476f, -40f), new Vector2(130f, 56f), new Color(0.05f, 0.08f, 0.12f, 0.6f), true);
             pill.sprite = Circle(); pill.type = Image.Type.Sliced;
             var pillBtn = pill.gameObject.AddComponent<OnScreenButton>(); pillBtn.controlPath = "<Gamepad>/select";
             getOutLabel = Txt("Label", pill.transform, mid, Vector2.zero, new Vector2(130f, 56f), 19, TextAnchor.MiddleCenter, Color.white, true); getOutLabel.text = "Get out";
-            creditsText = Txt("Credits", safe, tr, new Vector2(-550f, -40f), new Vector2(120f, 30f), 17, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f), true); creditsText.text = "● 0";
+            creditsText = Txt("Credits", safe, tr, new Vector2(-626f, -40f), new Vector2(120f, 30f), 17, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f), true); creditsText.text = "● 0";
             RoundButton("View", new Vector2(-196f, -40f), "<Gamepad>/buttonNorth", "👁");
             RoundButton("Support", new Vector2(-272f, -40f), "<Gamepad>/dpad/up", "✦");
+            RoundButton("Seat", new Vector2(-348f, -40f), "<Gamepad>/dpad/left", "⇄");
             RoundButton("Sound", new Vector2(-120f, -40f), "", "♪");
             RoundButton("Pause", new Vector2(-44f, -40f), "", "⏸", () => { if (PauseMenu.Instance != null) PauseMenu.Instance.Toggle(); });
-            waveText = Txt("Wave", safe, tr, new Vector2(-400f, -82f), new Vector2(240f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.9f, 0.9f, 0.9f));
+            waveText = Txt("Wave", safe, tr, new Vector2(-476f, -82f), new Vector2(240f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.9f, 0.9f, 0.9f));
             modeText = Txt("Mode", safe, new Vector2(0.5f, 1f), new Vector2(120f, -102f), new Vector2(900f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.75f, 0.85f, 1f, 0.9f));
             commsText = Txt("Comms", safe, new Vector2(1f, 1f), new Vector2(-180f, -112f), new Vector2(300f, 22f), 13, TextAnchor.MiddleRight, new Color(0.95f, 0.95f, 0.95f));
             message = Txt("Message", transform, new Vector2(0.5f, 0.78f), Vector2.zero, new Vector2(1000f, 60f), 34, TextAnchor.MiddleCenter, Color.white, true);
