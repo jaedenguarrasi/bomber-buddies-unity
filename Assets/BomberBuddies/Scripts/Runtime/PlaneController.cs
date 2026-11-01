@@ -693,7 +693,7 @@ namespace BomberBuddies
             if (craft == Craft.Drone) { bombs--; bombCd = 0.6f; if (Projectiles.Instance != null) Projectiles.Instance.FireShell(transform.position - Vector3.up * 0.4f, Vector3.down, 20f * U, 9f * U, 58f * U, 120f * GalacticMode.K, 0, gameObject, false, 250f * U); Sfx.Play("whistle", 0.25f, 1.4f, transform.position); return; }
             bombs--; bombCd = 0.34f; Sfx.Play("whistle", 0.35f, 1f, transform.position);
             var vel = Velocity; vel.y = Mathf.Min(vel.y, 0f) - 25f * U;
-            if (Projectiles.Instance != null) { float bk = st != null ? st.blastK : 1f; Projectiles.Instance.DropBomb(transform.position - Vector3.up * 0.9f, vel, 36f * U * bk, 86f * U * bk, 175f * GalacticMode.K * bk, gameObject); }
+            if (Projectiles.Instance != null) { float bk = st != null ? st.blastK : 1f; Projectiles.Instance.DropBomb(transform.position - Vector3.up * 0.9f, vel, 36f * U * bk, 86f * U * bk, 175f * GalacticMode.K * bk, gameObject, st != null && st.napalm); }
         }
 
         /// <summary>The B-52's carpet: five bombs in a line, a third of a second apart.</summary>
@@ -704,7 +704,7 @@ namespace BomberBuddies
             {
                 bombs--; Sfx.Play("whistle", 0.35f, 0.9f, transform.position);
                 var vel = Velocity; vel.y = Mathf.Min(vel.y, 0f) - 25f * U;
-                if (Projectiles.Instance != null) { float bk = st != null ? st.blastK : 1f; Projectiles.Instance.DropBomb(transform.position - Vector3.up * 1.5f + transform.right * Random.Range(-1f, 1f), vel, 36f * U * bk, 86f * U * bk, 175f * GalacticMode.K * bk, gameObject); }
+                if (Projectiles.Instance != null) { float bk = st != null ? st.blastK : 1f; Projectiles.Instance.DropBomb(transform.position - Vector3.up * 1.5f + transform.right * Random.Range(-1f, 1f), vel, 36f * U * bk, 86f * U * bk, 175f * GalacticMode.K * bk, gameObject, st != null && st.napalm); }
                 yield return new WaitForSeconds(0.33f);
             }
         }

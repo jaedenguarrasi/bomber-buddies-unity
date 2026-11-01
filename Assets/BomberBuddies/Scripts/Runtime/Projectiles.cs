@@ -16,7 +16,7 @@ namespace BomberBuddies
             public Vector3 pos, vel;
             public float life, damage, width, gravity;
             public int team;              // 0 player side, 1 enemy
-            public bool bolt, bomb, foot;
+            public bool bolt, bomb, foot, napalm;
             public float blastCore, blastRadius, blastDamage;
             public Color color;
             public GameObject source;
@@ -62,12 +62,41 @@ namespace BomberBuddies
             shots.Add(s);
         }
 
-        public void DropBomb(Vector3 from, Vector3 vel, float coreR, float dmgR, float dmg, GameObject source)
+        public void DropBomb(Vector3 from, Vector3 vel, float coreR, float dmgR, float dmg, GameObject source, bool napalm = false)
         {
-            var s = new Shot { pos = from, vel = vel, life = 30f, damage = 0f, width = 0f, team = 0, source = source, bomb = true, gravity = GalacticMode.BombG, blastCore = coreR, blastRadius = dmgR, blastDamage = dmg, color = Color.clear };
+            var s = new Shot { pos = from, vel = vel, life = 30f, damage = 0f, width = 0f, team = 0, source = source, bomb = true, gravity = GalacticMode.BombG, blastCore = coreR, blastRadius = dmgR, blastDamage = dmg, color = Color.clear, napalm = napalm };
             s.visual = TakeVisual(bombPool, "Bomb", PrimitiveType.Capsule, 0.35f, bombMat);
             s.visual.localScale = new Vector3(0.3f, 0.5f, 0.3f);
             shots.Add(s);
+        }
+
+        // ---------- napalm (the hangar's Napalm upgrade: every bomb bursts into a river of fire that keeps burning) ----------
+        class Fire { public Vector3 at; public float t; public Transform fx; }
+        readonly List<Fire> fires = new List<Fire>();
+        Material fireMat;
+        void Napalm(Vector3 at, Vector3 vel, GameObject source)
+        {
+            var along = vel; along.y = 0f; along = along.sqrMagnitude > 0.1f ? along.normalized : Vector3.forward;
+            if (fireMat == null) { fireMat = new Material(Shader.Find("Universal Render Pipeline/Unlit")); fireMat.SetColor("_BaseColor", new Color(1f, 0.45f, 0.1f, 0.85f)); fireMat.SetFloat("_Surface", 1f); fireMat.renderQueue = 3000; fireMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha); fireMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.One); fireMat.SetInt("_ZWrite", 0); fireMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); }
+            for (int i = 0; i < 7; i++)
+            {
+                var p = at + along * (i - 3) * 4.5f + new Vector3(Random.Range(-2f, 2f), 0f, Random.Range(-2f, 2f)); p.y = (GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : at.y) + 0.1f;
+                var go = GameObject.CreatePrimitive(PrimitiveType.Sphere); Destroy(go.GetComponent<Collider>()); go.name = "Fire"; go.transform.SetParent(transform, false); go.transform.position = p; go.transform.localScale = new Vector3(5f, 2.2f, 5f); go.GetComponent<Renderer>().sharedMaterial = fireMat;
+                fires.Add(new Fire { at = p, t = Random.Range(7f, 10f), fx = go.transform });
+            }
+            Sfx.Play("fire_loop", 0.7f, 1f, at);
+            if (World3.Instance != null) World3.Instance.Blast(at, 6f, 40f);
+        }
+        void UpdateFires(float dt)
+        {
+            for (int i = fires.Count - 1; i >= 0; i--)
+            {
+                var f = fires[i]; f.t -= dt;
+                if (f.fx != null) { float k = Mathf.Clamp01(f.t / 2f); f.fx.localScale = new Vector3(5f * (0.8f + 0.2f * Mathf.Sin(Time.time * 9f + i)), 2.2f * k * (1f + 0.3f * Mathf.Sin(Time.time * 13f + i)), 5f * (0.8f + 0.2f * Mathf.Cos(Time.time * 7f + i))); }
+                if (f.t <= 0f) { if (f.fx != null) Destroy(f.fx.gameObject); fires.RemoveAt(i); continue; }
+                if (Mathf.Repeat(Time.time + i * 0.1f, 0.5f) < dt)
+                    foreach (var h in Health.All) if (h != null && h.alive && !h.isAir && Vector3.Distance(h.transform.position, f.at) < 3.5f) h.TakeDamage(new DamageInfo { amount = 9f * GalacticMode.K * (h.team == 0 ? 0.3f : 1f), point = h.transform.position, direction = Vector3.up, source = gameObject, explosive = true });
+            }
         }
 
         /// <summary>A tank shell or a carrier's bombardment bolt: flies, drops a little, and bursts where it lands.</summary>
@@ -107,6 +136,7 @@ namespace BomberBuddies
 
         void Update()
         {
+            UpdateFires(Time.deltaTime);
             float dt = Mathf.Min(Time.deltaTime, 0.05f);
             for (int i = shots.Count - 1; i >= 0; i--)
             {
@@ -135,7 +165,7 @@ namespace BomberBuddies
                 {
                     done = true;
                     next = hit.point;
-                    if (s.bomb) Explode(hit.point + hit.normal * 0.3f, s.blastCore, s.blastRadius, s.blastDamage, s.source, s.team);
+                    if (s.bomb) { Explode(hit.point + hit.normal * 0.3f, s.blastCore, s.blastRadius, s.blastDamage, s.source, s.team); if (s.napalm) Napalm(hit.point, s.vel, s.source); }
                     else
                     {
                         var d = hit.collider.GetComponent<IDamageable>();
@@ -166,7 +196,7 @@ namespace BomberBuddies
                 }
                 if (done || s.life <= 0f || s.pos.y < -50f)
                 {
-                    if (s.bomb && !done) Explode(s.pos, s.blastCore, s.blastRadius, s.blastDamage, s.source, s.team);
+                    if (s.bomb && !done) { Explode(s.pos, s.blastCore, s.blastRadius, s.blastDamage, s.source, s.team); if (s.napalm) Napalm(s.pos, s.vel, s.source); }
                     if (s.visual != null) { s.visual.gameObject.SetActive(false); (s.bomb && !s.bolt ? bombPool : boltPool).Push(s.visual); }
                     shots.RemoveAt(i);
                 }

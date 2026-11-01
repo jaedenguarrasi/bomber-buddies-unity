@@ -62,6 +62,7 @@ namespace BomberBuddies
                         bool onMesh = NavMesh.SamplePosition(p, out hit, 10f, NavMesh.AllAreas);
                         var e = spawner.Spawn(onMesh ? hit.position : p, onMesh, 0);
                         e.kind = id == "medic" ? "medic" : "inf";
+                        if (GameBootstrap.LastMode == "beastside" && id == "squad") e.MakeGrey(lib);
                         e.health.max = 120f; e.health.current = 120f;
                         return e.health;
                     }
