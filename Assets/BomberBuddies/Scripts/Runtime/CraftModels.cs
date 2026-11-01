@@ -99,6 +99,26 @@ namespace BomberBuddies
                         turret = t.transform; barrel = g.transform;
                     }
                     break;
+                case EnemyVehicle.Kind.Bunker:
+                    {
+                        var conc = MeshBuilder.Rgb(139, 141, 136); var slit = MeshBuilder.Rgb(30, 32, 34);
+                        mb.DBox(0f, 6f, 0f, 36f, 12f, 36f, conc); mb.DBox(0f, 13.5f, 0f, 28f, 3f, 28f, MeshBuilder.Mul(conc, 0.9f));
+                        mb.DBox(0f, 8f, 0f, 37f, 2.2f, 20f, slit); mb.DBox(0f, 8f, 0f, 20f, 2.2f, 37f, slit);
+                        go = mb.Spawn("Body", parent, Mat(lib), false);
+                        var tm = new MeshBuilder(); tm.DBox(0f, 0f, 0f, 1f, 1f, 1f, slit); var t = tm.Spawn("Turret", go.transform, Mat(lib), false); t.transform.localPosition = new Vector3(0f, 8f * GalacticMode.U, 0f);
+                        var gm = new MeshBuilder(); gm.DBox(9f, 0f, 0f, 10f, 1.4f, 1.4f, MeshBuilder.Rgb(25, 25, 25)); var g = gm.Spawn("Barrel", t.transform, Mat(lib), false);
+                        turret = t.transform; barrel = g.transform;
+                    }
+                    break;
+                case EnemyVehicle.Kind.Sam:
+                    {
+                        mb.DBox(0f, 2.5f, 0f, 24f, 5f, 14f, B); mb.DBox(0f, 7.5f, 0f, 5f, 5f, 5f, D);
+                        go = mb.Spawn("Body", parent, Mat(lib), false);
+                        var tm = new MeshBuilder(); tm.DBox(1f, 0f, 0f, 17f, 2.4f, 7f, D); var t = tm.Spawn("Turret", go.transform, Mat(lib), false); t.transform.localPosition = new Vector3(0f, 11f * GalacticMode.U, 0f); t.transform.localRotation = Quaternion.Euler(-48f, 0f, 0f);
+                        var gm = new MeshBuilder(); gm.DBox(1f, 2f, 0f, 15f, 2.6f, 2.6f, MeshBuilder.Rgb(233, 229, 218)); var g = gm.Spawn("Barrel", t.transform, Mat(lib), false);
+                        turret = t.transform; barrel = g.transform;
+                    }
+                    break;
                 default:
                     mb.DBox(0f, 2.5f, 0f, 22f, 5f, 22f, Sand);
                     go = mb.Spawn("Body", parent, Mat(lib), false);

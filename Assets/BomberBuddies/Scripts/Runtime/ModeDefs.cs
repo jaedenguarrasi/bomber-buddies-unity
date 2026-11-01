@@ -41,6 +41,12 @@ namespace BomberBuddies
                 { "aa", Mathf.Min(6, Mathf.CeilToInt(n / 2f)) },
                 { "eheli", n >= 3 ? Mathf.Min(3, (n - 1) / 2) : 0 },
                 { "eplane", n >= 4 ? Mathf.Min(3, (n - 2) / 2) : 0 },
+                { "vest", n >= 2 ? Mathf.Min(4, Mathf.CeilToInt(n / 2f)) : 0 },
+                { "medic", n >= 3 ? Mathf.Min(3, n / 3) : 0 },
+                { "egun", n >= 3 ? Mathf.Min(4, n / 2) : 0 },
+                { "ejet", n >= 4 ? Mathf.Min(3, (n - 2) / 2) : 0 },
+                { "sam", n >= 4 ? Mathf.Min(4, (n - 2) / 2) : 0 },
+                { "bunker", n >= 2 ? Mathf.Min(3, 1 + (n - 2) / 3) : 0 },
             };
             if (mode != null)
             {

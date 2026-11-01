@@ -58,7 +58,7 @@ namespace BomberBuddies
             for (int i = 0; i < nCamps; i++) camps.Add(LandSpot(GameState.Wave <= 1 ? 90f : 60f, 180f));
             queue.Clear();
             // emplacements first, then the heavy stuff, then the men; aircraft arrive on their own from the edge
-            foreach (var t in new[] { "aa", "tank", "jeep", "inf", "eplane", "eheli" })
+            foreach (var t in new[] { "bunker", "aa", "sam", "tank", "jeep", "inf", "egun", "medic", "vest", "ejet", "eplane", "eheli" })
             {
                 int k; if (!counts.TryGetValue(t, out k)) continue;
                 for (int i = 0; i < k; i++) queue.Add(t);
@@ -106,16 +106,20 @@ namespace BomberBuddies
                 if (h <= seaLevel + 1f) continue;
                 p.y = h;
                 if (player != null && Vector3.Distance(p, player.transform.position) < (GameState.Wave <= 1 ? 60f : 35f)) continue;
-                if (type == "inf")
+                if (type == "inf" || type == "medic" || type == "egun" || type == "vest" || type == "ejet")
                 {
-                    NavMeshHit hit;
-                    bool onMesh = NavMesh.SamplePosition(p, out hit, 10f, NavMesh.AllAreas);
+                    NavMeshHit hit = default(NavMeshHit);
+                    bool onMesh = type != "ejet" && NavMesh.SamplePosition(p, out hit, 10f, NavMesh.AllAreas);
                     var e = Spawn(onMesh ? hit.position : p, onMesh);
+                    e.kind = type;
+                    if (type == "vest") { e.health.max = 60f; e.health.current = 60f; }
+                    if (type == "ejet") { e.health.max = 80f; e.health.current = 80f; e.health.isAir = true; }
+                    if (type == "egun") { e.damage = 6f; e.burstGap = 0.07f; e.spreadDeg = 8f; }
                     alive.Add(e.health);
                 }
                 else
                 {
-                    var kind = type == "jeep" ? EnemyVehicle.Kind.Jeep : type == "tank" ? EnemyVehicle.Kind.Tank : EnemyVehicle.Kind.AA;
+                    var kind = type == "jeep" ? EnemyVehicle.Kind.Jeep : type == "tank" ? EnemyVehicle.Kind.Tank : type == "bunker" ? EnemyVehicle.Kind.Bunker : type == "sam" ? EnemyVehicle.Kind.Sam : EnemyVehicle.Kind.AA;
                     var v = EnemyVehicle.Build(transform, library, kind, p, 1);
                     alive.Add(v.health);
                 }

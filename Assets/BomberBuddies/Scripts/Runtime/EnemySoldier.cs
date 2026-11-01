@@ -19,6 +19,10 @@ namespace BomberBuddies
         public bool guard;
         /// <summary>Somewhere to go when there is nothing to shoot at: a command post, the tower.</summary>
         public Vector3? objective;
+        /// <summary>The special soldiers: "inf" rifleman, "medic" (heals friends nearby), "egun" (light machine gun), "vest" (a
+        /// sewer slider: runs at you and blows up), "ejet" (jetpack trooper: hovers and fires).</summary>
+        public string kind = "inf";
+        float healT, hoverT;
         public int Team { get { return health != null ? health.team : 1; } }
 
         NavMeshAgent agent;
@@ -125,6 +129,9 @@ namespace BomberBuddies
             }
             retargetT -= dt;
             if (retargetT <= 0f) Retarget();
+            if (kind == "medic") Medic(dt);
+            if (kind == "vest") { Vest(dt); return; }
+            if (kind == "ejet") { Jet(dt); return; }
             if (guard || agent == null || !agent.isOnNavMesh) { SimpleUpdate(dt, !guard); return; }
 
             Vector3 tp;
@@ -230,9 +237,68 @@ namespace BomberBuddies
             model.Animate(moveSpeed, aimPitch, 0f, false, dt);
         }
 
+        /// <summary>The medic: every few seconds, the most hurt friend within 8 m gets 25 hp.</summary>
+        void Medic(float dt)
+        {
+            healT -= dt; if (healT > 0f) return;
+            healT = 3f;
+            Health best = null; float worst = 1f;
+            foreach (var h in Health.All) { if (h == null || !h.alive || h.team != Team || h == health || h.isAir) continue; if (Vector3.Distance(h.transform.position, transform.position) > 8f) continue; if (h.Fraction < worst) { worst = h.Fraction; best = h; } }
+            if (best != null) { best.Heal(25f); if (Gunfire.Instance != null) Gunfire.Instance.Impact(best.transform.position + Vector3.up, Vector3.up, false); }
+        }
+
+        /// <summary>The sewer slider: slides straight at the nearest enemy and detonates within 3 m (blast 120, like a grenade).</summary>
+        void Vest(float dt)
+        {
+            if (target == null || !target.alive) { SimpleUpdate(dt, true); return; }
+            var to = target.transform.position - transform.position; to.y = 0f;
+            float dist = to.magnitude;
+            if (dist < 3f)
+            {
+                if (Projectiles.Instance != null) Projectiles.Instance.Explode(transform.position + Vector3.up * 0.6f, 9f * GalacticMode.U, 58f * GalacticMode.U, 120f * GalacticMode.K, gameObject, Team);
+                health.TakeDamage(new DamageInfo { amount = 9999f, point = transform.position, direction = Vector3.up, source = gameObject, explosive = true });
+                return;
+            }
+            var vel = to.normalized * walkSpeed * 2.6f;
+            var p = transform.position + vel * dt;
+            if (GameState.GroundHeight != null) p.y = GameState.GroundHeight(p.x, p.z);
+            transform.position = p;
+            moveSpeed = vel.magnitude;
+            lookYaw = Mathf.MoveTowardsAngle(lookYaw, Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg, 540f * dt);
+            transform.rotation = Quaternion.Euler(0f, lookYaw, 0f);
+            if (model != null) model.Animate(moveSpeed, 0f, 0.6f, false, dt);
+        }
+
+        /// <summary>The jetpack trooper: hovers 20 units up, drifts toward the target, keeps 40 m off, and fires like a rifleman.</summary>
+        void Jet(float dt)
+        {
+            Vector3 tp; bool seen = CanSee(out tp);
+            if (seen) { if (Time.time - lastSeen > 3f) noticedAt = Time.time; lastKnown = target.transform.position; lastSeen = Time.time; state = State.Attack; }
+            hoverT += dt;
+            float gnd = GameState.GroundHeight != null ? GameState.GroundHeight(transform.position.x, transform.position.z) : 0f;
+            float hold = gnd + 20f * GalacticMode.U + Mathf.Sin(hoverT * 1.3f) * 0.6f;
+            Vector3 vel = Vector3.zero;
+            if (target != null && target.alive)
+            {
+                var to = target.transform.position - transform.position; to.y = 0f;
+                float d = to.magnitude;
+                if (d > 45f) vel = to.normalized * 6f; else if (d < 25f) vel = -to.normalized * 4f;
+                else vel = Vector3.Cross(Vector3.up, to.normalized) * 3f;
+            }
+            else if (objective.HasValue) { var to = objective.Value - transform.position; to.y = 0f; if (to.magnitude > 10f) vel = to.normalized * 5f; }
+            var p = transform.position + vel * dt;
+            p.y = Mathf.Lerp(p.y, hold, Mathf.Min(1f, 3f * dt));
+            transform.position = p;
+            moveSpeed = vel.magnitude;
+            health.isAir = true;
+            if (state == State.Attack && seen && Time.time - noticedAt > reactionTime) Fire(tp, dt);
+            Turn(seen || state == State.Attack, vel, dt);
+            Pose(seen ? tp : lastKnown, dt);
+        }
+
         void Fire(Vector3 at, float dt)
         {
-            if (pauseT > 0f) { pauseT -= dt; if (pauseT <= 0f) burstLeft = Random.Range(3, 6); return; }
+            if (pauseT > 0f) { pauseT -= dt; if (pauseT <= 0f) burstLeft = kind == "egun" ? Random.Range(10, 18) : Random.Range(3, 6); return; }
             burstT -= dt;
             if (burstT > 0f) return;
             if (burstLeft <= 0) { pauseT = pauseBetweenBursts * Random.Range(0.7f, 1.4f); return; }

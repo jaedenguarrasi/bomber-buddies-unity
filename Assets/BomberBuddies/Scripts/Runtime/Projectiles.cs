@@ -21,6 +21,8 @@ namespace BomberBuddies
             public Color color;
             public GameObject source;
             public Transform visual;      // bombs and bolts carry a little mesh
+            public Transform homing;      // a missile steers toward this
+            public float turnRate;
         }
 
         readonly List<Shot> shots = new List<Shot>();
@@ -76,6 +78,15 @@ namespace BomberBuddies
             shots.Add(s);
         }
 
+        /// <summary>A SAM: steers toward its target at 1.6 rad/s, bursts on anything it touches or after its life.</summary>
+        public void FireMissile(Vector3 from, Vector3 dir, float speed, Transform target, float dmg, int team, GameObject source)
+        {
+            var s = new Shot { pos = from, vel = dir.normalized * speed, life = 7f, damage = 0f, width = 0.12f, team = team, source = source, bomb = true, gravity = 0f, blastCore = 20f * GalacticMode.U, blastRadius = 60f * GalacticMode.U, blastDamage = dmg, color = new Color(1f, 0.8f, 0.5f), homing = target, turnRate = 1.6f };
+            s.visual = TakeVisual(bombPool, "Missile", PrimitiveType.Capsule, 0.3f, bombMat);
+            s.visual.localScale = new Vector3(0.25f, 0.7f, 0.25f);
+            shots.Add(s);
+        }
+
         Transform TakeVisual(Stack<Transform> pool, string name, PrimitiveType type, float size, Material mat)
         {
             Transform t;
@@ -102,6 +113,12 @@ namespace BomberBuddies
                 var s = shots[i];
                 s.life -= dt;
                 s.vel.y -= s.gravity * dt;
+                if (s.homing != null)
+                {
+                    var want = (s.homing.position - s.pos).normalized;
+                    s.vel = Vector3.RotateTowards(s.vel, want * s.vel.magnitude, s.turnRate * dt, 0f);
+                    if (Vector3.Distance(s.homing.position, s.pos) < 2.5f) { Explode(s.pos, s.blastCore, s.blastRadius, s.blastDamage, s.source, s.team); s.life = 0f; }
+                }
                 if (s.bomb && s.damage == 0f && s.width == 0f)
                 {
                     // bombs: terminal speed and a touch of horizontal drag, like the original

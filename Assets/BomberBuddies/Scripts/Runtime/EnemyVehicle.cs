@@ -8,7 +8,7 @@ namespace BomberBuddies
     /// </summary>
     public class EnemyVehicle : MonoBehaviour
     {
-        public enum Kind { Jeep, Tank, AA }
+        public enum Kind { Jeep, Tank, AA, Bunker, Sam }
         const float U = GalacticMode.U;
         public Kind kind;
         public Health health;
@@ -35,6 +35,8 @@ namespace BomberBuddies
                 case Kind.Jeep: hp.max = 34f * 1.5f * K; hp.armor = 1f; v.speed = 62f * U; v.range = 520f * U; v.holdDistance = 28f; break;
                 case Kind.Tank: hp.max = 130f * 1.4f * K; hp.armor = 0.18f; v.speed = 20f * U; v.range = 620f * U; v.holdDistance = 45f; break;
                 case Kind.AA: hp.max = 60f * 1.4f * K; hp.armor = 0.6f; v.speed = 0f; v.range = 760f * U; v.holdDistance = 0f; hp.stationary = true; break;
+                case Kind.Bunker: hp.max = 220f * 1.3f * K; hp.armor = 0.12f; hp.bombMult = 0.65f; v.speed = 0f; v.range = 500f * U; hp.stationary = true; hp.aimHeight = 0.9f; break;
+                case Kind.Sam: hp.max = 55f * 1.4f * K; hp.armor = 0.6f; v.speed = 0f; v.range = 900f * U; hp.stationary = true; break;
             }
             hp.current = hp.max;
             v.health = hp;
@@ -59,6 +61,8 @@ namespace BomberBuddies
             {
                 case Kind.Jeep: bc.center = new Vector3(0f, 6f * U, 0f); bc.size = new Vector3(22f * U, 12f * U, 30f * U); break;
                 case Kind.Tank: bc.center = new Vector3(0f, 7f * U, 0f); bc.size = new Vector3(30f * U, 14f * U, 31f * U); break;
+                case Kind.Bunker: bc.center = new Vector3(0f, 7f * U, 0f); bc.size = new Vector3(36f * U, 14f * U, 36f * U); break;
+                case Kind.Sam: bc.center = new Vector3(0f, 5.5f * U, 0f); bc.size = new Vector3(24f * U, 11f * U, 14f * U); break;
                 default: bc.center = new Vector3(0f, 5f * U, 0f); bc.size = new Vector3(22f * U, 11f * U, 22f * U); break;
             }
             var hz = gameObject.AddComponent<HitZone>(); hz.owner = health; hz.multiplier = 1f;
@@ -72,7 +76,7 @@ namespace BomberBuddies
             if (retargetT <= 0f)
             {
                 retargetT = 0.5f;
-                target = Health.Nearest(health.team, transform.position, range, kind == Kind.AA ? (bool?)true : false);
+                target = Health.Nearest(health.team, transform.position, range, kind == Kind.AA || kind == Kind.Sam ? (bool?)true : false);
             }
             // driving: close to holding distance, then stop and shoot
             vel = Vector3.zero;
@@ -135,6 +139,15 @@ namespace BomberBuddies
                         if (GalacticMode.Instance != null) GalacticMode.Instance.Shake(0.15f);
                         cd = Random.Range(3f, 3.8f);
                     }
+                    break;
+                case Kind.Bunker:
+                    for (int i = 0; i < 6; i++) { var dir = (lead - from).normalized + Random.insideUnitSphere * 0.035f; Projectiles.Instance.FireRound(from, dir, 380f * U, 6f, range * 1.2f, health.team, gameObject, new Color(1f, 0.6f, 0.3f), 0.04f); }
+                    cd = Random.Range(1.6f, 2.6f);
+                    break;
+                case Kind.Sam:
+                    if (target != null) Projectiles.Instance.FireMissile(from + Vector3.up * 0.8f, (Vector3.up * 0.6f + (lead - from).normalized).normalized, 500f * U, target.transform, 60f * K, health.team, gameObject);
+                    if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(from, Vector3.up, 2f);
+                    cd = Random.Range(4f, 6f);
                     break;
                 case Kind.AA:
                     {
