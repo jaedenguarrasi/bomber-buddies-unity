@@ -21,7 +21,16 @@ namespace BomberBuddies
         readonly List<Fall> falls = new List<Fall>();
         class Debris { public Transform t; public Vector3 v; public float life, floor; public Vector3 spin; }
         class Fall { public Transform t; public Vector3 hinge, axis; public float angle, w, length, hw; public int k; public bool hitDone; public Color32 col; }
-        public int buildingsDown;
+        public int buildingsDown, homesDown;
+        /// <summary>A standing house near here, for the dragon to burn.</summary>
+        public Vector3? NearestHome(Vector3 from, float maxM = 600f)
+        {
+            int best = -1; float bd = maxM;
+            foreach (var kv in homes) { int k = kv.Key; if (house3[k] != 30) continue; var c = ToWorld((k % N3) * BS, hm[k], (k / N3) * BS); float d = Vector3.Distance(c, from); if (d < bd) { bd = d; best = k; } }
+            if (best < 0) return null;
+            return ToWorld((best % N3) * BS, hm[best] + 4f, (best / N3) * BS);
+        }
+        public int HomesStanding { get { int n = 0; foreach (var kv in homes) if (house3[kv.Key] == 30) n++; return n; } }
 
         void InitDamage() { php = new float[N3 * N3]; for (int i = 0; i < php.Length; i++) php[i] = 255f; }
 
@@ -163,7 +172,7 @@ namespace BomberBuddies
             {
                 house3[k] = 28; homes.Remove(k);
                 for (int i = 0; i < 14; i++) Shed(p + new Vector3(Random.Range(-8f, 8f) * U, 0f, Random.Range(-8f, 8f) * U), Random.insideUnitSphere * 4f + Vector3.up * 4f, i % 3 == 0 ? MeshBuilder.Rgb(150, 70, 60) : MeshBuilder.Rgb(214, 200, 170), Random.Range(0.4f, 1f));
-                buildingsDown++; GameState.Earn(40);
+                buildingsDown++; homesDown++; GameState.Earn(40);
                 if (GameState.Hud != null) GameState.Hud.Comms("That one is flat");
                 Sfx.Play("expl_big", 0.6f, 0.9f, p);
                 MarkDirty(ix, iz);

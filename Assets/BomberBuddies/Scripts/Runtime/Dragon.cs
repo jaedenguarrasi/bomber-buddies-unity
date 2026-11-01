@@ -11,6 +11,9 @@ namespace BomberBuddies
     {
         const float U = GalacticMode.U;
         public Health health;
+        /// <summary>Burning village: a house to go for instead of the player, when the mode gives one.</summary>
+        public static System.Func<Vector3, Vector3?> HouseTarget;
+        Vector3? house; float houseT;
         float yaw, pitch, bank, stT, biteCd, flap, breathT; string state = "circle"; int orbit = 1; bool landed; Vector3 vel;
         Transform model, wingL, wingR, neck, jaw, tail;
         MaterialLibrary lib;
@@ -81,6 +84,10 @@ namespace BomberBuddies
             var p = transform.position;
             float g = GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : 0f;
             Vector3 tp = t != null ? t.transform.position : Vector3.zero;
+            // Burning village: most of the time it is the houses it wants, not you
+            houseT -= dt;
+            if (HouseTarget != null && houseT <= 0f) { houseT = Random.Range(10f, 16f); house = Random.value < 0.7f ? HouseTarget(transform.position) : null; }
+            if (house.HasValue && HouseTarget != null && state != "land") { tp = house.Value; }
             float dT = Mathf.Max(1f, new Vector2(tp.x - p.x, tp.z - p.z).magnitude);
             stT -= dt; if (biteCd > 0f) biteCd -= dt; breathT -= dt;
             float gx = tp.x, gz = tp.z, want = Mathf.Max(g + 90f * U, tp.y + 110f * U), spd = 115f * U, turn = 1.1f; bool breathing = false;

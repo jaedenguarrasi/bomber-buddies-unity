@@ -27,6 +27,7 @@ namespace BomberBuddies
         Health vip; Vector3 exitPoint; Transform exitHeli;
         readonly List<EnemyVehicle> trucks = new List<EnemyVehicle>(); Vector3 convoyGoal; int trucksThrough;
         int downed; const int AirGoal = 40;
+        int homesAtStart;
         readonly System.Collections.Generic.List<Civilian> civilians = new System.Collections.Generic.List<Civilian>();
         public bool ModeDrivesSpawns { get { return modeId == "conquest" || modeId == "assassin" || modeId == "air" || modeId == "convoy" || modeId == "strike"; } }
 
@@ -37,6 +38,7 @@ namespace BomberBuddies
             var m = go.AddComponent<IslandMode>();
             m.lib = lib; m.world = world; m.spawner = spawner; m.modeId = modeId;
             Instance = m;
+            Dragon.HouseTarget = null; EnemyPlane.Abductee = null; Civilian.OnTaken = null;
             m.Setup();
             if (m.ModeDrivesSpawns && spawner != null) spawner.enabled = false;
             return m;
@@ -46,7 +48,13 @@ namespace BomberBuddies
         void Setup()
         {
             ModeDefs.Mode md; if (ModeDefs.All.TryGetValue(modeId, out md) && md.timer > 0f && modeId != "strike" && modeId != "assassin") survive = md.timer;
-            if (modeId == "abduct_def")
+            if (modeId == "dragon_def")
+            {
+                homesAtStart = world != null ? world.HomesStanding : 0;
+                Dragon.HouseTarget = from => world != null ? world.NearestHome(from + new Vector3(Random.Range(-120f, 120f), 0f, Random.Range(-120f, 120f))) : null;
+                if (GameState.Hud != null) GameState.Hud.Announce("The dragon has come for the houses. Keep it off them.", 5f);
+            }
+            else if (modeId == "abduct_def")
             {
                 Civilian.Taken_ = 0; Civilian.Total = 0;
                 var centre = world != null ? world.spawn : Vector3.zero;
@@ -334,6 +342,9 @@ namespace BomberBuddies
                 else if (modeId == "assassin") GameState.Hud.SetModeLine(Clock(timeLeft) + " · the general " + (vip != null && vip.alive ? Mathf.RoundToInt(Vector3.Distance(vip.transform.position, exitPoint) / U) + " from his helicopter" : "is down"));
                 else if (modeId == "air") GameState.Hud.SetModeLine("Shot down " + downed + " / " + AirGoal);
                 else if (modeId == "convoy") GameState.Hud.SetModeLine("Trucks across " + trucksThrough + " / 3");
+                else if (modeId == "dragon_def" && GameState.Wave >= 3 && spawner != null && spawner.Remaining == 0) { GameState.Earn(3000); End(true, "The dragon is dead and the village stands: " + (world != null ? world.HomesStanding : 0) + " houses kept."); return; }
+                else if (modeId == "abduct_def" && GameState.Wave >= 4 && spawner != null && spawner.Remaining == 0) { GameState.Earn(3000); End(true, "The saucers are gone. " + (10 - Civilian.Taken_) + " islanders saved."); return; }
+                else if (modeId == "dragon_def") { GameState.Hud.SetModeLine("Houses standing " + (world != null ? world.HomesStanding : 0) + " / " + homesAtStart); if (world != null && homesAtStart > 0 && world.HomesStanding * 2 <= homesAtStart) End(false, "Half the village is gone. The dragon has won."); }
                 else if (modeId == "abduct_def") GameState.Hud.SetModeLine("Islanders taken " + Civilian.Taken_ + " / 6  ·  wave " + GameState.Wave);
                 else if (survive > 0f) GameState.Hud.SetModeLine(Clock(survive) + (modeId == "demo" ? " · buildings down " + (World3.Instance != null ? World3.Instance.buildingsDown : 0) : " · hold on"));
                 else if (modeId == "conquest") GameState.Hud.SetModeLine("Posts " + PostsHeld + "/" + posts.Count + " · yours " + Mathf.CeilToInt(yourTickets) + " · theirs " + Mathf.CeilToInt(theirTickets));
