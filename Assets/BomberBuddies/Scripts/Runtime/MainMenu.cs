@@ -52,7 +52,8 @@ namespace BomberBuddies
             var hbi = hb.gameObject.AddComponent<Image>(); hbi.color = new Color(0.22f, 0.4f, 0.3f, 1f);
             var hbb = hb.gameObject.AddComponent<Button>(); hbb.onClick.AddListener(() => { Sfx.Play("ui_click", 0.5f); gameObject.SetActive(false); Hangar.Open(transform.parent, () => gameObject.SetActive(true)); });
             Txt("Label", hb, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(180f, 48f), 22, TextAnchor.MiddleCenter, Color.white, true).text = "Hangar";
-            Txt("Bank", safe, new Vector2(1f, 1f), new Vector2(-340f, -34f), new Vector2(300f, 30f), 16, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f)).text = "● " + Progress.Fmt(Progress.Bank) + " credits  ·  " + (Progress.Def(Progress.Craft) != null ? Progress.Def(Progress.Craft).name : "");
+            var cb = Btn("Credits", safe, new Vector2(1f, 1f), new Vector2(-250f, -34f), new Vector2(120f, 40f), "Credits", 16, () => ShowCredits());
+            Txt("Bank", safe, new Vector2(1f, 1f), new Vector2(-440f, -34f), new Vector2(300f, 30f), 16, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f)).text = "● " + Progress.Fmt(Progress.Bank) + " credits  ·  " + (Progress.Def(Progress.Craft) != null ? Progress.Def(Progress.Craft).name : "");
 
             // the category tabs
             float x = 0f;
@@ -100,6 +101,23 @@ namespace BomberBuddies
             Txt("Name", rt, new Vector2(0f, 1f), new Vector2(141f, -168f), new Vector2(270f, 24f), 19, TextAnchor.MiddleLeft, mode.playable ? Color.white : new Color(0.6f, 0.62f, 0.66f), true).text = mode.name + (mode.playable ? "" : "   · coming");
             var d = Txt("Desc", rt, new Vector2(0f, 1f), new Vector2(141f, -205f), new Vector2(270f, 48f), 11, TextAnchor.UpperLeft, new Color(0.8f, 0.85f, 0.92f));
             d.text = mode.desc; d.horizontalOverflow = HorizontalWrapMode.Wrap; d.verticalOverflow = VerticalWrapMode.Truncate;
+        }
+
+        GameObject credits;
+        /// <summary>The credits (CREDITS): every line is Jaeden's to write.</summary>
+        void ShowCredits()
+        {
+            Sfx.Play("ui_click", 0.5f);
+            if (credits != null) { credits.SetActive(!credits.activeSelf); return; }
+            credits = new GameObject("Credits", typeof(RectTransform)); credits.transform.SetParent(transform, false);
+            var rt = credits.GetComponent<RectTransform>(); rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+            var bg = credits.AddComponent<Image>(); bg.color = new Color(0.03f, 0.05f, 0.09f, 0.96f);
+            var b = credits.AddComponent<Button>(); b.onClick.AddListener(() => credits.SetActive(false));
+            string text = "<size=40><b>BOMBER BUDDIES</b></size>\n\nA passion project by Jaeden Guarrasi\nVersion " + Application.version + "  ·  Unity port\n\n<size=26><b>Built with</b></size>\n\n" +
+                "Unity 6 and the Universal Render Pipeline\n\n" +
+                "The original: PeerJS for online play (MIT License, Copyright (c) 2015 Michelle Bu and Eric Zhang), Expo and React Native for the phone app (MIT License)\n\n" +
+                "On the REAL MODELS setting: the ninja, goblin, cowboy, zombie, alien, demon and dinosaur models and the guns (Ultimate Guns) are by Quaternius (quaternius.com), the skeleton is from KayKit by Kay Lousberg (kaylousberg.com), and the soldiers are built on the Godot male base mesh by orange-juice-games (BoQsc); all released CC0 (public domain) and reshaped to fit this game's skeletons\n\n<size=14>tap anywhere to close</size>";
+            var t = Txt("Text", credits.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 600f), 18, TextAnchor.MiddleCenter, new Color(0.9f, 0.93f, 1f)); t.text = text; t.horizontalOverflow = HorizontalWrapMode.Wrap; t.supportRichText = true;
         }
 
         void Pick(string id)
