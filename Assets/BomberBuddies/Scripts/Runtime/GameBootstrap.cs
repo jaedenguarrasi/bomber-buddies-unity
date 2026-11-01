@@ -54,6 +54,7 @@ namespace BomberBuddies
         {
             mode = modeId == "galactic" ? Mode.Galactic : Mode.Island;
             battleMode = modeId;
+            Night = battleMode == "scary";
             Random.InitState(seed);
             bool mobile = Application.isMobilePlatform;
 
@@ -141,16 +142,19 @@ namespace BomberBuddies
         }
 
         /// <summary>The sky at an altitude: day on the ground, blending to space (black overhead, a thin blue band, stars) high up.</summary>
+        /// <summary>Night (the Stalkers mode): the sky and fog go near-black, everything is dimmed through the shader, and the player carries a torch.</summary>
+        public static bool Night;
         public void SetSky(float altU)
         {
             Color zen = Color.Lerp(new Color(0.36f, 0.62f, 0.78f), new Color(0.005f, 0.01f, 0.04f), altU);
             Color hor = Color.Lerp(new Color(0.87f, 0.91f, 0.87f), new Color(0.28f, 0.44f, 0.7f), altU);
             Color fog = Color.Lerp(new Color(0.80f, 0.87f, 0.86f), new Color(0.62f, 0.74f, 0.86f), altU);
+            if (Night) { zen = new Color(0.01f, 0.012f, 0.03f); hor = new Color(0.05f, 0.06f, 0.1f); fog = new Color(0.03f, 0.035f, 0.06f); }
             if (skyMat != null)
             {
                 skyMat.SetColor("_Zen", zen); skyMat.SetColor("_Hor", hor); skyMat.SetColor("_Low", fog);
-                skyMat.SetFloat("_Stars", Mathf.Clamp01((altU - 0.45f) * 1.6f) * 0.9f);
-                skyMat.SetFloat("_CloudCover", 1f - altU);
+                skyMat.SetFloat("_Stars", Night ? 0.8f : Mathf.Clamp01((altU - 0.45f) * 1.6f) * 0.9f);
+                skyMat.SetFloat("_CloudCover", Night ? 0.2f : 1f - altU);
             }
             RenderSettings.fogColor = fog;
             if (cam != null) cam.backgroundColor = fog;
@@ -237,8 +241,13 @@ namespace BomberBuddies
             {
                 float ey = cam.transform.position.y / World3.U, hi = Mathf.Max(0f, ey - 260f);
                 SetSky(Mathf.Clamp01((ey - 1500f) / 2300f));
-                RenderSettings.fogStartDistance = (520f + hi * 0.9f) * World3.U * World3.Spread;
-                RenderSettings.fogEndDistance = (1750f + hi * 3f) * World3.U * World3.Spread;
+                RenderSettings.fogStartDistance = (520f + hi * 0.9f) * World3.U * World3.Spread * (Night ? 0.18f : 1f);
+                RenderSettings.fogEndDistance = (1750f + hi * 3f) * World3.U * World3.Spread * (Night ? 0.3f : 1f);
+                Shader.SetGlobalVector("_NightLight", Night ? new Vector4(0.16f, 0.18f, 0.28f, 1f) : new Vector4(1f, 1f, 1f, 0f));
+                // the torch: from the camera, along the look, 60 m, only on foot or in a vehicle at night
+                bool torch = Night && !(PlayerManager.Instance != null && PlayerManager.Instance.plane != null && PlayerManager.Instance.plane.Active);
+                Shader.SetGlobalVector("_TorchPos", cam.transform.position);
+                Shader.SetGlobalVector("_TorchDir", new Vector4(cam.transform.forward.x, cam.transform.forward.y, cam.transform.forward.z, torch ? 70f : 0f));
             }
         }
     }

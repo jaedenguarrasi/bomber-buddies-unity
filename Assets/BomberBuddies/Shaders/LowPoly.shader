@@ -35,6 +35,8 @@ Shader "BomberBuddies/LowPoly"
             float4 _AmbU, _AmbD, _Tint, _SunColor, _Light;
             float _Spec, _Shine, _Contrast, _Desat;
             CBUFFER_END
+            // the night: a global dimmer, and the player's torch (a cone from _TorchPos along _TorchDir, w = range)
+            float4 _NightLight; float4 _TorchPos; float4 _TorchDir;
 
             struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; float4 color : COLOR; };
             struct Varyings
@@ -68,13 +70,22 @@ Shader "BomberBuddies/LowPoly"
                 float nd = saturate(dot(n, sun.direction));
                 float sh = sun.shadowAttenuation;
                 // all of this is in the original's gamma space; converted to linear at the end
-                float3 amb = lerp(_AmbD.rgb, _AmbU.rgb, n.y * 0.5 + 0.5) * _Light.rgb;
-                float3 sunC = _SunColor.rgb * _Light.rgb;
+                float3 nl = lerp(float3(1, 1, 1), _NightLight.rgb, _NightLight.a);
+                float3 amb = lerp(_AmbD.rgb, _AmbU.rgb, n.y * 0.5 + 0.5) * _Light.rgb * nl;
+                float3 sunC = _SunColor.rgb * _Light.rgb * nl;
                 float3 v = normalize(GetWorldSpaceViewDir(i.positionWS));
                 float3 h = normalize(sun.direction + v);
                 float spec = pow(saturate(dot(n, h)), _Shine) * _Spec;
                 float3 col = alb * (amb + sunC * nd * sh) + sunC * spec * sh * (0.3 + 0.7 * nd);
                 col = lerp(col, alb * _Light.rgb, emissive);
+                if (_TorchDir.w > 0.0)
+                {
+                    float3 tv = i.positionWS - _TorchPos.xyz; float td = length(tv); tv /= max(td, 0.001);
+                    float cone = smoothstep(0.80, 0.96, dot(tv, _TorchDir.xyz));
+                    float fall = saturate(1.0 - td / _TorchDir.w); fall *= fall;
+                    float tn = saturate(dot(n, -tv)) * 0.6 + 0.4;
+                    col += alb * float3(1.0, 0.95, 0.8) * cone * fall * tn * 1.6;
+                }
                 // the original's slight S-curve and 10 % desaturation
                 float3 sc = col * col * (3.0 - 2.0 * col);
                 col = lerp(col, sc, _Contrast);
