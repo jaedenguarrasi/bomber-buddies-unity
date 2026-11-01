@@ -152,6 +152,9 @@ namespace BomberBuddies
             }
             // a real controller hides the touch controls; the on-screen stick and buttons drive a virtual gamepad, which must not
             if (Gamepad.current != null && Gamepad.current.wasUpdatedThisFrame && !Application.isMobilePlatform && !string.IsNullOrEmpty(Gamepad.current.description.interfaceName)) IsTouch = false;
+#if UNITY_EDITOR
+            if (Keyboard.current != null && Keyboard.current.tKey.wasPressedThisFrame) { IsTouch = !IsTouch; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }   // editor: T shows the touch layer for testing with the mouse
+#endif
             deg *= PauseMenu.Sensitivity;
             if (PauseMenu.InvertY) deg.y = -deg.y;
             Look = deg;
