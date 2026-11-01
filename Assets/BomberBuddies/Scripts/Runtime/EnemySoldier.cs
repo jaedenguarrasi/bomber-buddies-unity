@@ -127,9 +127,9 @@ namespace BomberBuddies
             if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
             if (agent != null && agent.enabled) agent.enabled = false;
             foreach (var c in GetComponentsInChildren<Collider>()) c.enabled = false;
-            if (model != null) model.Die(info.direction);
+            if (model != null) { model.Die(info.direction); model.Dismember(info.direction, info.headshot, !info.foot && info.amount >= 40f); }
             if (Team != 0) GameState.EnemyKilled(info.headshot, score);
-            Sfx.Play(melee ? (kind == "trex" ? "roar_big" : kind == "ape" ? "roar_ape" : "screech") : (info.headshot ? "thud" : "grunt"), 0.5f, 1f, transform.position);
+            Sfx.Play(melee ? (kind == "trex" ? "roar_big" : kind == "ape" ? "roar_ape" : "screech") : (info.headshot ? "thud" : Random.value < 0.3f ? "scream" : "grunt"), 0.5f, 1f, transform.position);
             deadT = 0f;
         }
 

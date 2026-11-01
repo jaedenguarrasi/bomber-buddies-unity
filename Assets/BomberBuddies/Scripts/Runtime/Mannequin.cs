@@ -182,10 +182,25 @@ namespace BomberBuddies
             var axis = Vector3.Cross(Vector3.up, fallDir);
             transform.rotation = Quaternion.AngleAxis(88f * k, axis) * baseRot;
             pelvis.localPosition = new Vector3(0f, 0.95f - 0.2f * k, 0f);
-            thighL.localRotation = Quaternion.Euler(-30f * k, 0f, 8f); thighR.localRotation = Quaternion.Euler(20f * k, 0f, -8f);
-            shinL.localRotation = Quaternion.Euler(40f * k, 0f, 0f); shinR.localRotation = Quaternion.Euler(15f * k, 0f, 0f);
-            armL.localRotation = Quaternion.Euler(-70f + 110f * k, 40f - 60f * k, -14f); armR.localRotation = Quaternion.Euler(-68f + 30f * k, -18f, 10f + 50f * k);
+            if (thighL != null) thighL.localRotation = Quaternion.Euler(-30f * k, 0f, 8f); if (thighR != null) thighR.localRotation = Quaternion.Euler(20f * k, 0f, -8f);
+            if (shinL != null) shinL.localRotation = Quaternion.Euler(40f * k, 0f, 0f); if (shinR != null) shinR.localRotation = Quaternion.Euler(15f * k, 0f, 0f);
+            if (armL != null) armL.localRotation = Quaternion.Euler(-70f + 110f * k, 40f - 60f * k, -14f); if (armR != null) armR.localRotation = Quaternion.Euler(-68f + 30f * k, -18f, 10f + 50f * k);
             upperBody.localRotation = Quaternion.Euler(10f * k, 15f * k, 0f);
+        }
+
+        public override void Dismember(Vector3 fromDir, bool headshot, bool blast)
+        {
+            var g = Gore.Instance; if (g == null) return;
+            if (headshot && head != null) { g.Detach(head, fromDir + Vector3.up, 7f); head = null; }
+            if (blast)
+            {
+                // a blast takes an arm or a leg or two, sometimes more
+                var limbs = new List<Transform> { armL, armR, thighL, thighR };
+                int n = Random.Range(1, 4);
+                for (int i = 0; i < n && limbs.Count > 0; i++) { int j = Random.Range(0, limbs.Count); var l = limbs[j]; limbs.RemoveAt(j); if (l == null) continue; g.Detach(l, fromDir, Random.Range(6f, 12f)); if (l == armL) armL = null; else if (l == armR) armR = null; else if (l == thighL) thighL = null; else thighR = null; }
+                g.Splat(transform.position, 1.4f);
+            }
+            else g.Splat(transform.position, 0.8f);
         }
 
         Quaternion baseRot = Quaternion.identity;

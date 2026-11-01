@@ -14,6 +14,8 @@ namespace BomberBuddies
         public abstract void Animate(float speed, float aimPitch, float crouch, bool airborne, float dt);
         public abstract void Die(Vector3 fromDirection);
         public abstract bool IsDead { get; }
+        /// <summary>Gore: the head on a headshot, limbs in a blast. The base body does nothing.</summary>
+        public virtual void Dismember(Vector3 fromDir, bool headshot, bool blast) { }
 
         /// <summary>A real model when one has been added to the project, the block figure otherwise.</summary>
         public static SoldierModelBase Create(Transform parent, MaterialLibrary lib, int team, int layer)

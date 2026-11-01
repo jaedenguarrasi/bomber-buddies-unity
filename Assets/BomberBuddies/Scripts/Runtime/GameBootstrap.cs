@@ -60,6 +60,7 @@ namespace BomberBuddies
             bool mobile = Application.isMobilePlatform;
 
             Gunfire.Create(transform, library);
+            Gore.Create(transform, library);
             Projectiles.Create(transform, library);
             BuildLighting();
             world = World3.Build(transform, seed, library, mobile);

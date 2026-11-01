@@ -216,7 +216,7 @@ namespace BomberBuddies
             Respawning = true;
             GameState.Deaths++;
             if (GameState.Hud != null) GameState.Hud.Announce(why);
-            if (OnFoot && foot != null) { foot.ControlsLocked = true; if (foot.model != null) foot.model.Die(Vector3.forward); }
+            if (OnFoot && foot != null) { foot.ControlsLocked = true; if (foot.model != null) foot.model.Die(Vector3.forward); if (Gore.Instance != null) Gore.Instance.Splat(foot.transform.position, 1f); }
             yield return new WaitForSeconds(respawnDelay);
             if (over) yield break;
             if (foot != null)
