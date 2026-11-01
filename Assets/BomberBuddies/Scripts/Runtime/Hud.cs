@@ -28,7 +28,7 @@ namespace BomberBuddies
         readonly Dictionary<string, Text> labels = new Dictionary<string, Text>();
         readonly Dictionary<string, Image> buttons = new Dictionary<string, Image>();
         readonly List<Image> radarDots = new List<Image>();
-        Text getOutLabel;
+        Text getOutLabel, debugText;
         Image canopy;
         const float R = 65f;   // the original's button radius (52 css px at 720p) in a 900-tall canvas
 
@@ -210,6 +210,7 @@ namespace BomberBuddies
             waveText = Txt("Wave", safe, tr, new Vector2(-250f, -72f), new Vector2(240f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.9f, 0.9f, 0.9f));
             modeText = Txt("Mode", safe, new Vector2(0.5f, 1f), new Vector2(120f, -102f), new Vector2(900f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.75f, 0.85f, 1f, 0.9f));
             commsText = Txt("Comms", safe, new Vector2(1f, 1f), new Vector2(-180f, -112f), new Vector2(300f, 22f), 13, TextAnchor.MiddleRight, new Color(0.95f, 0.95f, 0.95f));
+            debugText = Txt("Debug", transform, new Vector2(0.5f, 0f), new Vector2(0f, 120f), new Vector2(1400f, 24f), 14, TextAnchor.MiddleCenter, new Color(1f, 1f, 0.5f));
             message = Txt("Message", transform, new Vector2(0.5f, 0.78f), Vector2.zero, new Vector2(1000f, 60f), 34, TextAnchor.MiddleCenter, Color.white, true);
             message.text = "";
 
@@ -359,6 +360,13 @@ namespace BomberBuddies
         {
             float dt = Time.deltaTime;
             ApplySafeArea();
+            if (debugText != null && InputBridge.Instance != null)
+            {
+                var sb = new System.Text.StringBuilder();
+                foreach (var g in UnityEngine.InputSystem.Gamepad.all) sb.Append(g.name).Append('[').Append(g.description.interfaceName).Append("] ls=").Append(g.leftStick.ReadValue().ToString("F2")).Append(" rt=").Append(g.rightTrigger.ReadValue().ToString("F2")).Append("  ");
+                sb.Append(" move=").Append(InputBridge.Instance.Move.ToString("F2")).Append(" fire=").Append(InputBridge.Instance.Fire).Append(" touch=").Append(InputBridge.Instance.IsTouch).Append(" ts=").Append(UnityEngine.InputSystem.Touchscreen.current != null);
+                debugText.text = sb.ToString();
+            }
             var p = GameState.Player;
             bool fly = flight != null && flight.Active;
             if (fly)
