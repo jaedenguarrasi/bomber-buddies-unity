@@ -18,6 +18,9 @@ namespace BomberBuddies
 
         /// <summary>An attack helicopter instead of a fighter: closes in, hovers, fires bursts.</summary>
         public bool heli, saucer;
+        /// <summary>Abduction: a saucer picks an islander to hover over and beam up; the mode supplies them.</summary>
+        public static System.Func<Vector3, Health> Abductee;
+        Health abducting; float beamT; Transform beam;
         float fwdU, vyU;
         Transform rotor, tailRotor;
 
@@ -72,6 +75,8 @@ namespace BomberBuddies
             if (retargetT <= 0f)
             {
                 retargetT = 0.5f;
+                if (saucer && Abductee != null) { var a = Abductee(transform.position); if (a != null) { abducting = a; } }
+                if (abducting != null && (!abducting.alive || !abducting.gameObject.activeInHierarchy)) abducting = null;
                 targetH = Health.Nearest(Team, transform.position, 1400f * U, true);
                 if (targetH == null) targetH = Health.Nearest(Team, transform.position, 1400f * U, false);
             }
@@ -80,6 +85,7 @@ namespace BomberBuddies
 
             float gnd = GameState.GroundHeight != null ? GameState.GroundHeight(transform.position.x, transform.position.z) : 0f;
             float hold = gnd + 210f * U;
+            if (saucer && abducting != null) { AbductUpdate(dt, gnd); return; }
             if (heli) { HeliUpdate(dt, target, airTarget, gnd); return; }
             if (target.HasValue)
             {
@@ -119,6 +125,39 @@ namespace BomberBuddies
         }
 
         /// <summary>The gunship: flies at its target, slows to a hover 200 units out at 150 up, and fires bursts from the chin gun.</summary>
+        /// <summary>Hover over the islander and hold the beam on him; a few seconds and he is pulled inside.</summary>
+        void AbductUpdate(float dt, float gnd)
+        {
+            var p = abducting.transform.position; var me = transform.position;
+            var flat = new Vector3(p.x - me.x, 0f, p.z - me.z); float dist = flat.magnitude;
+            float hold = p.y + 32f * U;
+            var vel = flat.normalized * Mathf.Min(dist * 1.5f, 70f * U) + Vector3.up * Mathf.Clamp((hold - me.y) * 1.5f, -30f * U, 30f * U);
+            transform.position = me + vel * dt; yaw += dt * 0.8f;
+            transform.rotation = Quaternion.Euler(0f, yaw * Mathf.Rad2Deg, Mathf.Sin(Time.time * 2f) * 4f);
+            if (rotor != null) rotor.Rotate(0f, 400f * dt, 0f);
+            bool over = dist < 6f * U && Mathf.Abs(me.y - hold) < 10f * U;
+            if (over)
+            {
+                if (beam == null)
+                {
+                    var b = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Destroy(b.GetComponent<Collider>()); b.name = "Beam"; b.transform.SetParent(transform, false); b.layer = gameObject.layer;
+                    var m = new Material(Shader.Find("Universal Render Pipeline/Unlit")); m.SetColor("_BaseColor", new Color(0.6f, 1f, 0.8f, 0.3f)); m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", 0f); m.renderQueue = 3000; m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha); m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha); m.SetInt("_ZWrite", 0); m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                    b.GetComponent<Renderer>().sharedMaterial = m; beam = b.transform;
+                    Sfx.Play("ufo_hum", 0.6f, 1f, me);
+                }
+                float h = (me.y - gnd); beam.localPosition = new Vector3(0f, -h * 0.5f, 0f); beam.localScale = new Vector3(2.2f, h * 0.5f, 2.2f);
+                beamT += dt;
+                // the islander rises
+                if (beamT > 1.5f) { var c = abducting.GetComponent<Civilian>(); if (c != null) c.lifted = true; abducting.transform.position = Vector3.MoveTowards(p, new Vector3(me.x, me.y - 1f, me.z), 4f * dt); }
+                if (beamT > 4.5f || abducting.transform.position.y > me.y - 1.2f)
+                {
+                    var c = abducting.GetComponent<Civilian>(); if (c != null) c.Taken(); else Destroy(abducting.gameObject);
+                    abducting = null; beamT = 0f; if (beam != null) { Destroy(beam.gameObject); beam = null; }
+                }
+            }
+            else { beamT = 0f; if (beam != null) { Destroy(beam.gameObject); beam = null; } }
+        }
+
         void HeliUpdate(float dt, Vector3? target, bool airTarget, float gnd)
         {
             float hold = gnd + 150f * U;

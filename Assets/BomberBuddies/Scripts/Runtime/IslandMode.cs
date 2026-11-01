@@ -27,6 +27,7 @@ namespace BomberBuddies
         Health vip; Vector3 exitPoint; Transform exitHeli;
         readonly List<EnemyVehicle> trucks = new List<EnemyVehicle>(); Vector3 convoyGoal; int trucksThrough;
         int downed; const int AirGoal = 40;
+        readonly System.Collections.Generic.List<Civilian> civilians = new System.Collections.Generic.List<Civilian>();
         public bool ModeDrivesSpawns { get { return modeId == "conquest" || modeId == "assassin" || modeId == "air" || modeId == "convoy" || modeId == "strike"; } }
 
         public static IslandMode Create(Transform parent, MaterialLibrary lib, World3 world, EnemySpawner spawner, string modeId)
@@ -45,7 +46,17 @@ namespace BomberBuddies
         void Setup()
         {
             ModeDefs.Mode md; if (ModeDefs.All.TryGetValue(modeId, out md) && md.timer > 0f && modeId != "strike" && modeId != "assassin") survive = md.timer;
-            if (modeId == "conquest")
+            if (modeId == "abduct_def")
+            {
+                Civilian.Taken_ = 0; Civilian.Total = 0;
+                var centre = world != null ? world.spawn : Vector3.zero;
+                for (int i = 0; i < 10; i++) { var at = LandNear(centre + new Vector3(Random.Range(-220f, 220f), 0f, Random.Range(-220f, 220f))); civilians.Add(Civilian.Spawn(transform, lib, at)); }
+                EnemyPlane.Abductee = from => { Civilian best = null; float bd = 99999f; foreach (var c in civilians) { if (c == null || c.lifted) continue; float d = Vector3.Distance(c.transform.position, from); if (d < bd) { bd = d; best = c; } } return best != null ? best.health : null; };
+                Civilian.OnTaken = c => { civilians.Remove(c); if (Civilian.Taken_ >= 6) End(false, "Six islanders taken. The island is lost."); };
+                foreach (var c in civilians) { var cc = c; GameState.Hud.AddMarker(() => cc.transform.position + Vector3.up * 2.2f, () => "Islander", () => new Color(1f, 1f, 0.6f), () => cc != null); }
+                if (GameState.Hud != null) GameState.Hud.Announce("The saucers have come for the islanders. Bring them down.", 5f);
+            }
+            else if (modeId == "conquest")
             {
                 // five posts spread over the island, on dry open ground
                 string[] names = { "Alpha", "Bravo", "Charlie", "Delta", "Echo" };
@@ -323,6 +334,7 @@ namespace BomberBuddies
                 else if (modeId == "assassin") GameState.Hud.SetModeLine(Clock(timeLeft) + " · the general " + (vip != null && vip.alive ? Mathf.RoundToInt(Vector3.Distance(vip.transform.position, exitPoint) / U) + " from his helicopter" : "is down"));
                 else if (modeId == "air") GameState.Hud.SetModeLine("Shot down " + downed + " / " + AirGoal);
                 else if (modeId == "convoy") GameState.Hud.SetModeLine("Trucks across " + trucksThrough + " / 3");
+                else if (modeId == "abduct_def") GameState.Hud.SetModeLine("Islanders taken " + Civilian.Taken_ + " / 6  ·  wave " + GameState.Wave);
                 else if (survive > 0f) GameState.Hud.SetModeLine(Clock(survive) + (modeId == "demo" ? " · buildings down " + (World3.Instance != null ? World3.Instance.buildingsDown : 0) : " · hold on"));
                 else if (modeId == "conquest") GameState.Hud.SetModeLine("Posts " + PostsHeld + "/" + posts.Count + " · yours " + Mathf.CeilToInt(yourTickets) + " · theirs " + Mathf.CeilToInt(theirTickets));
                 else if (modeId == "defend" && tower != null) GameState.Hud.SetModeLine("Tower " + Mathf.RoundToInt(tower.Fraction * 100f) + "% · wave " + GameState.Wave + "/8");
