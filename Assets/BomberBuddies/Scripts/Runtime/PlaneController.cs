@@ -160,9 +160,24 @@ namespace BomberBuddies
                 else if (GameState.Hud != null) GameState.Hud.Announce(IsHeli ? "Land first to get out" : "Land in a hangar to get out");
             }
             if (input.ViewPressed) cockpit = !cockpit;
+            EdgeDoom(dt);
             ApplyPose();
             if (cockpit) CockpitCamera(dt); else ChaseCamera(dt);
             foreach (var r in model.GetComponentsInChildren<Renderer>()) r.enabled = !cockpit;
+        }
+
+        float edgeT;
+        /// <summary>The original's edgeDoom (off in Galactic Assault): leave the island and you are warned, then lost over the sea.</summary>
+        void EdgeDoom(float dt)
+        {
+            if (GalacticMode.Instance != null) return;
+            float limit = World3.WORLD3 * World3.U * World3.Spread * 0.55f;
+            var p = transform.position;
+            float d = Mathf.Max(Mathf.Abs(p.x), Mathf.Abs(p.z));
+            if (d < limit) { edgeT = 0f; return; }
+            edgeT += dt;
+            if (GameState.Hud != null && Mathf.Repeat(edgeT, 2f) < dt) GameState.Hud.Announce("Turn back! You are leaving the island");
+            if (edgeT > 8f || d > limit * 1.6f) Crash(p);
         }
 
         void CockpitCamera(float dt)

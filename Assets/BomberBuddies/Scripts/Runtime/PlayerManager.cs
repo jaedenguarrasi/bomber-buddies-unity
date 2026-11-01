@@ -139,7 +139,6 @@ namespace BomberBuddies
             float yaw = toCentre.sqrMagnitude > 1f ? Mathf.Atan2(toCentre.x, toCentre.z) * Mathf.Rad2Deg : 0f;
             var c = NewCraft(PlaneController.Craft.Plane, at, yaw, null);
             Fly(c, at, yaw, null, 180f);
-            Debug.Log("Spawned in the air at " + at + " ground " + g + " yaw " + yaw);
         }
 
         public IEnumerator Respawn(string why)
