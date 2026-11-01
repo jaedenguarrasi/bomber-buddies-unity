@@ -33,6 +33,8 @@ namespace BomberBuddies
         /// <summary>Kick (on foot): X or the pad's west button.</summary>
         public bool KickPressed { get; private set; }
         public bool PausePressed { get; private set; }
+        /// <summary>L1 (or C) held: the right stick walks the reticle instead of flying the aircraft.</summary>
+        public bool LookHeld { get; private set; }
         public bool IsTouch { get; private set; }
         /// <summary>The HUD's throttle slider while a finger drags it (-1..1), else 0.</summary>
         public static float TouchThrottle;
@@ -42,7 +44,7 @@ namespace BomberBuddies
         public float stickDegPerSecond = 170f;
         public float touchDegPerPixel = 0.16f;
 
-        InputAction move, look, fire, aim, sprint, jump, crouch, reload, view, throttle, interact, bomb, kick, pause;
+        InputAction freeLook, move, look, fire, aim, sprint, jump, crouch, reload, view, throttle, interact, bomb, kick, pause;
         bool jumpQ, crouchQ, reloadQ, viewQ, interactQ, bombQ, kickQ, pauseQ;
 
         void Awake()
@@ -69,7 +71,6 @@ namespace BomberBuddies
             sprint = new InputAction("Sprint", InputActionType.Button);
             sprint.AddBinding("<Keyboard>/leftShift");
             sprint.AddBinding("<Gamepad>/leftStickPress");
-            sprint.AddBinding("<Gamepad>/leftShoulder");
 
             throttle = new InputAction("Throttle", InputActionType.Value);
             throttle.AddCompositeBinding("1DAxis").With("Positive", "<Keyboard>/e").With("Negative", "<Keyboard>/q");
@@ -78,7 +79,7 @@ namespace BomberBuddies
             bomb = new InputAction("Bomb", InputActionType.Button);
             bomb.AddBinding("<Keyboard>/g");
             bomb.AddBinding("<Mouse>/middleButton");
-            bomb.AddBinding("<Gamepad>/buttonEast");
+            bomb.AddBinding("<Gamepad>/rightShoulder");
             bomb.performed += _ => bombQ = true;
 
             kick = new InputAction("Kick", InputActionType.Button);
@@ -104,7 +105,7 @@ namespace BomberBuddies
             crouch = new InputAction("Crouch", InputActionType.Button);
             crouch.AddBinding("<Keyboard>/c");
             crouch.AddBinding("<Keyboard>/leftCtrl");
-            crouch.AddBinding("<Gamepad>/rightShoulder");
+            crouch.AddBinding("<Gamepad>/buttonEast");
             crouch.performed += _ => crouchQ = true;
 
             reload = new InputAction("Reload", InputActionType.Button);
@@ -114,21 +115,24 @@ namespace BomberBuddies
 
             view = new InputAction("View", InputActionType.Button);
             view.AddBinding("<Keyboard>/v");
-            view.AddBinding("<Gamepad>/rightStickPress");
             view.AddBinding("<Gamepad>/buttonNorth");
             view.performed += _ => viewQ = true;
+
+            freeLook = new InputAction("FreeLook", InputActionType.Button);
+            freeLook.AddBinding("<Keyboard>/c");
+            freeLook.AddBinding("<Gamepad>/leftShoulder");
 
             EnhancedTouchSupport.Enable();
         }
 
         void OnEnable()
         {
-            move.Enable(); look.Enable(); fire.Enable(); aim.Enable(); sprint.Enable(); jump.Enable(); crouch.Enable(); reload.Enable(); view.Enable(); throttle.Enable(); interact.Enable(); bomb.Enable(); kick.Enable(); pause.Enable();
+            freeLook.Enable(); move.Enable(); look.Enable(); fire.Enable(); aim.Enable(); sprint.Enable(); jump.Enable(); crouch.Enable(); reload.Enable(); view.Enable(); throttle.Enable(); interact.Enable(); bomb.Enable(); kick.Enable(); pause.Enable();
         }
 
         void OnDisable()
         {
-            move.Disable(); look.Disable(); fire.Disable(); aim.Disable(); sprint.Disable(); jump.Disable(); crouch.Disable(); reload.Disable(); view.Disable(); throttle.Disable(); interact.Disable(); bomb.Disable(); kick.Disable(); pause.Disable();
+            freeLook.Disable(); move.Disable(); look.Disable(); fire.Disable(); aim.Disable(); sprint.Disable(); jump.Disable(); crouch.Disable(); reload.Disable(); view.Disable(); throttle.Disable(); interact.Disable(); bomb.Disable(); kick.Disable(); pause.Disable();
         }
 
         void Update()
@@ -159,6 +163,7 @@ namespace BomberBuddies
             if (PauseMenu.InvertY) deg.y = -deg.y;
             Look = deg;
 
+            LookHeld = freeLook.IsPressed();
             Fire = fire.IsPressed();
             Aim = aim.IsPressed();
             Sprint = sprint.IsPressed();

@@ -274,12 +274,12 @@ namespace BomberBuddies
             Vector2 pn = alt + new Vector2(-1.4f * R, -0.2f * R);
             Vector2 gb = alt + new Vector2(-0.3f * R, 1.4f * R);
             TouchButton("gun", "Gun", touchRoot.transform, br, gun, 2f * R, "<Gamepad>/rightTrigger", new Color(0.86f, 0.7f, 0.25f, 0.5f), 22);
-            TouchButton("bomb", "Bomb", touchRoot.transform, br, bomb, 2f * 0.86f * R, "<Gamepad>/buttonEast", new Color(0.75f, 0.75f, 0.75f, 0.45f), 19);
-            TouchButton("boost", "Boost", touchRoot.transform, br, boost, 2f * 0.8f * R, "<Gamepad>/leftShoulder", new Color(0.35f, 0.65f, 0.7f, 0.5f), 18);
+            TouchButton("bomb", "Bomb", touchRoot.transform, br, bomb, 2f * 0.86f * R, "<Gamepad>/rightShoulder", new Color(0.75f, 0.75f, 0.75f, 0.45f), 19);
+            TouchButton("boost", "Boost", touchRoot.transform, br, boost, 2f * 0.8f * R, "<Gamepad>/leftStickPress", new Color(0.35f, 0.65f, 0.7f, 0.5f), 18);
             TouchButton("aim", "Aim", touchRoot.transform, br, aim, 2f * 0.52f * R, "<Gamepad>/leftTrigger", new Color(0.6f, 0.65f, 0.75f, 0.45f), 14);
             TouchButton("act", "Roll", touchRoot.transform, br, act, 2f * 0.68f * R, "<Gamepad>/buttonSouth", new Color(0.7f, 0.7f, 0.72f, 0.45f), 16);
             TouchButton("pn", "Kick", touchRoot.transform, br, pn, 2f * 0.6f * R, "<Gamepad>/buttonWest", new Color(0.8f, 0.45f, 0.45f, 0.45f), 15);
-            TouchButton("gb", "Crouch", touchRoot.transform, br, gb, 2f * 0.6f * R, "<Gamepad>/rightShoulder", new Color(0.7f, 0.7f, 0.72f, 0.45f), 14);
+            TouchButton("gb", "Crouch", touchRoot.transform, br, gb, 2f * 0.6f * R, "<Gamepad>/buttonEast", new Color(0.7f, 0.7f, 0.72f, 0.45f), 14);
             touchGroup = touchRoot.AddComponent<CanvasGroup>();
             ShowTouch(InputBridge.Instance != null && InputBridge.Instance.IsTouch);
         }
@@ -419,10 +419,17 @@ namespace BomberBuddies
         void SetCross(bool on)
         {
             crossA.enabled = crossB.enabled = crossC.enabled = crossD.enabled = on;
-            crossA.rectTransform.anchoredPosition = new Vector2(0f, crossSpread);
-            crossB.rectTransform.anchoredPosition = new Vector2(0f, -crossSpread);
-            crossC.rectTransform.anchoredPosition = new Vector2(-crossSpread, 0f);
-            crossD.rectTransform.anchoredPosition = new Vector2(crossSpread, 0f);
+            // free look in an aircraft walks the reticle to where the guns point
+            var o = Vector2.zero;
+            if (flight != null && flight.Active && flight.cam != null && flight.AimOffset.sqrMagnitude > 0.0001f)
+            {
+                var sp = flight.cam.WorldToScreenPoint(flight.transform.position + flight.AimDir * 300f);
+                if (sp.z > 0f) { float k = canvas.scaleFactor; o = new Vector2((sp.x - Screen.width * 0.5f) / k, (sp.y - Screen.height * 0.5f) / k); }
+            }
+            crossA.rectTransform.anchoredPosition = o + new Vector2(0f, crossSpread);
+            crossB.rectTransform.anchoredPosition = o + new Vector2(0f, -crossSpread);
+            crossC.rectTransform.anchoredPosition = o + new Vector2(-crossSpread, 0f);
+            crossD.rectTransform.anchoredPosition = o + new Vector2(crossSpread, 0f);
         }
 
         /// <summary>Keeps the edge-anchored HUD and the touch controls out of the notch and the home bar.</summary>

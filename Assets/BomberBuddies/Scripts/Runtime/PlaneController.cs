@@ -116,6 +116,9 @@ namespace BomberBuddies
         }
 
         public Vector3 Forward { get { return Quaternion.Euler(-pitch * Mathf.Rad2Deg, yaw * Mathf.Rad2Deg, 0f) * Vector3.forward; } }
+        /// <summary>Free look (L1 / C held): the guns swivel a little so the reticle walks across the screen (gunAim). x yaw, y pitch, degrees.</summary>
+        public Vector2 AimOffset;
+        public Vector3 AimDir { get { return Quaternion.Euler(-pitch * Mathf.Rad2Deg - AimOffset.y, yaw * Mathf.Rad2Deg + AimOffset.x, 0f) * Vector3.forward; } }
 
         void ApplyPose()
         {
@@ -131,8 +134,18 @@ namespace BomberBuddies
             if (!health.alive) { Velocity = Vector3.zero; return; }
 
             // the stick: keyboard/pad plus mouse or touch drag
-            float sx = Mathf.Clamp(input.Move.x + input.Look.x * 0.02f, -1f, 1f);
-            float sy = Mathf.Clamp(input.Move.y - input.Look.y * 0.02f, -1f, 1f);
+            float lx = input.Look.x, ly = input.Look.y;
+            if (input.LookHeld)
+            {
+                // the right stick / mouse walks the reticle; the aircraft keeps flying straight on the left stick
+                float zk = input.Aim ? 0.45f : 1f;
+                AimOffset.x = Mathf.Clamp(AimOffset.x + lx * 0.9f * zk, -35f, 35f);
+                AimOffset.y = Mathf.Clamp(AimOffset.y + ly * 0.8f * zk, -26f, 23f);
+                lx = 0f; ly = 0f;
+            }
+            else { float k = Mathf.Min(1f, 6f * dt); AimOffset *= 1f - k; }
+            float sx = Mathf.Clamp(input.Move.x + lx * 0.02f, -1f, 1f);
+            float sy = Mathf.Clamp(input.Move.y - ly * 0.02f, -1f, 1f);
             if (Mathf.Abs(sx) < 0.12f) sx = 0f; if (Mathf.Abs(sy) < 0.12f) sy = 0f;
             thr = Mathf.Clamp01(thr + input.Throttle * 0.9f * dt);
             bool boosting = input.Sprint && !boostOut && boost > 0f && docked == null;
@@ -371,9 +384,9 @@ namespace BomberBuddies
             for (int b = 0; b < (barrels > 1 ? 2 : 1); b++)
             {
                 var m = (barrels > 1 ? b == 0 : lastFire) ? muzzleL : muzzleR;
-                var dir = Forward;
+                var dir = AimDir;
                 dir = Quaternion.AngleAxis(Random.Range(0f, 360f), dir) * Quaternion.Euler(Random.Range(0f, 0.4f * g.spread), 0f, 0f) * dir;
-                if (IsHeli) dir = Quaternion.Euler(8f, 0f, 0f) * Quaternion.Euler(0f, yaw * Mathf.Rad2Deg, 0f) * Vector3.forward;
+                if (IsHeli) dir = Quaternion.Euler(8f - AimOffset.y, yaw * Mathf.Rad2Deg + AimOffset.x, 0f) * Vector3.forward;
                 float dmg = (st != null ? st.dmg : 10f) * GalacticMode.K;
                 if (Projectiles.Instance != null)
                 {
@@ -386,7 +399,7 @@ namespace BomberBuddies
             if (st != null && st.rocketInt > 0f && rocketT <= 0f && Projectiles.Instance != null)
             {
                 rocketT = st.rocketInt;
-                Projectiles.Instance.FireShell(transform.position - Vector3.up * 0.4f, Forward, 520f * U, 20f * U, 60f * U, 90f * GalacticMode.K, 0, gameObject, false, 0f);
+                Projectiles.Instance.FireShell(transform.position - Vector3.up * 0.4f, AimDir, 520f * U, 20f * U, 60f * U, 90f * GalacticMode.K, 0, gameObject, false, 0f);
             }
             if (GameState.Hud != null) GameState.Hud.OnShot();
         }
