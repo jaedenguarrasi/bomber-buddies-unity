@@ -10,19 +10,21 @@ namespace BomberBuddies
     public class PlaneController : MonoBehaviour
     {
         const float U = GalacticMode.U;
-        public enum Craft { Plane, Heli, Heli2, AC130, Saucer, B52, Bomber2, Transport, Drone }
+        public enum Craft { Plane, Heli, Heli2, AC130, Saucer, B52, Bomber2, Transport, Drone, Dragon, Ptero, Skyjack }
+        public bool IsBeast { get { return craft == Craft.Dragon || craft == Craft.Ptero; } }
+        Transform wingL, wingR, neckT, tailT; float flap;
         public bool IsSaucer { get { return craft == Craft.Saucer; } }
         /// <summary>Abduction: raid — soldiers pulled up the beam so far.</summary>
         public static int Abducted; Health beaming; float beamT; Transform beamFx;
         public Craft craft = Craft.Plane;
-        public bool IsHeli { get { return craft == Craft.Heli || craft == Craft.Heli2 || craft == Craft.Saucer || craft == Craft.Transport || craft == Craft.Drone; } }
+        public bool IsHeli { get { return craft == Craft.Heli || craft == Craft.Heli2 || craft == Craft.Saucer || craft == Craft.Transport || craft == Craft.Drone || craft == Craft.Skyjack; } }
         public bool IsAC130 { get { return craft == Craft.AC130; } }
         public int Seats { get { return craft == Craft.Heli2 || craft == Craft.AC130 || craft == Craft.Bomber2 || craft == Craft.Transport ? 2 : 1; } }
         /// <summary>1 pilot, 2 gunner. In the gunner seat the AI flies (a hover for the gunship, an orbit for the AC-130).</summary>
         public int seat = 1;
         public bool Gunner { get { return Seats == 2 && seat == 2; } }
-        public string CraftName { get { return craft == Craft.B52 ? "B-52" : craft == Craft.Bomber2 ? "two-seat bomber" : craft == Craft.Transport ? "transport helicopter" : craft == Craft.Drone ? "bomber drone" : craft == Craft.Saucer ? "flying saucer" : craft == Craft.AC130 ? "AC-130 gunship" : craft == Craft.Heli2 ? "two-seat gunship" : IsHeli ? "attack helicopter" : "fighter-bomber"; } }
-        public string ProgressId { get { return craft == Craft.B52 ? "b52" : craft == Craft.Bomber2 ? "bomber2" : craft == Craft.Transport ? "transport" : craft == Craft.Drone ? "drone" : craft == Craft.Saucer ? "ufo" : craft == Craft.AC130 ? "ac130" : craft == Craft.Heli2 ? "heli2" : IsHeli ? "heli" : "plane"; } }
+        public string CraftName { get { return craft == Craft.Dragon ? "dragon" : craft == Craft.Ptero ? "pterodactyl" : craft == Craft.Skyjack ? "Skyjack" : craft == Craft.B52 ? "B-52" : craft == Craft.Bomber2 ? "two-seat bomber" : craft == Craft.Transport ? "transport helicopter" : craft == Craft.Drone ? "bomber drone" : craft == Craft.Saucer ? "flying saucer" : craft == Craft.AC130 ? "AC-130 gunship" : craft == Craft.Heli2 ? "two-seat gunship" : IsHeli ? "attack helicopter" : "fighter-bomber"; } }
+        public string ProgressId { get { return craft == Craft.Dragon ? "dragon" : craft == Craft.Ptero ? "ptero" : craft == Craft.Skyjack ? "fiend" : craft == Craft.B52 ? "b52" : craft == Craft.Bomber2 ? "bomber2" : craft == Craft.Transport ? "transport" : craft == Craft.Drone ? "drone" : craft == Craft.Saucer ? "ufo" : craft == Craft.AC130 ? "ac130" : craft == Craft.Heli2 ? "heli2" : IsHeli ? "heli" : "plane"; } }
         // the gunner's gun: where it looks (degrees, relative to the aircraft), and which of the AC-130's three it is
         public float gunYaw, gunPitch = -20f; public int ac130Gun;
         public static readonly string[] AC130Guns = { "25mm Gatling", "40mm Bofors", "105mm howitzer" };
@@ -68,7 +70,8 @@ namespace BomberBuddies
             p.health = go.AddComponent<Health>(); p.health.max = 100f; p.health.current = 100f; p.health.team = 0; p.health.aimHeight = 0f; p.health.isAir = true;
             var zone = go.AddComponent<HitZone>(); zone.owner = p.health; zone.multiplier = 1f;
             var col = go.AddComponent<SphereCollider>(); col.radius = 1.3f;
-            if (p.IsSaucer) p.BuildSaucerModel(); else if (p.IsHeli) p.BuildHeliModel(); else p.BuildModel();
+            if (p.IsSaucer) p.BuildSaucerModel(); else if (p.IsBeast) p.BuildBeastModel(); else if (craft == Craft.Skyjack) p.BuildBoardModel(); else if (p.IsHeli) p.BuildHeliModel(); else p.BuildModel();
+            if (craft == Craft.Dragon) col.radius = 3f;
             if (craft == Craft.Heli2) p.model.localScale = Vector3.one * 1.2f;
             if (craft == Craft.Transport) { p.model.localScale = new Vector3(1.5f, 1.5f, 1.8f); col.radius = 2.2f; }
             if (craft == Craft.Drone) { p.model.localScale = Vector3.one * 0.3f; col.radius = 0.5f; p.cockpit = true; }
@@ -99,6 +102,31 @@ namespace BomberBuddies
             muzzleR = new GameObject("MuzzleR").transform; muzzleR.SetParent(model, false); muzzleR.localPosition = new Vector3(4f * U, -0.6f * U, 7f * U);
             wingTips[0] = new GameObject("TipL").transform; wingTips[0].SetParent(model, false); wingTips[0].localPosition = new Vector3(-21f * U, -0.6f * U, 2f * U);
             wingTips[1] = new GameObject("TipR").transform; wingTips[1].SetParent(model, false); wingTips[1].localPosition = new Vector3(21f * U, -0.6f * U, 2f * U);
+        }
+
+        void BuildBeastModel()
+        {
+            model = new GameObject("Model").transform; model.SetParent(transform, false);
+            var inner = Dragon.BuildDragonModel(model, lib, 8, out wingL, out wingR, out neckT, out tailT);
+            if (craft == Craft.Ptero) { inner.localScale = new Vector3(0.45f, 0.35f, 0.5f); foreach (var r in inner.GetComponentsInChildren<Renderer>()) foreach (var m in r.materials) if (m.HasProperty("_Tint")) m.SetVector("_Tint", new Vector4(0.6f, 0.7f, 0.5f, 1f)); }
+            muzzleL = new GameObject("MuzzleL").transform; muzzleL.SetParent(model, false); muzzleL.localPosition = new Vector3(0f, 18f * U, 62f * U) * (craft == Craft.Ptero ? 0.45f : 1f);
+            muzzleR = muzzleL;
+            wingTips[0] = new GameObject("TipL").transform; wingTips[0].SetParent(model, false); wingTips[0].localPosition = new Vector3(-60f * U, 18f * U, 0f);
+            wingTips[1] = new GameObject("TipR").transform; wingTips[1].SetParent(model, false); wingTips[1].localPosition = new Vector3(60f * U, 18f * U, 0f);
+        }
+        /// <summary>Skyjack's jet board: a plank with two jets and the pirate standing on it.</summary>
+        void BuildBoardModel()
+        {
+            model = new GameObject("Model").transform; model.SetParent(transform, false);
+            var mat = lib != null ? lib.Get("lowpoly") : null; var mb = new MeshBuilder();
+            mb.DBox(0f, 0f, 0f, 10f, 1.2f, 22f, MeshBuilder.Rgb(60, 60, 70)); mb.DBox(-3.5f, -1.5f, -8f, 2.5f, 2.5f, 6f, MeshBuilder.Rgb(120, 120, 130)); mb.DBox(3.5f, -1.5f, -8f, 2.5f, 2.5f, 6f, MeshBuilder.Rgb(120, 120, 130));
+            mb.DBox(-3.5f, -1.5f, -11.5f, 1.5f, 1.5f, 1f, MeshBuilder.Emissive(MeshBuilder.Rgb(120, 200, 255))); mb.DBox(3.5f, -1.5f, -11.5f, 1.5f, 1.5f, 1f, MeshBuilder.Emissive(MeshBuilder.Rgb(120, 200, 255)));
+            mb.DBox(0f, 7f, 0f, 5f, 12f, 3f, MeshBuilder.Rgb(50, 40, 60)); mb.DBox(0f, 15f, 0f, 3.5f, 4f, 3.5f, MeshBuilder.Rgb(214, 170, 130)); mb.DBox(0f, 17.5f, 0f, 4f, 1.5f, 4f, MeshBuilder.Rgb(160, 30, 40));
+            mb.Spawn("Board", model, mat, false).layer = 8;
+            muzzleL = new GameObject("MuzzleL").transform; muzzleL.SetParent(model, false); muzzleL.localPosition = new Vector3(-2f * U, 9f * U, 4f * U);
+            muzzleR = new GameObject("MuzzleR").transform; muzzleR.SetParent(model, false); muzzleR.localPosition = new Vector3(2f * U, 9f * U, 4f * U);
+            wingTips[0] = new GameObject("TipL").transform; wingTips[0].SetParent(model, false); wingTips[0].localPosition = new Vector3(-5f * U, 0f, -10f * U);
+            wingTips[1] = new GameObject("TipR").transform; wingTips[1].SetParent(model, false); wingTips[1].localPosition = new Vector3(5f * U, 0f, -10f * U);
         }
 
         void BuildSaucerModel()
@@ -270,6 +298,7 @@ namespace BomberBuddies
             else if (IsHeli) FlyHeli(sx, sy, boosting, dt);
             else Fly(sx, sy, boosting, dt);
             if (rotor != null) { rotor.Rotate(0f, (Landed && thr < 0.2f ? 200f : 1800f) * dt, 0f); if (tailRotor != null) tailRotor.Rotate(0f, 0f, 2600f * dt); }
+            if (IsBeast) { flap += dt * (boosting ? 6f : 3.5f + thr * 2f); float wa = Mathf.Sin(flap) * 30f; if (wingL != null) wingL.localRotation = Quaternion.Euler(0f, 0f, wa); if (wingR != null) wingR.localRotation = Quaternion.Euler(0f, 0f, -wa); if (tailT != null) tailT.localRotation = Quaternion.Euler(0f, 180f + Mathf.Sin(flap * 0.5f) * 10f, 0f); }
             if (propT != null) propT.Rotate(0f, 0f, 2400f * dt);
             EngineSound(boosting);
 
@@ -624,6 +653,9 @@ namespace BomberBuddies
                 if (IsHeli) dir = Quaternion.Euler(8f - AimOffset.y, yaw * Mathf.Rad2Deg + AimOffset.x, 0f) * Vector3.forward;
                 float dmg = (st != null ? st.dmg : 10f) * GalacticMode.K;
                 if (IsSaucer && Projectiles.Instance != null) { Projectiles.Instance.FireBolt(m.position, dir, 520f * U, 22f * GalacticMode.K, 1.6f, 0, gameObject); continue; }
+                if (craft == Craft.Dragon && Projectiles.Instance != null) { var bd = Quaternion.AngleAxis(Random.Range(0f, 360f), dir) * Quaternion.Euler(Random.Range(0f, 4f), 0f, 0f) * dir; Projectiles.Instance.FireShell(m.position, bd, 280f * U, 7f * U, 14f * U, 6f * GalacticMode.K, 0, gameObject, true, 70f * U); continue; }
+                if (craft == Craft.Ptero && Projectiles.Instance != null) { Projectiles.Instance.FireShell(m.position, dir, 200f * U, 3f * U, 6f * U, 18f * GalacticMode.K, 0, gameObject, true, 0f); continue; }
+                if (craft == Craft.Skyjack && Projectiles.Instance != null) { Projectiles.Instance.FireRound(m.position, dir, 900f * U, 14f * GalacticMode.K, 700f * U, 0, gameObject, new Color(0.8f, 0.9f, 1f), 0.02f); continue; }
                 if (Projectiles.Instance != null)
                 {
                     if (g.splash > 0f) Projectiles.Instance.FireShell(m.position, dir, g.speed * U, g.splash * 0.5f * U, g.splash * 1.6f * U, dmg, 0, gameObject, false, 0f);
@@ -631,7 +663,7 @@ namespace BomberBuddies
                 }
                 if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(m.position, dir, 1.2f);
             }
-            Sfx.Play(IsSaucer ? "gun_zap" : Sfx.GunSound(g.id), g.id == "m2" ? 0.5f : 0.75f, 1f, transform.position);
+            Sfx.Play(craft == Craft.Dragon ? "breath" : craft == Craft.Ptero ? "screech" : craft == Craft.Skyjack ? "thwip" : IsSaucer ? "gun_zap" : Sfx.GunSound(g.id), g.id == "m2" ? 0.5f : 0.75f, 1f, transform.position);
             // rocket pods: a rocket now and then while the gun is held
             if (st != null && st.rocketInt > 0f && rocketT <= 0f && Projectiles.Instance != null)
             {
@@ -647,6 +679,8 @@ namespace BomberBuddies
             if (!Active) return;
             if (boosting && docked == null) Sfx.Boosting = true;
             if (IsSaucer) Sfx.Loop("engine", "ufo_hum", 0.35f, 0.9f + thr * 0.3f);
+            else if (IsBeast) { if (Mathf.Repeat(Time.time, 1.3f) < Time.deltaTime) Sfx.Play("flap", 0.4f, craft == Craft.Ptero ? 1.4f : 0.8f, transform.position); }
+            else if (craft == Craft.Skyjack) Sfx.Loop("engine", "rotor_loop", 0.3f, 1.8f + thr * 0.4f);
             else if (IsHeli) Sfx.Loop("engine", "rotor_loop", Landed && thr < 0.2f ? 0.25f : 0.5f, 0.85f + thr * 0.35f + (boosting ? 0.15f : 0f));
             else Sfx.Loop("engine", "engine_loop", docked != null ? 0.2f : 0.45f, 0.7f + thr * 0.5f + Mathf.Clamp01(speedU / 600f) * 0.3f + (boosting ? 0.25f : 0f));
         }
@@ -654,6 +688,8 @@ namespace BomberBuddies
         void DropBomb()
         {
             if (craft == Craft.B52) { StartCoroutine(Carpet()); return; }
+            if (craft == Craft.Dragon) { bombs--; bombCd = 1.2f; if (Projectiles.Instance != null) Projectiles.Instance.FireShell(muzzleL != null ? muzzleL.position : transform.position, AimDir, 420f * U, 20f * U, 70f * U, 220f * GalacticMode.K, 0, gameObject, true, 40f * U); Sfx.Play("breath", 0.8f, 0.6f, transform.position); Sfx.Play("roar_big", 0.5f, 0.9f, transform.position); return; }
+            if (craft == Craft.Skyjack) { bombs--; bombCd = 0.8f; var v0 = Velocity; v0.y = Mathf.Min(v0.y, 0f) - 20f * U; if (Projectiles.Instance != null) for (int i = 0; i < 5; i++) Projectiles.Instance.DropBomb(transform.position - Vector3.up * 0.5f, v0 + new Vector3(Random.Range(-4f, 4f), 0f, Random.Range(-4f, 4f)), 12f * U, 40f * U, 60f * GalacticMode.K, gameObject); Sfx.Play("whistle", 0.4f, 1.3f, transform.position); return; }
             if (craft == Craft.Drone) { bombs--; bombCd = 0.6f; if (Projectiles.Instance != null) Projectiles.Instance.FireShell(transform.position - Vector3.up * 0.4f, Vector3.down, 20f * U, 9f * U, 58f * U, 120f * GalacticMode.K, 0, gameObject, false, 250f * U); Sfx.Play("whistle", 0.25f, 1.4f, transform.position); return; }
             bombs--; bombCd = 0.34f; Sfx.Play("whistle", 0.35f, 1f, transform.position);
             var vel = Velocity; vel.y = Mathf.Min(vel.y, 0f) - 25f * U;

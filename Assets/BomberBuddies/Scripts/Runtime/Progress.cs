@@ -132,11 +132,11 @@ namespace BomberBuddies
             new CraftDef { id = "clowncar", name = "Clown car", desc = "A tiny car; stop and five clowns climb out to fight for you.", price = 2200 },
             new CraftDef { id = "bomber2", name = "Two-seat bomber", desc = "A pilot and a gunner, 8 more bombs and a belly turret.", price = 2500, available = true },
             new CraftDef { id = "heli2", name = "Two-seat gunship", desc = "A pilot and a gunner on the chin gun.", price = 2500, available = true },
-            new CraftDef { id = "ptero", name = "Pterodactyl", desc = "Hold Jump and the wings take you up.", price = 2600 },
+            new CraftDef { id = "ptero", name = "Pterodactyl", desc = "Flies like a slow plane and flaps. Snaps at what is in front of it.", price = 2600, available = true },
             new CraftDef { id = "wire", name = "Volt", desc = "Throws the current himself: lightning that jumps between men, and a shock grenade (Bomb) that drops everyone near it.", price = 2800, available = true },
             new CraftDef { id = "gunslinger", name = "Gunslinger", desc = "Twin pistols and a slow-motion dive (Bomb).", price = 3000, available = true },
             new CraftDef { id = "transport", name = "Transport helicopter", desc = "Big and tough: a pilot and a door gunner, and it carries the squad.", price = 3200, available = true },
-            new CraftDef { id = "fiend", name = "Skyjack", desc = "A sky pirate on a jet board with razor darts and cluster bombs.", price = 3200 },
+            new CraftDef { id = "fiend", name = "Skyjack", desc = "Skyjack: a sky pirate on a jet board. Hovers like a helicopter, razor darts on Fire, cluster bombs on Bomb.", price = 3200, available = true },
             new CraftDef { id = "ape", name = "Ape", desc = "Fists that put a soldier down in one, a ground-shaking stomp from a jump, and a boulder to throw (Bomb).", price = 4000, available = true },
             new CraftDef { id = "ac130", name = "AC-130 gunship", desc = "Circle a target and rain fire on it.", price = 4200, available = true },
             new CraftDef { id = "grey", name = "Alien grey", desc = "A big head and a rifle. Hard to hit, jumps high.", price = 4500, available = true },
@@ -148,7 +148,7 @@ namespace BomberBuddies
             new CraftDef { id = "devourer", name = "Devourer", desc = "A hulking dark creature. Bomb devours a fallen enemy within reach and heals you by what it was.", price = 7500, available = true },
             new CraftDef { id = "trex", name = "Tyrannosaur", desc = "The biggest thing on two legs. A bite that ends arguments; too big for the doorways.", price = 8000, available = true },
             new CraftDef { id = "neph", name = "Nephilim", desc = "Half angel and half demon, with great dark wings: a huge leap, and Bomb slams down on landing.", price = 8000, available = true },
-            new CraftDef { id = "dragon", name = "Dragon", desc = "A mountain with wings. Fire breath and fireballs.", price = 9000 },
+            new CraftDef { id = "dragon", name = "Dragon", desc = "A mountain with wings. Fire breath on Fire, a fireball on Bomb. Flies like a slow, tough plane.", price = 9000, available = true },
             new CraftDef { id = "ufo", name = "Flying saucer", desc = "Twin lasers and a gravity beam: hover low and hold Bomb to pull a soldier up.", price = 9000, available = true },
         };
 
@@ -236,18 +236,18 @@ namespace BomberBuddies
             };
             System.Func<string, float, float> over = (k, cap) => Mathf.Max(0f, L(k) - cap);
             var g = GunDef(GunOf(craft));
-            bool heli = craft == "heli" || craft == "heli2" || craft == "transport" || craft == "drone";
+            bool heli = craft == "heli" || craft == "heli2" || craft == "transport" || craft == "drone" || craft == "fiend";
             var s = new Stats { gun = g };
             s.napalm = L("napalm") > 0;
             var kit = KitOf(craft);
-            s.maxHp = Mathf.Round(((heli ? 125f : 100f) + 25f * L("armor")) * (kit != null ? kit.hpK * 2f : craft == "ac130" ? 3.2f : craft == "b52" ? 3.6f : craft == "transport" ? 2.4f : craft == "bomber2" ? 1.3f : craft == "drone" ? 0.2f : craft == "heli2" ? 1.4f : craft == "tank" ? 3.2f : craft == "scout" ? 1.15f : craft == "bike" ? 0.32f : 1f));   /* a soldier on foot has twice the toughness he used to */
-            s.thrustK = (1f + 0.08f * L("engine")) * (craft == "ac130" ? 0.9f : craft == "b52" ? 0.85f : craft == "drone" ? 1.3f : 1f); s.turnK = (1f + 0.04f * L("engine")) * (craft == "ac130" ? 0.8f : craft == "b52" ? 0.55f : craft == "transport" ? 0.8f : craft == "drone" ? 1.6f : 1f);
+            s.maxHp = Mathf.Round(((heli ? 125f : 100f) + 25f * L("armor")) * (kit != null ? kit.hpK * 2f : craft == "ac130" ? 3.2f : craft == "dragon" ? 5f : craft == "ptero" ? 0.8f : craft == "fiend" ? 0.6f : craft == "b52" ? 3.6f : craft == "transport" ? 2.4f : craft == "bomber2" ? 1.3f : craft == "drone" ? 0.2f : craft == "heli2" ? 1.4f : craft == "tank" ? 3.2f : craft == "scout" ? 1.15f : craft == "bike" ? 0.32f : 1f));   /* a soldier on foot has twice the toughness he used to */
+            s.thrustK = (1f + 0.08f * L("engine")) * (craft == "ac130" ? 0.9f : craft == "dragon" ? 0.7f : craft == "ptero" ? 0.6f : craft == "fiend" ? 1.3f : craft == "b52" ? 0.85f : craft == "drone" ? 1.3f : 1f); s.turnK = (1f + 0.04f * L("engine")) * (craft == "ac130" ? 0.8f : craft == "b52" ? 0.55f : craft == "transport" ? 0.8f : craft == "drone" ? 1.6f : 1f);
             s.boostSec = 2.4f * (1f + 0.3f * L("tank")); s.boostRegenK = 1f + 0.2f * Mathf.Min(L("tank"), 6f);
             s.regen = 1.5f * L("repair"); s.lives = BattleSetup.Lives + Mathf.RoundToInt(L("life"));
             s.fireInt = Mathf.Max(1f / 40f, g.interval * Mathf.Pow(0.88f, Mathf.Min(L("rate"), 5f)) / (1f + 0.05f * over("rate", 5f)));
             s.dmg = g.dmg * (1f + 0.25f * L("ap")); s.pen = Mathf.Min(0.9f, g.pen + 0.1f * Mathf.Min(L("ap"), 4f) + 0.02f * over("ap", 4f));
             s.heatShot = g.heat * Mathf.Pow(0.85f, Mathf.Min(L("cool"), 4f)) / (1f + 0.08f * over("cool", 4f));
-            s.barrels = 1 + Mathf.RoundToInt(L("wing")); s.maxBombs = (craft == "b52" ? 40 : craft == "bomber2" ? 16 : craft == "drone" ? 4 : 8) + 2 * Mathf.RoundToInt(L("rack"));
+            s.barrels = 1 + Mathf.RoundToInt(L("wing")); s.maxBombs = (craft == "fiend" ? 6 : craft == "dragon" ? 6 : craft == "ptero" ? 0 : craft == "b52" ? 40 : craft == "bomber2" ? 16 : craft == "drone" ? 4 : 8) + 2 * Mathf.RoundToInt(L("rack"));
             s.bombReload = 2.0f * Mathf.Pow(0.85f, Mathf.Min(L("reload"), 4f)) / (1f + 0.06f * over("reload", 4f));
             s.blastK = 1f + 0.15f * Mathf.Min(L("heavy"), 4f) + 0.05f * over("heavy", 4f);
             int cl = Mathf.RoundToInt(L("cluster")); s.cluster = cl > 0 ? 2 + cl : 0;
