@@ -26,6 +26,7 @@ namespace BomberBuddies
         RectTransform safe;   // everything anchored to the screen edges lives in here, inset by the phone's notch / home bar
         Rect lastSafe;
         PlaneController flight;
+        public GroundVehicle drive;
         readonly Dictionary<string, Text> labels = new Dictionary<string, Text>();
         readonly Dictionary<string, Image> buttons = new Dictionary<string, Image>();
         readonly List<Image> radarDots = new List<Image>();
@@ -344,7 +345,7 @@ namespace BomberBuddies
             flight = p;
             bool fly = p != null;
             SetButton("gun", "Gun", true);
-            SetButton("bomb", fly ? "Bomb" : "Grenade", true);
+            SetButton("bomb", fly ? "Bomb" : drive != null ? "Shell" : "Grenade", true);
             SetButton("boost", "Boost", true);
             SetButton("aim", "Aim", true);
             SetButton("act", fly ? (p.IsHeli ? "" : "Roll") : "Jump", !(fly && p.IsHeli));
@@ -385,6 +386,15 @@ namespace BomberBuddies
                 altText.text = flight.AltitudeU > 3000f ? "Low orbit" : flight.AltitudeU > 1500f ? "High altitude" : "";
                 throttleKnob.rectTransform.anchoredPosition = new Vector2(0f, (flight.thr - 0.5f) * 150f);
                 throttleChip.text = Mathf.RoundToInt(flight.thr * 100f).ToString();
+                crossSpread = Mathf.Lerp(crossSpread, 9f, Mathf.Min(1f, 8f * dt));
+                SetCross(true);
+            }
+            else if (drive != null && drive.Active)
+            {
+                hullFill.fillAmount = Mathf.Lerp(hullFill.fillAmount, drive.health.Fraction, Mathf.Min(1f, 10f * dt));
+                gunFill.fillAmount = drive.Heat; gunFill.color = drive.Overheated ? new Color(1f, 0.3f, 0.2f) : new Color(0.75f, 0.72f, 0.65f);
+                boostFill.fillAmount = 1f; bombsText.text = ""; throttleText.text = drive.Name;
+                speedText.text = "Speed " + Mathf.RoundToInt(drive.SpeedU);
                 crossSpread = Mathf.Lerp(crossSpread, 9f, Mathf.Min(1f, 8f * dt));
                 SetCross(true);
             }

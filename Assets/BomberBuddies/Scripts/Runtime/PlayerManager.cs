@@ -18,6 +18,9 @@ namespace BomberBuddies
         public Camera cam;
         public PlaneController plane;            // the craft the player is in (or last left)
         public readonly List<PlaneController> craft = new List<PlaneController>();
+        /// <summary>Ground vehicles of ours, and the one being driven.</summary>
+        public readonly List<GroundVehicle> rides = new List<GroundVehicle>();
+        public GroundVehicle drive;
         public bool OnFoot { get; private set; }
         public bool Respawning { get; private set; }
         public bool over;
@@ -70,7 +73,7 @@ namespace BomberBuddies
             if (foot != null) foot.gameObject.SetActive(on);
             if (rig != null) rig.enabled = on;
             if (foot != null && foot.rifle != null && foot.rifle.viewModel != null) foot.rifle.viewModel.gameObject.SetActive(on && rig != null && rig.firstPerson);
-            if (GameState.Hud != null) GameState.Hud.SetFlight(on ? null : plane);
+            if (GameState.Hud != null) { GameState.Hud.drive = on ? null : drive; GameState.Hud.SetFlight(on || drive != null ? null : plane); }
         }
 
         /// <summary>Take the controls of a craft that is parked, docked or in the air.</summary>
@@ -124,6 +127,9 @@ namespace BomberBuddies
                 float d = Vector3.Distance(foot.transform.position, c.transform.position);
                 if (d < best && Mathf.Abs(foot.transform.position.y - c.transform.position.y) < 20f * U) { best = d; near = c; }
             }
+            GroundVehicle ride = null; float bestR = 7f;
+            foreach (var r in rides) { if (r == null || r.Active || !r.health.alive) continue; float d = Vector3.Distance(foot.transform.position, r.transform.position); if (d < bestR) { bestR = d; ride = r; } }
+            if (ride != null && (near == null || bestR < best)) { Drive(ride); return true; }
             if (near == null) { if (GameState.Hud != null) GameState.Hud.Announce("No vehicle close enough to get in"); return false; }
             Fly(near, near.transform.position, near.yaw * Mathf.Rad2Deg, hangarAt != null ? hangarAt(near.transform.position) : null, 0f);
             if (GameState.Hud != null) GameState.Hud.Comms("In the " + near.CraftName);
@@ -145,7 +151,50 @@ namespace BomberBuddies
         }
 
         /// <summary>After the hangar: every aircraft of ours picks up the new upgrades, and so does the soldier.</summary>
-        public void ApplyLoadout() { foreach (var c in craft) if (c != null) c.ApplyLoadout(); if (foot != null) foot.ApplyKit(); }
+        public void ApplyLoadout() { foreach (var c in craft) if (c != null) c.ApplyLoadout(); foreach (var r in rides) if (r != null) r.ApplyLoadout(); if (foot != null) foot.ApplyKit(); }
+
+        /// <summary>Into the driver's seat of a ground vehicle.</summary>
+        public void Drive(GroundVehicle v)
+        {
+            drive = v; v.TakeControl(true);
+            if (plane != null && plane.Active) plane.Park();
+            SetOnFoot(false);
+            if (GameState.Hud != null) GameState.Hud.Comms("In the " + v.Name);
+        }
+
+        /// <summary>Out of the vehicle onto the ground beside it.</summary>
+        public void ExitVehicle()
+        {
+            if (drive == null || foot == null) return;
+            var v = drive; drive = null; v.TakeControl(false);
+            var right = Quaternion.Euler(0f, v.yaw + 90f, 0f) * Vector3.forward;
+            var pos = v.transform.position + right * 3f; pos.y = (GameState.GroundHeight != null ? GameState.GroundHeight(pos.x, pos.z) : pos.y) + 0.1f;
+            SetOnFoot(true);
+            foot.Teleport(pos, v.camYaw);
+            foot.ControlsLocked = false;
+            if (GameState.Hud != null) GameState.Hud.Comms("On foot");
+        }
+
+        /// <summary>The vehicle you were in is wrecked: you are thrown out, hurt.</summary>
+        public void VehicleLost(GroundVehicle v)
+        {
+            if (drive != v) return;
+            ExitVehicle();
+            if (foot != null && foot.health != null && foot.health.alive) foot.health.TakeDamage(new DamageInfo { amount = foot.health.max * 0.6f, point = foot.transform.position, direction = Vector3.up, source = v.gameObject });
+        }
+
+        /// <summary>A vehicle class: start at the wheel, on the ground at the spawn.</summary>
+        public void SpawnDriving(Vector3 near)
+        {
+            var at = near; at.y = GameState.GroundHeight != null ? GameState.GroundHeight(near.x, near.z) : near.y;
+            var toCentre = -new Vector3(at.x, 0f, at.z);
+            float yaw = toCentre.sqrMagnitude > 1f ? Mathf.Atan2(toCentre.x, toCentre.z) * Mathf.Rad2Deg : 0f;
+            var kind = Progress.Craft == "tank" ? GroundVehicle.Kind.Tank : Progress.Craft == "scout" ? GroundVehicle.Kind.Scout : GroundVehicle.Kind.Bike;
+            var v = GroundVehicle.Build(transform, lib, cam, kind, at, yaw);
+            rides.Add(v);
+            if (foot != null) { foot.health.ResetFull(); foot.ApplyKit(); foot.Teleport(at, yaw); }
+            Drive(v);
+        }
 
         /// <summary>A soldier class: start on the ground at the spawn, facing the island's centre.</summary>
         public void SpawnOnFoot(Vector3 near)

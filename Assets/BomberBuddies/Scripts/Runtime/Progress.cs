@@ -69,6 +69,7 @@ namespace BomberBuddies
         };
         public static Kit KitOf(string id) { foreach (var k in Kits) if (k.id == id) return k; return null; }
         public static bool IsFoot(string craft) { return KitOf(craft) != null; }
+        public static bool IsRide(string craft) { return craft == "tank" || craft == "scout" || craft == "bike"; }
         public static Gun FootGunDef(string id) { foreach (var g in FootGuns) if (g.id == id) return g; return FootGuns[0]; }
         /// <summary>Which guns a class may carry: its own, plus the general foot guns (gunFits).</summary>
         public static bool GunFits(string craft, Gun g)
@@ -103,8 +104,8 @@ namespace BomberBuddies
             new CraftDef { id = "sniper", name = "Soldier: sniper", desc = "A long rifle that hits hard from very far away.", price = 1200, available = true },
             new CraftDef { id = "medic", name = "Soldier: medic", desc = "A carbine, and hands that put people back together.", price = 1200, available = true },
             new CraftDef { id = "rocketeer", name = "Soldier: rocket trooper", desc = "An anti-tank rocket, and a carbine for everything else.", price = 1500, available = true },
-            new CraftDef { id = "tank", name = "Battle tank", desc = "Heavy armor. Gun fires the machine gun, Shell the cannon.", price = 1500 },
-            new CraftDef { id = "bike", name = "Dirt bike", desc = "Fast, light and nimble, twin machine guns on the bars.", price = 1500 },
+            new CraftDef { id = "tank", name = "Battle tank", desc = "Heavy armor. Gun fires the machine gun, Shell the cannon.", price = 1500, available = true },
+            new CraftDef { id = "bike", name = "Dirt bike", desc = "Fast, light and nimble, twin machine guns on the bars.", price = 1500, available = true },
             new CraftDef { id = "arty", name = "Mobile artillery", desc = "Heavy shells, fired from a map.", price = 1800 },
             new CraftDef { id = "clown", name = "Clown", desc = "A horn, a balloon gun, and B to eat whoever is within reach.", price = 1800 },
             new CraftDef { id = "goblin", name = "Goblin", desc = "Small, quick and hard to hit, with a club and rocks to throw.", price = 1800 },
@@ -215,7 +216,7 @@ namespace BomberBuddies
             var s = new Stats { gun = g };
             s.napalm = L("napalm") > 0;
             var kit = KitOf(craft);
-            s.maxHp = Mathf.Round(((heli ? 125f : 100f) + 25f * L("armor")) * (kit != null ? kit.hpK * 2f : craft == "ac130" ? 3.2f : craft == "heli2" ? 1.4f : 1f));   /* a soldier on foot has twice the toughness he used to */
+            s.maxHp = Mathf.Round(((heli ? 125f : 100f) + 25f * L("armor")) * (kit != null ? kit.hpK * 2f : craft == "ac130" ? 3.2f : craft == "heli2" ? 1.4f : craft == "tank" ? 3.2f : craft == "scout" ? 1.15f : craft == "bike" ? 0.32f : 1f));   /* a soldier on foot has twice the toughness he used to */
             s.thrustK = (1f + 0.08f * L("engine")) * (craft == "ac130" ? 0.9f : 1f); s.turnK = (1f + 0.04f * L("engine")) * (craft == "ac130" ? 0.8f : 1f);
             s.boostSec = 2.4f * (1f + 0.3f * L("tank")); s.boostRegenK = 1f + 0.2f * Mathf.Min(L("tank"), 6f);
             s.regen = 1.5f * L("repair"); s.lives = 3 + Mathf.RoundToInt(L("life"));
