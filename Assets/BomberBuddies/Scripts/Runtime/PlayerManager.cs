@@ -264,8 +264,11 @@ namespace BomberBuddies
                 // into the sea
                 var fp = foot.transform.position;
                 float sea = World3.SEA * World3.U;
-                if (fp.y < sea + 0.3f && !(Underground.Instance != null && Underground.Instance.Contains(fp.x, fp.z)) && GameState.GroundHeight != null && GameState.GroundHeight(fp.x, fp.z) < sea + 0.3f && !Respawning && foot.health.alive)
-                    foot.health.TakeDamage(new DamageInfo { amount = 9999f, point = fp, direction = Vector3.down, source = gameObject });
+                bool inSea = fp.y < sea + 0.3f && !(Underground.Instance != null && Underground.Instance.Contains(fp.x, fp.z)) && GameState.GroundHeight != null && GameState.GroundHeight(fp.x, fp.z) < sea + 0.3f && !Respawning && foot.health.alive;
+                if (inSea && !foot.Swimming) { foot.Swimming = true; Sfx.Play("splash", 0.6f, 1f, fp); if (GameState.Hud != null) GameState.Hud.Comms("Swimming: head for the shore"); }
+                if (!inSea && foot.Swimming) foot.Swimming = false;
+                // too far out and the sea has him
+                if (inSea && fp.y < sea - 2.5f) foot.health.TakeDamage(new DamageInfo { amount = 9999f, point = fp, direction = Vector3.down, source = gameObject });
             }
         }
     }

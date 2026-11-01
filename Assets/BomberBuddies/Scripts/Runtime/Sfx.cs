@@ -66,8 +66,23 @@ namespace BomberBuddies
             Instance.PlayNow(name, vol, pitch, pos);
         }
 
+        /// <summary>Names the original used that have no clip of their own here: the nearest thing we have, re-pitched.</summary>
+        static string Alias(string name, ref float pitch)
+        {
+            switch (name)
+            {
+                case "splash": pitch *= 0.7f; return "hit_dirt";
+                case "flap": pitch *= 0.8f; return "chute";
+                case "whoosh": pitch *= 0.8f; return "swing";
+                case "squeak": pitch *= 1.8f; return "screech";
+                case "honk": pitch *= 0.5f; return "screech";
+                default: return name;
+            }
+        }
+
         void PlayNow(string name, float vol, float pitch, Vector3? pos)
         {
+            name = Alias(name, ref pitch);
             List<AudioClip> l; if (!bank.TryGetValue(name, out l) || l.Count == 0) return;
             int i = Random.Range(0, l.Count); int prev; if (l.Count > 1 && last.TryGetValue(name, out prev) && prev == i) i = (i + 1) % l.Count; last[name] = i;
             float at = 1f;

@@ -23,6 +23,7 @@ namespace BomberBuddies
         public bool JumpPressed { get; private set; }
         public bool JumpHeld { get; private set; }
         public bool CrouchPressed { get; private set; }
+        public bool CrouchHeld { get; private set; }
         public bool ReloadPressed { get; private set; }
         public bool ViewPressed { get; private set; }
         /// <summary>Flying: throttle change per second (-1..1), E/Q, the pad's dpad, or the on-screen slider.</summary>
@@ -202,7 +203,7 @@ namespace BomberBuddies
             Aim = aim.IsPressed();
             Sprint = sprint.IsPressed();
             JumpPressed = jumpQ; jumpQ = false; JumpHeld = jump.IsPressed() && !Hijacked;
-            CrouchPressed = crouchQ; crouchQ = false;
+            CrouchPressed = crouchQ; crouchQ = false; CrouchHeld = crouch.IsPressed() && !Hijacked;
             ReloadPressed = reloadQ; reloadQ = false;
             ViewPressed = viewQ; viewQ = false;
             InteractPressed = interactQ; interactQ = false;

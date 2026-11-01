@@ -8,6 +8,8 @@ namespace BomberBuddies
     {
         public float walkSpeed = 4.3f, sprintSpeed = 7.6f, crouchSpeed = 2.3f, aimSpeed = 2.9f, jumpSpeed = 6.6f, gravity = 24f;
         public float standHeight = 1.8f, crouchHeight = 1.25f;
+        /// <summary>Prone (hold Crouch until you are flat), the slide (Crouch at a sprint) and swimming (the sea no longer kills a soldier; he swims, slowly).</summary>
+        public float proneK; float crouchHoldT, slideT; public bool Prone, Swimming;
         public CameraRig rig;
         public SoldierModelBase model;
         public Health health;
@@ -22,7 +24,7 @@ namespace BomberBuddies
         public bool Sprinting { get { return sprinting; } }
         public float MoveSpeed { get { return horizontal.magnitude; } }
         public bool Crouching { get { return crouching; } }
-        public float EyeHeight { get { return (Mathf.Lerp(1.64f, 1.12f, crouchK) + (InCover ? (Peeking ? 0.42f : -0.18f) : 0f)) * (standHeight / 1.8f); } }
+        public float EyeHeight { get { return (Mathf.Lerp(Mathf.Lerp(1.64f, 1.12f, crouchK), 0.55f, proneK) + (InCover ? (Peeking ? 0.42f : -0.18f) : 0f)) * (standHeight / 1.8f); } }
         /// <summary>How big the body is next to a soldier: the camera stands further back from an ape.</summary>
         public float SizeK { get { return standHeight / 1.8f; } }
         /// <summary>Cover (coverNear / coverSnap): crouched against something waist-high you tuck in behind it; aiming peeks over.</summary>
@@ -265,14 +267,24 @@ namespace BomberBuddies
 
             rig.AddLook(input.Look);
             if (input.ViewPressed) rig.firstPerson = !rig.firstPerson;
-            if (input.CrouchPressed) crouching = !crouching;
+            if (input.CrouchPressed)
+            {
+                if (sprinting && grounded && slideT <= 0f && kit != null && kit.melee == null) { slideT = 0.7f; crouching = true; Sfx.Play("footstep", 0.4f, 0.6f); if (GameState.Hud != null) GameState.Hud.Comms("Slide"); }
+                else if (Prone) { Prone = false; crouching = false; }
+                else crouching = !crouching;
+            }
+            // hold crouch to go flat
+            if (input.CrouchHeld && crouching && grounded) { crouchHoldT += dt; if (crouchHoldT > 0.6f && !Prone) { Prone = true; if (GameState.Hud != null) GameState.Hud.Comms("Prone"); } } else crouchHoldT = 0f;
+            if (!crouching) Prone = false;
+            proneK = Mathf.MoveTowards(proneK, Prone ? 1f : 0f, dt * 4f);
+            if (slideT > 0f) { slideT -= dt; if (slideT <= 0f) crouching = false; }
 
             bool aiming = rifle != null && rifle.Aiming;
             var move = input.Move;
             sprinting = input.Sprint && move.y > 0.35f && !crouching && !aiming && !input.Fire;
             if (sprinting) crouching = false;
             crouchK = Mathf.MoveTowards(crouchK, crouching ? 1f : 0f, dt * 6f);
-            float h = Mathf.Lerp(standHeight, crouchHeight, crouchK);
+            float h = Mathf.Lerp(Mathf.Lerp(standHeight, crouchHeight, crouchK), standHeight * 0.4f, proneK);
             cc.height = h; cc.center = new Vector3(0f, h * 0.5f, 0f);
 
             if (knockT > 0f) { knockT -= dt; move = Vector2.zero; sprinting = false; if (knockT <= 0f) crouching = false; }
@@ -286,7 +298,8 @@ namespace BomberBuddies
             else InCover = false;
             Peeking = InCover && aiming;
             if (InCover != wasCover && GameState.Hud != null) GameState.Hud.Comms(InCover ? "In cover: aim to peek" : "Out of cover");
-            float speed = aiming ? aimSpeed : crouching ? crouchSpeed : sprinting ? sprintSpeed : walkSpeed;
+            float speed = aiming ? aimSpeed : Prone ? crouchSpeed * 0.45f : crouching ? crouchSpeed : sprinting ? sprintSpeed : walkSpeed;
+            if (slideT > 0f) speed = sprintSpeed * 1.25f;
             var wheel = ItemWheel.Instance;
             if (wheel != null && wheel.smokeT > 0f) speed *= 1.3f;
             var flat = rig.FlatRotation;
@@ -311,6 +324,13 @@ namespace BomberBuddies
                 else vy = Mathf.Max(vy, -52f);   // terminal velocity
             }
 
+            if (Swimming)
+            {
+                float sea = GalacticMode.SeaY;
+                horizontal = Vector3.ClampMagnitude(horizontal, walkSpeed * 0.5f);
+                vy = Mathf.Clamp((sea - 0.9f - transform.position.y) * 4f, -3f, 3f); if (input.JumpPressed) vy = 3.5f;
+                if (Mathf.Repeat(Time.time, 1.2f) < dt && horizontal.magnitude > 0.5f) Sfx.Play("splash", 0.25f, Random.Range(0.9f, 1.3f), transform.position);
+            }
             var flags = cc.Move((horizontal + Vector3.up * vy) * dt);
             wasGrounded = grounded;
             grounded = cc.isGrounded || (flags & CollisionFlags.Below) != 0;
