@@ -19,7 +19,6 @@ namespace BomberBuddies
         public Mode mode = Mode.Galactic;
         /// <summary>Which battle to fight on the island (a key of ModeDefs.All): battle, horde, infantry, lightarmor, air.</summary>
         public string battleMode = "battle";
-        [Header("Feel")] public float pace = 0.75f, islandSpread = 1.8f;
         public int seed = 7;
         public float islandSize = 1100f, maxHeight = 85f, seaLevel = 9f;
         public int treeCount = 420, rockCount = 90;
@@ -57,7 +56,6 @@ namespace BomberBuddies
             battleMode = modeId;
             Random.InitState(seed);
             bool mobile = Application.isMobilePlatform;
-            GameTuning.Pace = pace; GameTuning.Spread = islandSpread;
 
             Gunfire.Create(transform, library);
             Projectiles.Create(transform, library);
