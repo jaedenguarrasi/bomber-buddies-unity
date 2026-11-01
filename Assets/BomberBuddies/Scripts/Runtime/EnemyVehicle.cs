@@ -13,6 +13,9 @@ namespace BomberBuddies
         public Kind kind;
         public Health health;
         public float speed, range, holdDistance;
+        /// <summary>A convoy truck drives for this point instead of fighting.</summary>
+        public Vector3? convoyGoal;
+        public bool arrived;
         Transform turret, barrel;
         Health target;
         float cd, retargetT, yaw;
@@ -83,7 +86,8 @@ namespace BomberBuddies
             if (speed > 0f)
             {
                 Vector3 goal = Vector3.zero; bool go = false;
-                if (target != null) { goal = target.transform.position; go = Vector3.Distance(goal, transform.position) > holdDistance; }
+                if (convoyGoal.HasValue) { goal = convoyGoal.Value; go = Vector3.Distance(goal, transform.position) > 3f; }
+                else if (target != null) { goal = target.transform.position; go = Vector3.Distance(goal, transform.position) > holdDistance; }
                 if (go)
                 {
                     var d = goal - transform.position; d.y = 0f;

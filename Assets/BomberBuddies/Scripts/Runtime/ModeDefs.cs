@@ -27,6 +27,9 @@ namespace BomberBuddies
             { "air", new Mode { id = "air", name = "Air Superiority", group = "Battles", desc = "The sky is full of enemy fighters and gunships, nothing on the ground. Shoot down forty.", comp = new[] { "eplane", "eheli" } } },
             { "conquest", new Mode { id = "conquest", name = "Conquest", group = "Battles", desc = "Five command posts across the island. Take them by standing on them. Every post you hold drains the enemy's reinforcements; run them to zero." } },
             { "defend", new Mode { id = "defend", name = "Hold the Tower", group = "Battles", desc = "Keep the marked tower standing through eight waves. If it falls, you lose." } },
+            { "strike", new Mode { id = "strike", name = "Strike", group = "Missions", desc = "Five enemy fuel depots, each ringed with flak and missiles. Destroy all five in six minutes." } },
+            { "assassin", new Mode { id = "assassin", name = "Assassination", group = "Missions", desc = "An enemy general is somewhere on the island with his bodyguards. He will try to get to his escape helicopter. Kill him in five minutes." } },
+            { "convoy", new Mode { id = "convoy", name = "Convoy Escort", group = "Missions", desc = "Three of your trucks have to cross the island. Keep at least two of them alive to the far side." } },
             { "galactic", new Mode { id = "galactic", name = "Galactic Assault", group = "Battles", desc = "Take the posts, kill the shield generator, board their carrier." } },
         };
 

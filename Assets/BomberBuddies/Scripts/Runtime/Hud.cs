@@ -320,6 +320,7 @@ namespace BomberBuddies
         {
             if (waveText == null) return;
             if (GalacticMode.Instance != null) waveText.text = "Galactic Assault";
+            else if (IslandMode.Instance != null && IslandMode.Instance.ModeDrivesSpawns) waveText.text = ModeDefs.All.ContainsKey(IslandMode.Instance.modeId) ? ModeDefs.All[IslandMode.Instance.modeId].name : "";
             else waveText.text = GameState.Wave > 0 ? "Wave " + GameState.Wave + (GameState.Spawner != null ? " · " + GameState.Spawner.Remaining + " left" : "") : "Get ready";
             if (creditsText != null) creditsText.text = "● " + GameState.Credits;
         }
