@@ -109,7 +109,7 @@ namespace BomberBuddies
             if (obst + 40f * U > hold) hold = obst + 40f * U;
             float wantPitch = Mathf.Clamp((hold - transform.position.y) / (170f * U), -0.35f, 0.4f);
             pitch = Mathf.MoveTowards(pitch, wantPitch, 1.8f * dt);
-            Velocity = Forward * 160f * U;
+            Velocity = Forward * 160f * U * GameTuning.Pace;
             if (prop != null) prop.Rotate(0f, 0f, 2400f * dt);
             transform.position += Velocity * dt;
             bank = Mathf.Lerp(bank, Mathf.Clamp(steer * 0.8f, -60f, 60f), Mathf.Min(1f, 3f * dt));
@@ -154,7 +154,7 @@ namespace BomberBuddies
             vyU = Mathf.MoveTowards(vyU, Mathf.Clamp((hold - transform.position.y) * 1.5f, -40f * U, 40f * U), 50f * U * dt);
             pitch = Mathf.Lerp(pitch, -fwdU / (120f * U) * 0.25f, Mathf.Min(1f, 3f * dt));
             var flatFwd = Quaternion.Euler(0f, yaw * Mathf.Rad2Deg, 0f) * Vector3.forward;
-            Velocity = flatFwd * fwdU + Vector3.up * vyU;
+            Velocity = (flatFwd * fwdU + Vector3.up * vyU) * GameTuning.Pace;
             transform.position += Velocity * dt;
             bank = Mathf.Lerp(bank, Mathf.Clamp(steer * 0.3f, -25f, 25f), Mathf.Min(1f, 3f * dt));
             transform.rotation = Quaternion.Euler(-pitch * Mathf.Rad2Deg, yaw * Mathf.Rad2Deg, -bank);

@@ -15,6 +15,8 @@ namespace BomberBuddies
         public const float WORLD3 = N3 * BS, MID3 = WORLD3 * 0.5f, SEA = 28f, FLOOR3 = 21f, FLOOR_H = 13f;
         public const float U = GalacticMode.U;
         public static World3 Instance { get; private set; }
+        /// <summary>How much wider the island is than the original (buildings keep their size, the land between them grows).</summary>
+        public static float Spread = 1.25f;
 
         public int seed;
         public Material lowPoly, water;
@@ -69,7 +71,7 @@ namespace BomberBuddies
         /// <summary>Terrain height in original units at original-unit coordinates.</summary>
         public float HAt0(float x, float z)
         {
-            float fx = x / BS, fz = z / BS;
+            float fx = x / BS, fz = z / BS;   // x, z in original units, unspread
             int ix = Mathf.FloorToInt(fx), iz = Mathf.FloorToInt(fz);
             if (ix < 0 || iz < 0 || ix > N3 - 2 || iz > N3 - 2) return FLOOR3;
             float u = fx - ix, v = fz - iz; int k = iz * N3 + ix;
@@ -80,11 +82,11 @@ namespace BomberBuddies
         /// <summary>Ground height in metres at world metres (x, z); the sea counts as ground.</summary>
         public float GroundMetres(float x, float z)
         {
-            float h = HAt0(x / U + MID3, z / U + MID3);
+            float h = HAt0(x / (U * Spread) + MID3, z / (U * Spread) + MID3);
             return Mathf.Max(SEA, h) * U;
         }
 
-        public static Vector3 ToWorld(float ox, float oy, float oz) { return new Vector3((ox - MID3) * U, oy * U, (oz - MID3) * U); }
+        public static Vector3 ToWorld(float ox, float oy, float oz) { return new Vector3((ox - MID3) * U * Spread, oy * U, (oz - MID3) * U * Spread); }
 
         bool Flat(int k) { return k > N3 && k < N3 * N3 - N3 - 1 && Mathf.Abs(hm[k + 1] - hm[k - 1]) + Mathf.Abs(hm[k + N3] - hm[k - N3]) < 7f; }
 
@@ -375,7 +377,7 @@ namespace BomberBuddies
                     int k = z * N3 + x;
                     float h00 = hm[k], h10 = hm[k + 1], h01 = hm[k + N3], h11 = hm[k + N3 + 1];
                     if (h00 < SEA - 1f && h10 < SEA - 1f && h01 < SEA - 1f && h11 < SEA - 1f) continue;
-                    float x0 = x * BS - MID3, z0 = z * BS - MID3, x1 = x0 + BS, z1 = z0 + BS;
+                    float x0 = (x * BS - MID3) * Spread, z0 = (z * BS - MID3) * Spread, x1 = x0 + BS * Spread, z1 = z0 + BS * Spread;
                     var c00 = CornerColour(x, z); var c10 = CornerColour(x + 1, z); var c01 = CornerColour(x, z + 1); var c11 = CornerColour(x + 1, z + 1);
                     // two triangles per cell, each with the average of its corner colours (flat shaded)
                     mb.Tri(new Vector3(x0, h00, z0), new Vector3(x1, h11, z1), new Vector3(x1, h10, z0), Avg(c00, c10, c11));
@@ -410,8 +412,10 @@ namespace BomberBuddies
                 mb.Prism(x, h + 16f * s, h + 31f * s, z, 5.6f * s, 0f, 7, rot + 0.4f, MeshBuilder.Rgb(70, 108, 58));
             }
             else mb.Blob(x, h + 17f * s, z, 9f * s, 10f * s, 9f * s, 7, MeshBuilder.Rgb(74, 118, 60));
-            AddCollider(ToWorld(x + MID3, h + 4.5f * s + MID3 * 0f, z + MID3), new Vector3(2.6f * U, 9f * s * U, 2.6f * U), "Tree");
+            AddCollider(WM(x, h + 4.5f * s, z), new Vector3(2.6f * U, 9f * s * U, 2.6f * U), "Tree");
         }
+
+        static Vector3 WM(float x, float y, float z) { return new Vector3(x * U, y * U, z * U); }   // spread units (chunk space) to metres
 
         void AddCollider(Vector3 worldCentre, Vector3 size, string name)
         {
@@ -449,7 +453,7 @@ namespace BomberBuddies
                 mb.Box(x + hw * 0.4f - 2.5f, x + hw * 0.4f + 2.5f, ty, ty + 6f, z - hw * 0.4f - 2.5f, z - hw * 0.4f + 2.5f, MeshBuilder.Rgb(150, 146, 138), true);
                 mb.Box(x - 0.3f, x + 0.3f, ty, ty + 18f, z - 0.3f, z + 0.3f, MeshBuilder.Rgb(60, 60, 64));
             }
-            var wc = ToWorld(x + MID3, h + top * 0.5f, z + MID3);
+            var wc = WM(x, h + top * 0.5f, z);
             AddCollider(wc, new Vector3(hw * 2f * U, (top + 3f) * U, hw * 2f * U), "Tower");
         }
 
@@ -507,14 +511,14 @@ namespace BomberBuddies
             }
             mb.Box(x + lx * 0.5f - 1.2f, x + lx * 0.5f + 1.2f, ry + 2f, ry + rh + 2f, z - 1.2f, z + 1.2f, MeshBuilder.Rgb(120, 90, 80), true);
             // colliders: the four walls (with the doorway left open) and the roof slab
-            var c = new Vector3(x + MID3, 0f, z + MID3);
+            var c = new Vector3(x, 0f, z);
             float wy = h + wh * 0.5f;
-            if (H.door != 0) AddCollider(ToWorld(c.x + lx, wy, c.z), new Vector3(2f * t * U, wh * U, 2f * lz * U), "Wall"); else SplitWall(c.x + lx, wy, c.z, lz, dw, dh, wh, t, true);
-            if (H.door != 1) AddCollider(ToWorld(c.x - lx, wy, c.z), new Vector3(2f * t * U, wh * U, 2f * lz * U), "Wall"); else SplitWall(c.x - lx, wy, c.z, lz, dw, dh, wh, t, true);
-            if (H.door != 2) AddCollider(ToWorld(c.x, wy, c.z + lz), new Vector3(2f * lx * U, wh * U, 2f * t * U), "Wall"); else SplitWall(c.x, wy, c.z + lz, lx, dw, dh, wh, t, false);
-            if (H.door != 3) AddCollider(ToWorld(c.x, wy, c.z - lz), new Vector3(2f * lx * U, wh * U, 2f * t * U), "Wall"); else SplitWall(c.x, wy, c.z - lz, lx, dw, dh, wh, t, false);
-            AddCollider(ToWorld(c.x, ry + rh * 0.5f, c.z), new Vector3((2f * lx + 2f * o) * U, rh * U, (2f * lz + 2f * o) * U), "Roof");
-            AddCollider(ToWorld(c.x, h - 1.3f, c.z), new Vector3(2f * lx * U, 3.3f * U, 2f * lz * U), "Floor");
+            if (H.door != 0) AddCollider(WM(c.x + lx, wy, c.z), new Vector3(2f * t * U, wh * U, 2f * lz * U), "Wall"); else SplitWall(c.x + lx, wy, c.z, lz, dw, dh, wh, t, true);
+            if (H.door != 1) AddCollider(WM(c.x - lx, wy, c.z), new Vector3(2f * t * U, wh * U, 2f * lz * U), "Wall"); else SplitWall(c.x - lx, wy, c.z, lz, dw, dh, wh, t, true);
+            if (H.door != 2) AddCollider(WM(c.x, wy, c.z + lz), new Vector3(2f * lx * U, wh * U, 2f * t * U), "Wall"); else SplitWall(c.x, wy, c.z + lz, lx, dw, dh, wh, t, false);
+            if (H.door != 3) AddCollider(WM(c.x, wy, c.z - lz), new Vector3(2f * lx * U, wh * U, 2f * t * U), "Wall"); else SplitWall(c.x, wy, c.z - lz, lx, dw, dh, wh, t, false);
+            AddCollider(WM(c.x, ry + rh * 0.5f, c.z), new Vector3((2f * lx + 2f * o) * U, rh * U, (2f * lz + 2f * o) * U), "Roof");
+            AddCollider(WM(c.x, h - 1.3f, c.z), new Vector3(2f * lx * U, 3.3f * U, 2f * lz * U), "Floor");
         }
 
         void SplitWall(float wx, float wy, float wz, float half, float dw, float dh, float wh, float t, bool alongZ)
@@ -523,15 +527,15 @@ namespace BomberBuddies
             float side = (half - dw) * 0.5f;
             if (alongZ)
             {
-                AddCollider(ToWorld(wx, wy, wz - dw - side), new Vector3(2f * t * U, wh * U, 2f * side * U), "Wall");
-                AddCollider(ToWorld(wx, wy, wz + dw + side), new Vector3(2f * t * U, wh * U, 2f * side * U), "Wall");
-                AddCollider(ToWorld(wx, wy + (wh * 0.5f - (wh - dh) * 0.5f) + 0f, wz), new Vector3(2f * t * U, (wh - dh) * U, 2f * dw * U), "Lintel");
+                AddCollider(WM(wx, wy, wz - dw - side), new Vector3(2f * t * U, wh * U, 2f * side * U), "Wall");
+                AddCollider(WM(wx, wy, wz + dw + side), new Vector3(2f * t * U, wh * U, 2f * side * U), "Wall");
+                AddCollider(WM(wx, wy + (wh * 0.5f - (wh - dh) * 0.5f) + 0f, wz), new Vector3(2f * t * U, (wh - dh) * U, 2f * dw * U), "Lintel");
             }
             else
             {
-                AddCollider(ToWorld(wx - dw - side, wy, wz), new Vector3(2f * side * U, wh * U, 2f * t * U), "Wall");
-                AddCollider(ToWorld(wx + dw + side, wy, wz), new Vector3(2f * side * U, wh * U, 2f * t * U), "Wall");
-                AddCollider(ToWorld(wx, wy + (wh * 0.5f - (wh - dh) * 0.5f), wz), new Vector3(2f * dw * U, (wh - dh) * U, 2f * t * U), "Lintel");
+                AddCollider(WM(wx - dw - side, wy, wz), new Vector3(2f * side * U, wh * U, 2f * t * U), "Wall");
+                AddCollider(WM(wx + dw + side, wy, wz), new Vector3(2f * side * U, wh * U, 2f * t * U), "Wall");
+                AddCollider(WM(wx, wy + (wh * 0.5f - (wh - dh) * 0.5f), wz), new Vector3(2f * dw * U, (wh - dh) * U, 2f * t * U), "Lintel");
             }
         }
 
@@ -558,7 +562,7 @@ namespace BomberBuddies
                 mb.Tri(new Vector3(x + lx, y1, z + lz), new Vector3(x, y1 + rh, z + lz), new Vector3(x - lx, y1, z + lz), wall);
                 mb.Box(x - 1.6f, x + 1.6f, h, h + 9.5f, z + lz, z + lz + 0.3f, MeshBuilder.Rgb(74, 58, 42));
             }
-            AddCollider(ToWorld(x + MID3, (y0 + y1 + rh) * 0.5f, z + MID3), new Vector3(2f * lx * U, (y1 + rh - y0) * U, 2f * lz * U), "House");
+            AddCollider(WM(x, (y0 + y1 + rh) * 0.5f, z), new Vector3(2f * lx * U, (y1 + rh - y0) * U, 2f * lz * U), "House");
         }
 
         void FuelTank(float x, float h, float z)
@@ -567,12 +571,12 @@ namespace BomberBuddies
             mb.Prism(x, h + 12f, h + 15.5f, z, 8f, 0f, 10, 0f, MeshBuilder.Rgb(206, 206, 196));
             mb.Prism(x, h + 5f, h + 7.2f, z, 8.15f, 8.15f, 10, 0f, MeshBuilder.Rgb(181, 69, 47));
             mb.Box(x + 8f, x + 9f, h, h + 12f, z - 1f, z + 1f, MeshBuilder.Rgb(74, 85, 96));
-            AddCollider(ToWorld(x + MID3, h + 5f, z + MID3), new Vector3(16f * U, 14f * U, 16f * U), "Tank");
+            AddCollider(WM(x, h + 5f, z), new Vector3(16f * U, 14f * U, 16f * U), "Tank");
         }
 
         void CoverMesh(Cover c)
         {
-            float h = HAt0(c.x, c.z), x = c.x - MID3, z = c.z - MID3;
+            float h = HAt0(c.x, c.z), x = (c.x - MID3) * Spread, z = (c.z - MID3) * Spread;
             switch (c.kind)
             {
                 case "car":
@@ -611,7 +615,7 @@ namespace BomberBuddies
         {
             var go = new GameObject("Cover");
             go.transform.SetParent(transform, false);
-            go.transform.position = ToWorld(x + MID3, y, z + MID3);
+            go.transform.position = WM(x, y, z);
             go.transform.rotation = Quaternion.Euler(0f, -yaw * Mathf.Rad2Deg, 0f);
             var bc = go.AddComponent<BoxCollider>(); bc.size = new Vector3(len * U, h * U, wid * U);
         }
@@ -657,7 +661,7 @@ namespace BomberBuddies
             int lowN = mobile ? 14 : 26, hiN = mobile ? 10 : 22;
             for (int i = 0; i < lowN; i++)
             {
-                float x = Hash(i + 1.1f) * (WORLD3 + 2400f) - 1200f - MID3, z = Hash(i + 7.7f) * (WORLD3 + 2400f) - 1200f - MID3, y = 560f + Hash(i + 3.3f) * 220f;
+                float x = (Hash(i + 1.1f) * (WORLD3 + 2400f) - 1200f - MID3) * Spread, z = (Hash(i + 7.7f) * (WORLD3 + 2400f) - 1200f - MID3) * Spread, y = 560f + Hash(i + 3.3f) * 220f;
                 float sx = 90f + Hash(i + 5f) * 130f, sz = 60f + Hash(i + 9f) * 90f;
                 mb.Blob(x, y, z, sx, 30f, sz, 9, MeshBuilder.Emissive(MeshBuilder.Rgb(250, 252, 251)));
                 mb.Blob(x + sx * 0.55f, y - 6f, z + sz * 0.2f, sx * 0.62f, 22f, sz * 0.62f, 9, MeshBuilder.Emissive(MeshBuilder.Rgb(246, 249, 248)));
@@ -665,7 +669,7 @@ namespace BomberBuddies
             }
             for (int i = 0; i < hiN; i++)
             {
-                float x = Hash(i + 41.1f) * (WORLD3 + 3600f) - 1800f - MID3, z = Hash(i + 47.7f) * (WORLD3 + 3600f) - 1800f - MID3, y = 1400f + Hash(i + 43.1f) * 420f;
+                float x = (Hash(i + 41.1f) * (WORLD3 + 3600f) - 1800f - MID3) * Spread, z = (Hash(i + 47.7f) * (WORLD3 + 3600f) - 1800f - MID3) * Spread, y = 1400f + Hash(i + 43.1f) * 420f;
                 float sx = 130f + Hash(i + 45f) * 190f, sz = 90f + Hash(i + 49f) * 140f;
                 mb.Blob(x, y, z, sx, 40f, sz, 9, MeshBuilder.Emissive(MeshBuilder.Rgb(252, 253, 252)));
                 mb.Blob(x + sx * 0.5f, y - 8f, z - sz * 0.25f, sx * 0.6f, 28f, sz * 0.6f, 9, MeshBuilder.Emissive(MeshBuilder.Rgb(247, 250, 249)));

@@ -192,7 +192,7 @@ namespace BomberBuddies
             bank += (Mathf.Clamp(sx, -1.15f, 1.15f) * 0.95f - bank) * Mathf.Min(1f, 2.6f * dt);
             speedU += (140f * (0.45f + 0.75f * thr) + (boosting ? 460f : 0f) - 0.8f * speedU - 110f * Mathf.Sin(pitch) - Mathf.Abs(sx) * 22f) * dt;
             speedU = Mathf.Clamp(speedU, 35f, 820f);
-            var v = Forward * speedU * U;
+            var v = Forward * speedU * U * GameTuning.Pace;
             if (stalled) v.y -= (1f - speedU / 70f) * 90f * U;
             Velocity = v;
             var from = transform.position;
@@ -257,7 +257,7 @@ namespace BomberBuddies
             pitch = Mathf.Lerp(pitch, -fwdU / 205f * 0.35f, Mathf.Min(1f, 3f * dt));
             bank += (Mathf.Clamp(sx, -1f, 1f) * 0.5f - bank) * Mathf.Min(1f, 2.6f * dt);
             var flatFwd = Quaternion.Euler(0f, yaw * Mathf.Rad2Deg, 0f) * Vector3.forward;
-            var v = flatFwd * fwdU * U + Vector3.up * vyU * U;
+            var v = (flatFwd * fwdU * U + Vector3.up * vyU * U) * GameTuning.Pace;
             speedU = Mathf.Abs(fwdU);
             Velocity = v;
             var from = transform.position; var to = from + v * dt;
@@ -316,7 +316,7 @@ namespace BomberBuddies
                 pitch = 0.05f; bank = 0f;
                 docked = null; launchT = 1.6f; speedU = IsHeli ? 0f : 230f;
                 if (IsHeli) { fwdU = 90f; thr = 0.6f; }
-                Velocity = Forward * speedU * U;
+                Velocity = Forward * speedU * U * GameTuning.Pace;
                 if (GameState.Hud != null) GameState.Hud.Announce("Launch!");
             }
         }

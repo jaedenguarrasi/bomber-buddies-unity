@@ -85,7 +85,7 @@ namespace BomberBuddies
                     var d = goal - transform.position; d.y = 0f;
                     float wantYaw = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
                     yaw = Mathf.MoveTowardsAngle(yaw, wantYaw, (kind == Kind.Jeep ? 120f : 45f) * dt);
-                    if (Mathf.Abs(Mathf.DeltaAngle(yaw, wantYaw)) < 50f) vel = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward * speed;
+                    if (Mathf.Abs(Mathf.DeltaAngle(yaw, wantYaw)) < 50f) vel = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward * speed * GameTuning.Pace;
                 }
                 var p = transform.position + vel * dt;
                 float g = GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : p.y;
