@@ -29,7 +29,7 @@ namespace BomberBuddies
         readonly Dictionary<string, Text> labels = new Dictionary<string, Text>();
         readonly Dictionary<string, Image> buttons = new Dictionary<string, Image>();
         readonly List<Image> radarDots = new List<Image>();
-        Text getOutLabel, debugText;
+        Text getOutLabel;
         Image canopy;
         const float R = 65f;   // the original's button radius (52 css px at 720p) in a 900-tall canvas
 
@@ -200,18 +200,17 @@ namespace BomberBuddies
 
             // top-right row: credits, Get out, mark, view, sound, pause
             var tr = new Vector2(1f, 0f + 1f);
-            var pill = Img("GetOut", safe, tr, new Vector2(-250f, -36f), new Vector2(118f, 44f), new Color(0.05f, 0.08f, 0.12f, 0.6f), true);
+            var pill = Img("GetOut", safe, tr, new Vector2(-320f, -40f), new Vector2(130f, 56f), new Color(0.05f, 0.08f, 0.12f, 0.6f), true);
             pill.sprite = Circle(); pill.type = Image.Type.Sliced;
             var pillBtn = pill.gameObject.AddComponent<OnScreenButton>(); pillBtn.controlPath = "<Gamepad>/select";
-            getOutLabel = Txt("Label", pill.transform, mid, Vector2.zero, new Vector2(118f, 44f), 17, TextAnchor.MiddleCenter, Color.white, true); getOutLabel.text = "Get out";
-            creditsText = Txt("Credits", safe, tr, new Vector2(-350f, -36f), new Vector2(120f, 30f), 17, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f), true); creditsText.text = "● 0";
-            RoundButton("View", new Vector2(-160f, -36f), "<Gamepad>/buttonNorth", "👁");
-            RoundButton("Sound", new Vector2(-100f, -36f), "", "♪");
-            RoundButton("Pause", new Vector2(-40f, -36f), "", "⏸", () => { if (PauseMenu.Instance != null) PauseMenu.Instance.Toggle(); });
-            waveText = Txt("Wave", safe, tr, new Vector2(-250f, -72f), new Vector2(240f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.9f, 0.9f, 0.9f));
+            getOutLabel = Txt("Label", pill.transform, mid, Vector2.zero, new Vector2(130f, 56f), 19, TextAnchor.MiddleCenter, Color.white, true); getOutLabel.text = "Get out";
+            creditsText = Txt("Credits", safe, tr, new Vector2(-440f, -40f), new Vector2(120f, 30f), 17, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f), true); creditsText.text = "● 0";
+            RoundButton("View", new Vector2(-196f, -40f), "<Gamepad>/buttonNorth", "👁");
+            RoundButton("Sound", new Vector2(-120f, -40f), "", "♪");
+            RoundButton("Pause", new Vector2(-44f, -40f), "", "⏸", () => { if (PauseMenu.Instance != null) PauseMenu.Instance.Toggle(); });
+            waveText = Txt("Wave", safe, tr, new Vector2(-320f, -82f), new Vector2(240f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.9f, 0.9f, 0.9f));
             modeText = Txt("Mode", safe, new Vector2(0.5f, 1f), new Vector2(120f, -102f), new Vector2(900f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.75f, 0.85f, 1f, 0.9f));
             commsText = Txt("Comms", safe, new Vector2(1f, 1f), new Vector2(-180f, -112f), new Vector2(300f, 22f), 13, TextAnchor.MiddleRight, new Color(0.95f, 0.95f, 0.95f));
-            debugText = Txt("Debug", transform, new Vector2(0.5f, 0f), new Vector2(0f, 120f), new Vector2(1400f, 24f), 14, TextAnchor.MiddleCenter, new Color(1f, 1f, 0.5f));
             message = Txt("Message", transform, new Vector2(0.5f, 0.78f), Vector2.zero, new Vector2(1000f, 60f), 34, TextAnchor.MiddleCenter, Color.white, true);
             message.text = "";
 
@@ -233,10 +232,10 @@ namespace BomberBuddies
 
         void RoundButton(string name, Vector2 pos, string path, string glyph, UnityEngine.Events.UnityAction onClick = null)
         {
-            var im = Disc(name, transform, new Vector2(1f, 1f), pos, 44f, new Color(0.05f, 0.08f, 0.12f, 0.6f), path != "" || onClick != null);
+            var im = Disc(name, safe, new Vector2(1f, 1f), pos, 64f, new Color(0.05f, 0.08f, 0.12f, 0.6f), path != "" || onClick != null);
             if (path != "") { var b = im.gameObject.AddComponent<OnScreenButton>(); b.controlPath = path; }
             if (onClick != null) { var b = im.gameObject.AddComponent<Button>(); b.onClick.AddListener(onClick); }
-            Txt("Glyph", im.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(44f, 44f), 18, TextAnchor.MiddleCenter, Color.white).text = glyph;
+            Txt("Glyph", im.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(64f, 64f), 26, TextAnchor.MiddleCenter, Color.white).text = glyph;
         }
 
         void MakeRing(RectTransform rt)
@@ -262,9 +261,8 @@ namespace BomberBuddies
             stick.movementRange = R * 0.8f;
             stick.controlPath = "<Gamepad>/leftStick";
             // the throttle slider's touch area (dpad y)
-            var thrArea = Img("ThrottleTouch", touchRoot.transform, new Vector2(1f, 0.5f), new Vector2(-187f, 30f), new Vector2(90f, 200f), new Color(1f, 1f, 1f, 0.01f), true);
-            var thrKnob = Img("ThrottleStick", thrArea.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(60f, 40f), new Color(1f, 1f, 1f, 0.0f), true);
-            var thr = thrKnob.gameObject.AddComponent<OnScreenStick>(); thr.movementRange = 80f; thr.controlPath = "<Gamepad>/dpad";
+            var thrArea = Img("ThrottleTouch", touchRoot.transform, new Vector2(1f, 0.5f), new Vector2(-187f, 30f), new Vector2(110f, 220f), new Color(1f, 1f, 1f, 0.01f), true);
+            thrArea.gameObject.AddComponent<ThrottleDrag>();   // drag up/down anywhere on the slider
             // buttons from the Gun button, exactly the original's offsets (its y grows downward)
             var br = new Vector2(1f, 0f);
             Vector2 gun = new Vector2(-(R + 35f), R + 37f);
@@ -288,6 +286,9 @@ namespace BomberBuddies
 
         void ShowTouch(bool on)
         {
+            // on a phone the whole HUD is drawn a quarter larger so the buttons are a comfortable thumb size
+            var scaler = GetComponent<CanvasScaler>();
+            if (scaler != null) scaler.referenceResolution = on ? new Vector2(1280f, 720f) : new Vector2(1600f, 900f);
             if (touchGroup == null) return;
             touchGroup.alpha = on ? 1f : 0f; touchGroup.blocksRaycasts = on; touchGroup.interactable = on;
         }
@@ -368,22 +369,6 @@ namespace BomberBuddies
         {
             float dt = Time.deltaTime;
             ApplySafeArea();
-            if (debugText != null && InputBridge.Instance != null)
-            {
-                var sb = new System.Text.StringBuilder();
-                foreach (var g in UnityEngine.InputSystem.Gamepad.all) sb.Append(g.name).Append('[').Append(g.description.interfaceName).Append("] ls=").Append(g.leftStick.ReadValue().ToString("F2")).Append(" rt=").Append(g.rightTrigger.ReadValue().ToString("F2")).Append("  ");
-                sb.Append(" move=").Append(InputBridge.Instance.Move.ToString("F2")).Append(" fire=").Append(InputBridge.Instance.Fire).Append(" touch=").Append(InputBridge.Instance.IsTouch).Append(" ts=").Append(UnityEngine.InputSystem.Touchscreen.current != null);
-                var ts = UnityEngine.InputSystem.Touchscreen.current;
-                if (ts != null && EventSystem.current != null)
-                {
-                    var pos = ts.primaryTouch.position.ReadValue();
-                    var ped = new PointerEventData(EventSystem.current) { position = pos };
-                    var res = new List<RaycastResult>(); EventSystem.current.RaycastAll(ped, res);
-                    sb.Append(" press=").Append(ts.primaryTouch.press.isPressed).Append(" pos=").Append(pos.ToString("F0")).Append(" hit=").Append(res.Count > 0 ? res[0].gameObject.name + "/" + (res[0].gameObject.transform.parent != null ? res[0].gameObject.transform.parent.name : "") : "none");
-                    sb.Append(" sel=").Append(EventSystem.current.currentSelectedGameObject != null ? EventSystem.current.currentSelectedGameObject.name : "-");
-                }
-                debugText.text = sb.ToString();
-            }
             var p = GameState.Player;
             bool fly = flight != null && flight.Active;
             if (fly)
@@ -482,5 +467,18 @@ namespace BomberBuddies
         }
 
         void OnDestroy() { GameState.Changed -= Refresh; }
+    }
+
+    /// <summary>The throttle slider's touch handling: drag up to open the throttle, down to close it. Feeds InputBridge.TouchThrottle.</summary>
+    public class ThrottleDrag : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
+    {
+        Vector2 start;
+        public void OnPointerDown(PointerEventData e) { start = e.position; InputBridge.TouchThrottle = 0f; }
+        public void OnDrag(PointerEventData e)
+        {
+            float dy = (e.position.y - start.y) / Mathf.Max(1f, Screen.height * 0.06f);
+            InputBridge.TouchThrottle = Mathf.Clamp(dy, -1f, 1f);
+        }
+        public void OnPointerUp(PointerEventData e) { InputBridge.TouchThrottle = 0f; }
     }
 }

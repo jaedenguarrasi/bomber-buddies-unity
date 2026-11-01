@@ -34,6 +34,8 @@ namespace BomberBuddies
         public bool KickPressed { get; private set; }
         public bool PausePressed { get; private set; }
         public bool IsTouch { get; private set; }
+        /// <summary>The HUD's throttle slider while a finger drags it (-1..1), else 0.</summary>
+        public static float TouchThrottle;
 
         [Header("Sensitivity")]
         public float mouseDegPerPixel = 0.09f;
@@ -165,7 +167,7 @@ namespace BomberBuddies
             BombPressed = bombQ; bombQ = false;
             KickPressed = kickQ; kickQ = false;
             PausePressed = pauseQ; pauseQ = false;
-            Throttle = Mathf.Clamp(throttle.ReadValue<float>(), -1f, 1f);
+            Throttle = Mathf.Clamp(throttle.ReadValue<float>() + TouchThrottle, -1f, 1f);
 
             // desktop: the mouse is captured while playing (Escape frees it)
             if (!Application.isMobilePlatform && Mouse.current != null && !IsTouch)
