@@ -52,7 +52,7 @@ namespace BomberBuddies
             var hbi = hb.gameObject.AddComponent<Image>(); hbi.color = new Color(0.22f, 0.4f, 0.3f, 1f);
             var hbb = hb.gameObject.AddComponent<Button>(); hbb.onClick.AddListener(() => { Sfx.Play("ui_click", 0.5f); gameObject.SetActive(false); Hangar.Open(transform.parent, () => gameObject.SetActive(true)); });
             Txt("Label", hb, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(180f, 48f), 22, TextAnchor.MiddleCenter, Color.white, true).text = "Hangar";
-            Txt("Bank", safe, new Vector2(1f, 1f), new Vector2(-240f, -34f), new Vector2(300f, 30f), 16, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f)).text = "● " + Progress.Fmt(Progress.Bank) + " credits  ·  " + (Progress.Def(Progress.Craft) != null ? Progress.Def(Progress.Craft).name : "");
+            Txt("Bank", safe, new Vector2(1f, 1f), new Vector2(-340f, -34f), new Vector2(300f, 30f), 16, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f)).text = "● " + Progress.Fmt(Progress.Bank) + " credits  ·  " + (Progress.Def(Progress.Craft) != null ? Progress.Def(Progress.Craft).name : "");
 
             // the category tabs
             float x = 0f;
