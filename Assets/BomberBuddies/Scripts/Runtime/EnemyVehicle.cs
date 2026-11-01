@@ -118,7 +118,7 @@ namespace BomberBuddies
                 }
                 var p = transform.position + vel * dt;
                 float g = GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : p.y;
-                if (g < 9.5f && vel.sqrMagnitude > 0f) { vel = Vector3.zero; p = transform.position; }   // not into the sea
+                if (g < GalacticMode.SeaY + 0.6f && vel.sqrMagnitude > 0f) { vel = Vector3.zero; p = transform.position; }   // not into the sea
                 else p.y = g;
                 transform.position = p;
                 // sit on the slope

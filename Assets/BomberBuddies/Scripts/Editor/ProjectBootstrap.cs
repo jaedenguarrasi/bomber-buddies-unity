@@ -22,7 +22,7 @@ namespace BomberBuddies.Editor
     [InitializeOnLoad]
     public static class ProjectBootstrap
     {
-        public const int SetupVersion = 2;
+        public const int SetupVersion = 3;
         const string Root = "Assets/BomberBuddies";
         const string SettingsDir = Root + "/Settings", MaterialsDir = Root + "/Materials", ScenesDir = Root + "/Scenes";
         public const string ScenePath = ScenesDir + "/Island.unity";
@@ -274,6 +274,18 @@ namespace BomberBuddies.Editor
             sky.SetFloat("_SunSize", 0.035f); sky.SetFloat("_AtmosphereThickness", 0.95f); sky.SetColor("_SkyTint", new Color(0.55f, 0.65f, 0.8f)); sky.SetColor("_GroundColor", new Color(0.42f, 0.4f, 0.36f)); sky.SetFloat("_Exposure", 1.2f);
             EditorUtility.SetDirty(sky);
             Add("skybox", sky);
+
+            // the original game's look: flat-shaded vertex colours, and its gradient sky
+            string lpPath = MaterialsDir + "/BB_lowpoly.mat";
+            var lp = AssetDatabase.LoadAssetAtPath<Material>(lpPath);
+            var lpShader = Shader.Find("BomberBuddies/LowPoly");
+            if (lp == null && lpShader != null) { lp = new Material(lpShader); AssetDatabase.CreateAsset(lp, lpPath); }
+            if (lp != null) { if (lpShader != null && lp.shader != lpShader) lp.shader = lpShader; EditorUtility.SetDirty(lp); Add("lowpoly", lp); }
+            string sky2Path = MaterialsDir + "/BB_sky.mat";
+            var sky2 = AssetDatabase.LoadAssetAtPath<Material>(sky2Path);
+            var skyShader = Shader.Find("BomberBuddies/Sky");
+            if (sky2 == null && skyShader != null) { sky2 = new Material(skyShader); AssetDatabase.CreateAsset(sky2, sky2Path); }
+            if (sky2 != null) { if (skyShader != null && sky2.shader != skyShader) sky2.shader = skyShader; EditorUtility.SetDirty(sky2); Add("sky", sky2); }
 
             lib.entries = entries.ToArray();
             EditorUtility.SetDirty(lib);

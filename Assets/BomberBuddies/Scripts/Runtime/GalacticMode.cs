@@ -19,7 +19,7 @@ namespace BomberBuddies
         public static GalacticMode Instance { get; private set; }
 
         public MaterialLibrary lib;
-        public Terrain terrain;
+        public World3 world;
         public FootController foot;
         public CameraRig rig;
         public Camera cam;
@@ -44,19 +44,20 @@ namespace BomberBuddies
         readonly List<Strike> strikes = new List<Strike>();
         public int PostsHeld { get { int n = 0; foreach (var p in posts) if (p.own == 1) n++; return n; } }
 
-        public static GalacticMode Create(Transform parent, MaterialLibrary lib, Terrain terrain, FootController foot, CameraRig rig, Camera cam, EnemySpawner spawner)
+        public static GalacticMode Create(Transform parent, MaterialLibrary lib, World3 world, FootController foot, CameraRig rig, Camera cam, EnemySpawner spawner)
         {
             var go = new GameObject("Galactic Assault");
             go.transform.SetParent(parent, false);
             var g = go.AddComponent<GalacticMode>();
-            g.lib = lib; g.terrain = terrain; g.foot = foot; g.rig = rig; g.cam = cam; g.spawner = spawner;
+            g.lib = lib; g.world = world; g.foot = foot; g.rig = rig; g.cam = cam; g.spawner = spawner;
             Instance = g;
             g.Setup();
             return g;
         }
 
         // ---- the world ----
-        public float TerrainHeight(float x, float z) { return terrain != null ? IslandBuilder.GroundHeight(terrain, x, z) : 0f; }
+        public float TerrainHeight(float x, float z) { return world != null ? world.GroundMetres(x, z) : 0f; }
+        public const float SeaY = World3.SEA * World3.U;
 
         /// <summary>The highest thing under a point: a carrier's top or the ground.</summary>
         public float ObstacleHeight(float x, float z)
@@ -199,7 +200,7 @@ namespace BomberBuddies
         {
             // on the island under the enemy ship (nudged onto land if it would be in the sea)
             var at = new Vector3(90f * U, 0f, -(-760f) * U);
-            for (int tries = 0; tries < 40 && TerrainHeight(at.x, at.z) < 10f; tries++) at += new Vector3(0f, 0f, -8f);
+            for (int tries = 0; tries < 60 && TerrainHeight(at.x, at.z) < SeaY + 1.2f; tries++) at += new Vector3(0f, 0f, -6f);
             at.y = TerrainHeight(at.x, at.z);
             var go = new GameObject("Shield generator");
             go.transform.SetParent(transform, false);
@@ -238,7 +239,7 @@ namespace BomberBuddies
         }
 
         /// <summary>Dry, open ground near a point: walks outward until the terrain is above the sea.</summary>
-        Vector3 LandNear(Vector3 at, float minHeight = 11f)
+        Vector3 LandNear(Vector3 at, float minHeight = SeaY + 1.2f)
         {
             for (float r = 0f; r < 400f; r += 8f)
             {
@@ -258,7 +259,7 @@ namespace BomberBuddies
         {
             var p = at + new Vector3(Random.Range(-spread, spread), 0f, Random.Range(-spread, spread));
             p.y = TerrainHeight(p.x, p.z);
-            if (p.y < 10f) { p = at; }
+            if (p.y < SeaY + 0.8f) { p = at; }
             return p;
         }
 
@@ -561,7 +562,7 @@ namespace BomberBuddies
             {
                 if (InputBridge.Instance != null && InputBridge.Instance.InteractPressed) TryGetIn();
                 var fp = foot.transform.position;
-                if (fp.y < 7.5f && TerrainHeight(fp.x, fp.z) < 9f && !respawning && foot.health.alive)
+                if (fp.y < SeaY + 0.3f && TerrainHeight(fp.x, fp.z) < SeaY + 0.3f && !respawning && foot.health.alive)
                 {
                     foot.health.TakeDamage(new DamageInfo { amount = 9999f, point = fp, direction = Vector3.down, source = gameObject });
                 }
