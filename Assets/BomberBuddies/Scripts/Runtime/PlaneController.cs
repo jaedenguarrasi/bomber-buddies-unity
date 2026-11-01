@@ -29,6 +29,8 @@ namespace BomberBuddies
         Transform model, muzzleL, muzzleR, propT, rotor, tailRotor;
         float fwdU, vyU;            // the helicopter's forward and vertical speeds (original units)
         public bool Landed { get; private set; }
+        /// <summary>Cockpit view (the original's default) or the chase camera behind the aircraft.</summary>
+        public bool cockpit = true;
         float fireT, bombCd, hurtTick, boostLock, camShakeT;
         bool boostOut, lastFire;
         Vector3 lastOk, camVel;
@@ -56,66 +58,24 @@ namespace BomberBuddies
         {
             model = new GameObject("Model").transform;
             model.SetParent(transform, false);
-            var body = lib != null ? lib.Instance("gunmetal") : null; if (body != null) { body.SetColor("_BaseColor", new Color(0.36f, 0.42f, 0.38f)); body.SetFloat("_Metallic", 0.35f); body.SetFloat("_Smoothness", 0.55f); }
-            var dark = lib != null ? lib.Get("dark") : null;
-            var glass = lib != null ? lib.Instance("water") : null; if (glass != null) glass.SetColor("_BaseColor", new Color(0.4f, 0.6f, 0.8f, 0.55f));
-            var glow = lib != null ? lib.Instance("glow") : null; if (glow != null) { glow.SetColor("_BaseColor", new Color(0.5f, 0.8f, 1f)); glow.SetColor("_EmissionColor", new Color(0.4f, 0.7f, 1f) * 5f); }
-            GameObject P(PrimitiveType t, string n, Vector3 pos, Vector3 scale, Material m, Vector3? rot = null)
-            {
-                var g = GameObject.CreatePrimitive(t); g.name = n; g.layer = 8; Destroy(g.GetComponent<Collider>());
-                g.transform.SetParent(model, false); g.transform.localPosition = pos; g.transform.localScale = scale; if (rot.HasValue) g.transform.localRotation = Quaternion.Euler(rot.Value);
-                if (m != null) g.GetComponent<Renderer>().sharedMaterial = m; return g;
-            }
-            // sizes in metres: a 4.8 m span, 6 m long fighter-bomber (the original's 20-unit half span)
-            P(PrimitiveType.Capsule, "Fuselage", new Vector3(0f, 0f, 0f), new Vector3(0.9f, 2.8f, 0.9f), body, new Vector3(90f, 0f, 0f));
-            P(PrimitiveType.Sphere, "Nose", new Vector3(0f, 0f, 2.9f), new Vector3(0.7f, 0.7f, 0.9f), dark);
-            P(PrimitiveType.Sphere, "Canopy", new Vector3(0f, 0.42f, 0.9f), new Vector3(0.62f, 0.5f, 1.5f), glass);
-            P(PrimitiveType.Cube, "Wing", new Vector3(0f, -0.1f, 0.1f), new Vector3(4.8f, 0.08f, 1.5f), body);
-            P(PrimitiveType.Cube, "Wing root", new Vector3(0f, -0.05f, -0.2f), new Vector3(2.2f, 0.16f, 2.3f), body);
-            P(PrimitiveType.Cube, "Tailplane", new Vector3(0f, 0.1f, -2.4f), new Vector3(2f, 0.06f, 0.7f), body);
-            P(PrimitiveType.Cube, "Fin", new Vector3(0f, 0.55f, -2.4f), new Vector3(0.06f, 0.95f, 0.9f), body);
-            P(PrimitiveType.Cylinder, "Gun pod L", new Vector3(-1.2f, -0.15f, 0.9f), new Vector3(0.14f, 0.7f, 0.14f), dark, new Vector3(90f, 0f, 0f));
-            P(PrimitiveType.Cylinder, "Gun pod R", new Vector3(1.2f, -0.15f, 0.9f), new Vector3(0.14f, 0.7f, 0.14f), dark, new Vector3(90f, 0f, 0f));
-            P(PrimitiveType.Cylinder, "Exhaust", new Vector3(0f, 0f, -2.9f), new Vector3(0.45f, 0.15f, 0.45f), glow, new Vector3(90f, 0f, 0f));
-            for (int i = 0; i < 4; i++) P(PrimitiveType.Capsule, "Bomb", new Vector3(-0.9f + i * 0.6f, -0.32f, -0.1f), new Vector3(0.22f, 0.4f, 0.22f), dark, new Vector3(90f, 0f, 0f));
-            muzzleL = new GameObject("MuzzleL").transform; muzzleL.SetParent(model, false); muzzleL.localPosition = new Vector3(-1.2f, -0.15f, 1.3f);
-            muzzleR = new GameObject("MuzzleR").transform; muzzleR.SetParent(model, false); muzzleR.localPosition = new Vector3(1.2f, -0.15f, 1.3f);
-            wingTips[0] = new GameObject("TipL").transform; wingTips[0].SetParent(model, false); wingTips[0].localPosition = new Vector3(-2.4f, -0.1f, 0.1f);
-            wingTips[1] = new GameObject("TipR").transform; wingTips[1].SetParent(model, false); wingTips[1].localPosition = new Vector3(2.4f, -0.1f, 0.1f);
+            var body = CraftModels.Plane(model, lib, CraftModels.You, 8);
+            propT = body.transform.Find("Prop");
+            muzzleL = new GameObject("MuzzleL").transform; muzzleL.SetParent(model, false); muzzleL.localPosition = new Vector3(-4f * U, -0.6f * U, 7f * U);
+            muzzleR = new GameObject("MuzzleR").transform; muzzleR.SetParent(model, false); muzzleR.localPosition = new Vector3(4f * U, -0.6f * U, 7f * U);
+            wingTips[0] = new GameObject("TipL").transform; wingTips[0].SetParent(model, false); wingTips[0].localPosition = new Vector3(-21f * U, -0.6f * U, 2f * U);
+            wingTips[1] = new GameObject("TipR").transform; wingTips[1].SetParent(model, false); wingTips[1].localPosition = new Vector3(21f * U, -0.6f * U, 2f * U);
         }
 
         void BuildHeliModel()
         {
             model = new GameObject("Model").transform;
             model.SetParent(transform, false);
-            var body = lib != null ? lib.Instance("gunmetal") : null; if (body != null) { body.SetColor("_BaseColor", new Color(0.3f, 0.34f, 0.3f)); body.SetFloat("_Metallic", 0.3f); body.SetFloat("_Smoothness", 0.5f); }
-            var dark = lib != null ? lib.Get("dark") : null;
-            var glass = lib != null ? lib.Instance("water") : null; if (glass != null) glass.SetColor("_BaseColor", new Color(0.4f, 0.6f, 0.8f, 0.55f));
-            GameObject P(PrimitiveType t, string n, Vector3 pos, Vector3 scale, Material m, Vector3? rot = null, Transform parent = null)
-            {
-                var g = GameObject.CreatePrimitive(t); g.name = n; g.layer = 8; Destroy(g.GetComponent<Collider>());
-                g.transform.SetParent(parent != null ? parent : model, false); g.transform.localPosition = pos; g.transform.localScale = scale; if (rot.HasValue) g.transform.localRotation = Quaternion.Euler(rot.Value);
-                if (m != null) g.GetComponent<Renderer>().sharedMaterial = m; return g;
-            }
-            P(PrimitiveType.Capsule, "Fuselage", new Vector3(0f, 0f, 0.3f), new Vector3(1.1f, 2.2f, 1.1f), body, new Vector3(90f, 0f, 0f));
-            P(PrimitiveType.Sphere, "Canopy", new Vector3(0f, 0.25f, 1.6f), new Vector3(0.9f, 0.8f, 1.4f), glass);
-            P(PrimitiveType.Cube, "Tail boom", new Vector3(0f, 0.15f, -3.2f), new Vector3(0.3f, 0.3f, 3.2f), body);
-            P(PrimitiveType.Cube, "Fin", new Vector3(0f, 0.7f, -4.6f), new Vector3(0.08f, 1f, 0.6f), body);
-            P(PrimitiveType.Cube, "Stub L", new Vector3(-1.1f, -0.2f, 0.2f), new Vector3(1.4f, 0.1f, 0.6f), body);
-            P(PrimitiveType.Cube, "Stub R", new Vector3(1.1f, -0.2f, 0.2f), new Vector3(1.4f, 0.1f, 0.6f), body);
-            P(PrimitiveType.Cube, "Skid L", new Vector3(-0.6f, -0.85f, 0.2f), new Vector3(0.08f, 0.08f, 2.6f), dark);
-            P(PrimitiveType.Cube, "Skid R", new Vector3(0.6f, -0.85f, 0.2f), new Vector3(0.08f, 0.08f, 2.6f), dark);
-            P(PrimitiveType.Cylinder, "Mast", new Vector3(0f, 0.75f, 0.2f), new Vector3(0.15f, 0.3f, 0.15f), dark);
-            rotor = new GameObject("Rotor").transform; rotor.SetParent(model, false); rotor.localPosition = new Vector3(0f, 1.05f, 0.2f);
-            P(PrimitiveType.Cube, "Blade", Vector3.zero, new Vector3(6.4f, 0.04f, 0.26f), dark, null, rotor);
-            P(PrimitiveType.Cube, "Blade", Vector3.zero, new Vector3(0.26f, 0.04f, 6.4f), dark, null, rotor);
-            tailRotor = new GameObject("Tail rotor").transform; tailRotor.SetParent(model, false); tailRotor.localPosition = new Vector3(0.2f, 0.7f, -4.7f);
-            P(PrimitiveType.Cube, "Blade", Vector3.zero, new Vector3(0.04f, 1.1f, 0.14f), dark, null, tailRotor);
-            P(PrimitiveType.Cylinder, "Gun", new Vector3(0f, -0.45f, 1.9f), new Vector3(0.14f, 0.5f, 0.14f), dark, new Vector3(90f, 0f, 0f));
-            muzzleL = new GameObject("MuzzleL").transform; muzzleL.SetParent(model, false); muzzleL.localPosition = new Vector3(-0.1f, -0.45f, 2.4f);
-            muzzleR = new GameObject("MuzzleR").transform; muzzleR.SetParent(model, false); muzzleR.localPosition = new Vector3(0.1f, -0.45f, 2.4f);
-            wingTips[0] = new GameObject("TipL").transform; wingTips[0].SetParent(model, false); wingTips[0].localPosition = new Vector3(-1.8f, -0.2f, 0.2f);
-            wingTips[1] = new GameObject("TipR").transform; wingTips[1].SetParent(model, false); wingTips[1].localPosition = new Vector3(1.8f, -0.2f, 0.2f);
+            var body = CraftModels.Heli(model, lib, CraftModels.You, 8);
+            rotor = body.transform.Find("Rotor"); tailRotor = body.transform.Find("Tail rotor");
+            muzzleL = new GameObject("MuzzleL").transform; muzzleL.SetParent(model, false); muzzleL.localPosition = new Vector3(-0.5f * U, -5f * U, 14f * U);
+            muzzleR = new GameObject("MuzzleR").transform; muzzleR.SetParent(model, false); muzzleR.localPosition = new Vector3(0.5f * U, -5f * U, 14f * U);
+            wingTips[0] = new GameObject("TipL").transform; wingTips[0].SetParent(model, false); wingTips[0].localPosition = new Vector3(-8f * U, -2f * U, 0f);
+            wingTips[1] = new GameObject("TipR").transform; wingTips[1].SetParent(model, false); wingTips[1].localPosition = new Vector3(8f * U, -2f * U, 0f);
         }
 
         /// <summary>Put the plane somewhere and hand the controls over.</summary>
@@ -134,13 +94,18 @@ namespace BomberBuddies
             Active = takeControl;
             if (!takeControl) return;
             // start the camera behind the plane rather than sliding in from wherever it was
-            if (cam != null) { cam.transform.position = transform.position - Forward * 12f + Vector3.up * 3.8f; cam.transform.LookAt(transform.position + Forward * 10f); }
+            if (cam != null)
+            {
+                if (cockpit) { cam.transform.position = transform.position + Vector3.up * 3.4f * U; cam.transform.rotation = Quaternion.Euler(0f, yaw * Mathf.Rad2Deg, 0f); }
+                else { cam.transform.position = transform.position - Forward * 12f + Vector3.up * 3.8f; cam.transform.LookAt(transform.position + Forward * 30f); }
+            }
         }
 
         /// <summary>Hand the controls back: the plane stays where it is, parked, until someone gets in again.</summary>
         public void Park()
         {
             Active = false;
+            if (model != null) foreach (var r in model.GetComponentsInChildren<Renderer>()) r.enabled = true;
             Velocity = Vector3.zero;
             health.isAir = false;
         }
@@ -176,7 +141,8 @@ namespace BomberBuddies
             if (hs != null || docked != null) { DockStep(hs != null ? hs : docked, sx, boosting, dt); }
             else if (IsHeli) FlyHeli(sx, sy, boosting, dt);
             else Fly(sx, sy, boosting, dt);
-            if (rotor != null) { rotor.Rotate(0f, (Landed && thr < 0.2f ? 200f : 1800f) * dt, 0f); if (tailRotor != null) tailRotor.Rotate(2600f * dt, 0f, 0f); }
+            if (rotor != null) { rotor.Rotate(0f, (Landed && thr < 0.2f ? 200f : 1800f) * dt, 0f); if (tailRotor != null) tailRotor.Rotate(0f, 0f, 2600f * dt); }
+            if (propT != null) propT.Rotate(0f, 0f, 2400f * dt);
 
             // guns and bombs
             heat = Mathf.Max(0f, heat - dt * 0.28f);
@@ -184,15 +150,31 @@ namespace BomberBuddies
             fireT -= dt;
             if (input.Fire && !Overheated && fireT <= 0f && docked == null && !Landed) Shoot();
             bombCd -= dt;
-            if (input.JumpPressed && docked == null && bombs > 0 && bombCd <= 0f) DropBomb();
+            if (input.BombPressed && docked == null && bombs > 0 && bombCd <= 0f) DropBomb();
             if (input.InteractPressed)
             {
                 if (docked != null || (IsHeli && Landed)) { if (gm != null) gm.ExitToFoot(); return; }
                 else if (gm != null && transform.position.y > gm.ObstacleHeight(transform.position.x, transform.position.z) + 18f * U) { gm.BailOut(); return; }
                 else if (GameState.Hud != null) GameState.Hud.Announce(IsHeli ? "Land first to get out" : "Land in a hangar to get out");
             }
+            if (input.ViewPressed) cockpit = !cockpit;
             ApplyPose();
-            ChaseCamera(dt);
+            if (cockpit) CockpitCamera(dt); else ChaseCamera(dt);
+            foreach (var r in model.GetComponentsInChildren<Renderer>()) r.enabled = !cockpit;
+        }
+
+        void CockpitCamera(float dt)
+        {
+            if (cam == null) return;
+            var gm = GalacticMode.Instance;
+            // eye at p + up*3.4 units, looking along the aircraft, rolled with the bank (0.42 of it for a plane, 0.5 heli)
+            var eye = transform.position + Vector3.up * 3.4f * U + Forward * 1f * U;
+            var rot = Quaternion.Euler(-pitch * Mathf.Rad2Deg, yaw * Mathf.Rad2Deg, -bank * 50f * (IsHeli ? 0.5f : 0.42f));
+            cam.transform.position = eye;
+            cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, rot, Mathf.Min(1f, 16f * dt));
+            if (gm != null && gm.shake > 0f) cam.transform.position += Random.insideUnitSphere * gm.shake * 0.25f;
+            float over = Mathf.Clamp01((speedU - (IsHeli ? 170f : 190f)) / 300f);
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 58f * (1f + 0.27f * over), Mathf.Min(1f, 4f * dt));
         }
 
         void Fly(float sx, float sy, bool boosting, float dt)
@@ -380,7 +362,7 @@ namespace BomberBuddies
             cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, rot, Mathf.Min(1f, 8f * dt));
             var gm = GalacticMode.Instance;
             if (gm != null && gm.shake > 0f) cam.transform.position += Random.insideUnitSphere * gm.shake * 0.4f;
-            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 70f + 14f * Mathf.Clamp01((speedU - 200f) / 500f), Mathf.Min(1f, 4f * dt));
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 58f * 1.1f * (1f + 0.27f * Mathf.Clamp01((speedU - 190f) / 300f)), Mathf.Min(1f, 4f * dt));
         }
     }
 }

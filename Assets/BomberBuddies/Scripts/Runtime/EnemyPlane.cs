@@ -12,7 +12,7 @@ namespace BomberBuddies
         public Vector3 Velocity { get; private set; }
         float outT, gunT, burst, steer, retargetT;
         Health targetH;
-        Transform model;
+        Transform model, prop;
 
         public int Team { get { return health != null ? health.team : 1; } }
 
@@ -31,7 +31,7 @@ namespace BomberBuddies
             e.health.OnDied += info =>
             {
                 if (Projectiles.Instance != null) Projectiles.Instance.Explode(go.transform.position, 1f, 4f, 0f, go, team);
-                if (team != 0) GameState.EnemyKilled(false);
+                if (team != 0) GameState.EnemyKilled(false, 400);
                 Destroy(go);
             };
             return e;
@@ -41,19 +41,8 @@ namespace BomberBuddies
         {
             model = new GameObject("Model").transform; model.SetParent(transform, false);
             int layer = gameObject.layer;
-            var body = lib != null ? lib.Instance("gunmetal") : null; if (body != null) { body.SetColor("_BaseColor", layer == 8 ? new Color(0.36f, 0.42f, 0.38f) : new Color(0.3f, 0.26f, 0.28f)); body.SetFloat("_Metallic", 0.3f); }
-            var glow = lib != null ? lib.Instance("glow") : null; if (glow != null) { var c = layer == 8 ? new Color(0.5f, 0.8f, 1f) : new Color(1f, 0.4f, 0.25f); glow.SetColor("_BaseColor", c); glow.SetColor("_EmissionColor", c * 5f); }
-            GameObject P(PrimitiveType t, string n, Vector3 pos, Vector3 scale, Material m, Vector3? rot = null)
-            {
-                var g = GameObject.CreatePrimitive(t); g.name = n; g.layer = layer; Destroy(g.GetComponent<Collider>());
-                g.transform.SetParent(model, false); g.transform.localPosition = pos; g.transform.localScale = scale; if (rot.HasValue) g.transform.localRotation = Quaternion.Euler(rot.Value);
-                if (m != null) g.GetComponent<Renderer>().sharedMaterial = m; return g;
-            }
-            P(PrimitiveType.Capsule, "Fuselage", Vector3.zero, new Vector3(0.8f, 2.5f, 0.8f), body, new Vector3(90f, 0f, 0f));
-            P(PrimitiveType.Cube, "Wing", new Vector3(0f, 0f, -0.4f), new Vector3(5f, 0.08f, 1.6f), body, new Vector3(0f, 0f, 0f));
-            P(PrimitiveType.Cube, "Fin L", new Vector3(-0.7f, 0.5f, -2f), new Vector3(0.06f, 0.9f, 0.8f), body, new Vector3(0f, 0f, -25f));
-            P(PrimitiveType.Cube, "Fin R", new Vector3(0.7f, 0.5f, -2f), new Vector3(0.06f, 0.9f, 0.8f), body, new Vector3(0f, 0f, 25f));
-            P(PrimitiveType.Cylinder, "Exhaust", new Vector3(0f, 0f, -2.6f), new Vector3(0.4f, 0.12f, 0.4f), glow, new Vector3(90f, 0f, 0f));
+            var body = CraftModels.Plane(model, lib, layer == 8 ? CraftModels.Mate : CraftModels.Foe, layer);
+            prop = body.transform.Find("Prop");
         }
 
         Vector3 Forward { get { return Quaternion.Euler(-pitch * Mathf.Rad2Deg, yaw * Mathf.Rad2Deg, 0f) * Vector3.forward; } }
@@ -107,6 +96,7 @@ namespace BomberBuddies
             float wantPitch = Mathf.Clamp((hold - transform.position.y) / (170f * U), -0.35f, 0.4f);
             pitch = Mathf.MoveTowards(pitch, wantPitch, 1.8f * dt);
             Velocity = Forward * 160f * U;
+            if (prop != null) prop.Rotate(0f, 0f, 2400f * dt);
             transform.position += Velocity * dt;
             bank = Mathf.Lerp(bank, Mathf.Clamp(steer * 0.8f, -60f, 60f), Mathf.Min(1f, 3f * dt));
             transform.rotation = Quaternion.Euler(-pitch * Mathf.Rad2Deg, yaw * Mathf.Rad2Deg, -bank);

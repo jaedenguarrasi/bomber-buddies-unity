@@ -44,7 +44,7 @@ namespace BomberBuddies
                 if (Projectiles.Instance != null) Projectiles.Instance.Explode(go.transform.position + Vector3.up * 0.8f, 1.5f, 4f, 0f, go, team);
                 foreach (var c in go.GetComponentsInChildren<Collider>()) c.enabled = false;
                 foreach (var r in go.GetComponentsInChildren<Renderer>()) { var m = r.material; if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", new Color(0.12f, 0.1f, 0.09f)); }
-                if (team != 0) GameState.EnemyKilled(false);
+                if (team != 0) GameState.EnemyKilled(false, kind == Kind.Jeep ? 40 : kind == Kind.Tank ? 120 : 80);
                 Destroy(go, 20f);
             };
             v.cd = Random.Range(1f, 3f);
@@ -53,44 +53,15 @@ namespace BomberBuddies
 
         void BuildModel(MaterialLibrary lib, int team, int layer)
         {
-            var paint = lib != null ? lib.Instance("gunmetal") : null;
-            if (paint != null) { paint.SetColor("_BaseColor", team == 0 ? new Color(0.36f, 0.42f, 0.3f) : new Color(0.33f, 0.3f, 0.3f)); paint.SetFloat("_Metallic", 0.25f); paint.SetFloat("_Smoothness", 0.45f); }
-            var dark = lib != null ? lib.Get("dark") : null;
-            GameObject P(PrimitiveType t, string n, Transform parent, Vector3 pos, Vector3 scale, Material m, Vector3? rot = null)
-            {
-                var g = GameObject.CreatePrimitive(t); g.name = n; g.layer = layer;
-                g.transform.SetParent(parent, false); g.transform.localPosition = pos; g.transform.localScale = scale; if (rot.HasValue) g.transform.localRotation = Quaternion.Euler(rot.Value);
-                if (m != null) g.GetComponent<Renderer>().sharedMaterial = m;
-                var hz = g.AddComponent<HitZone>(); hz.owner = health; hz.multiplier = 1f;
-                return g;
-            }
-            var root = transform;
+            CraftModels.Vehicle(transform, lib, kind, team, layer, out turret, out barrel);
+            var bc = gameObject.AddComponent<BoxCollider>();
             switch (kind)
             {
-                case Kind.Jeep:
-                    P(PrimitiveType.Cube, "Body", root, new Vector3(0f, 0.75f, 0f), new Vector3(2.2f, 0.7f, 4f), paint);
-                    P(PrimitiveType.Cube, "Cab", root, new Vector3(0f, 1.35f, -0.3f), new Vector3(2f, 0.5f, 1.8f), paint);
-                    for (int i = 0; i < 4; i++) P(PrimitiveType.Cylinder, "Wheel", root, new Vector3(i % 2 == 0 ? -1.1f : 1.1f, 0.45f, i < 2 ? 1.3f : -1.3f), new Vector3(0.9f, 0.25f, 0.9f), dark, new Vector3(0f, 0f, 90f));
-                    turret = new GameObject("Mount").transform; turret.SetParent(root, false); turret.localPosition = new Vector3(0f, 1.75f, -0.6f);
-                    barrel = P(PrimitiveType.Cylinder, "Gun", turret, new Vector3(0f, 0f, 0.5f), new Vector3(0.12f, 0.5f, 0.12f), dark, new Vector3(90f, 0f, 0f)).transform;
-                    break;
-                case Kind.Tank:
-                    P(PrimitiveType.Cube, "Hull", root, new Vector3(0f, 0.9f, 0f), new Vector3(3.4f, 1.1f, 5.6f), paint);
-                    P(PrimitiveType.Cube, "Track L", root, new Vector3(-1.5f, 0.55f, 0f), new Vector3(0.7f, 1.1f, 5.8f), dark);
-                    P(PrimitiveType.Cube, "Track R", root, new Vector3(1.5f, 0.55f, 0f), new Vector3(0.7f, 1.1f, 5.8f), dark);
-                    turret = new GameObject("Turret").transform; turret.SetParent(root, false); turret.localPosition = new Vector3(0f, 1.75f, -0.3f);
-                    P(PrimitiveType.Cube, "Turret body", turret, Vector3.zero, new Vector3(2.2f, 0.8f, 2.6f), paint);
-                    barrel = P(PrimitiveType.Cylinder, "Barrel", turret, new Vector3(0f, 0.05f, 2.6f), new Vector3(0.22f, 1.8f, 0.22f), dark, new Vector3(90f, 0f, 0f)).transform;
-                    break;
-                case Kind.AA:
-                    P(PrimitiveType.Cube, "Base", root, new Vector3(0f, 0.4f, 0f), new Vector3(2.6f, 0.8f, 2.6f), paint);
-                    turret = new GameObject("Turret").transform; turret.SetParent(root, false); turret.localPosition = new Vector3(0f, 1.3f, 0f);
-                    P(PrimitiveType.Cube, "Turret body", turret, Vector3.zero, new Vector3(1.4f, 1f, 1.4f), paint);
-                    barrel = new GameObject("Barrels").transform; barrel.SetParent(turret, false); barrel.localPosition = new Vector3(0f, 0.2f, 0f); barrel.localRotation = Quaternion.Euler(-60f, 0f, 0f);
-                    P(PrimitiveType.Cylinder, "Barrel L", barrel, new Vector3(-0.3f, 0f, 1.2f), new Vector3(0.14f, 1.2f, 0.14f), dark, new Vector3(90f, 0f, 0f));
-                    P(PrimitiveType.Cylinder, "Barrel R", barrel, new Vector3(0.3f, 0f, 1.2f), new Vector3(0.14f, 1.2f, 0.14f), dark, new Vector3(90f, 0f, 0f));
-                    break;
+                case Kind.Jeep: bc.center = new Vector3(0f, 6f * U, 0f); bc.size = new Vector3(22f * U, 12f * U, 30f * U); break;
+                case Kind.Tank: bc.center = new Vector3(0f, 7f * U, 0f); bc.size = new Vector3(30f * U, 14f * U, 31f * U); break;
+                default: bc.center = new Vector3(0f, 5f * U, 0f); bc.size = new Vector3(22f * U, 11f * U, 22f * U); break;
             }
+            var hz = gameObject.AddComponent<HitZone>(); hz.owner = health; hz.multiplier = 1f;
         }
 
         void Update()

@@ -112,14 +112,15 @@ namespace BomberBuddies
         }
 
         // ---- materials ----
+        Material M(string from, Color c, float smooth = -1f) { var m = lib != null ? lib.Instance(from) : new Material(Shader.Find("Universal Render Pipeline/Lit")); m.SetColor("_BaseColor", c); if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", null); if (smooth >= 0f && m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", smooth); if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", from == "gunmetal" ? 0.4f : 0f); return m; }
+
         void MakeMaterials()
         {
-            Material M(string from, Color c, float smooth = -1f) { var m = lib != null ? lib.Instance(from) : new Material(Shader.Find("Universal Render Pipeline/Lit")); m.SetColor("_BaseColor", c); if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", null); if (smooth >= 0f && m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", smooth); if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", from == "gunmetal" ? 0.4f : 0f); return m; }
             Material E(Color c, Color glow) { var m = lib != null ? lib.Instance("glow") : new Material(Shader.Find("Universal Render Pipeline/Lit")); m.SetColor("_BaseColor", c); m.SetColor("_EmissionColor", glow); return m; }
             var hull = side == 0 ? new Color(0.5f, 0.54f, 0.6f) : new Color(0.42f, 0.4f, 0.44f);
             hullMat = M("gunmetal", hull, 0.45f);
             hullDark = M("gunmetal", hull * 0.92f, 0.45f);
-            floorMat = M("concrete", new Color(58f / 255f, 62f / 255f, 68f / 255f), 0.3f);
+            floorMat = M("concrete", new Color(44f / 255f, 48f / 255f, 54f / 255f), 0.35f);
             ceilMat = M("concrete", new Color(70f / 255f, 74f / 255f, 80f / 255f), 0.2f);
             wallMat = M("concrete", new Color(96f / 255f, 100f / 255f, 108f / 255f), 0.25f);
             doorMat = M("gunmetal", new Color(118f / 255f, 122f / 255f, 132f / 255f), 0.5f);
@@ -197,6 +198,12 @@ namespace BomberBuddies
                 EndWall(root, k, r, r.x0, k == "hangar" || k == "comp");
                 EndWall(root, k, r, r.x1, k == "hangar" || k == "engine");
             }
+            // the hangar deck: two yellow runway lines down to the mouth and hazard blocks along the lip, like the original
+            var hg = Rooms["hangar"];
+            var yellow = M("dark", new Color(0.92f, 0.78f, 0.1f), 0.3f);
+            var black = M("dark", new Color(0.08f, 0.08f, 0.09f), 0.2f);
+            for (int i = -1; i <= 1; i += 2) Slab("Runway line", new Box(hg.x0 + 60f + i * 22f - 2f, hg.x0 + 60f + i * 22f + 2f, hg.y0, hg.y0 + 0.4f, hg.z0 + 6f, hg.z1 - 10f), yellow, false, root);
+            for (int i = 0; i < 8; i++) Slab("Hazard", new Box(hg.x0 + 4f + i * 20f, hg.x0 + 14f + i * 20f, hg.y0, hg.y0 + 2.2f, hg.z0 + 1f, hg.z0 + 5f), i % 2 == 0 ? yellow : black, false, root);
             // real lights in every room, where the original put them
             Lamp("hangar", 0, 2, -30, 80, new Color(1f, 0.96f, 0.88f)); Lamp("hangar", 70, 2, -30, 80, new Color(1f, 0.96f, 0.88f)); Lamp("hangar", 110, 2, 10, 70, new Color(1f, 0.96f, 0.88f));
             Lamp("c1", -90, -8, 0, 60, new Color(0.85f, 0.9f, 1f)); Lamp("c1", -200, -8, 0, 60, new Color(0.85f, 0.9f, 1f)); Lamp("c2", 190, -8, 0, 60, new Color(0.85f, 0.9f, 1f));

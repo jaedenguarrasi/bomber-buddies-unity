@@ -36,7 +36,7 @@ namespace BomberBuddies
                 foreach (var r in GetComponentsInChildren<Renderer>()) { var m = r.material; if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", new Color(0.12f, 0.1f, 0.09f)); if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", Color.black); }
                 foreach (var l in GetComponentsInChildren<Light>()) l.enabled = false;
                 var sg = GetComponent<ShipGun>(); if (sg != null) sg.enabled = false;
-                GameState.Kills++; GameState.Touch();
+                GameState.EnemyKilled(false, kind == "scannon" ? 400 : kind == "sgun" ? 150 : kind == "score" ? 1500 : kind == "shieldgen" ? 2500 : 100);
                 if (OnDied != null) OnDied(this);
             }
         }

@@ -71,6 +71,26 @@ namespace BomberBuddies
             Quad(P(hl, -hh, hw), P(hl, hh, hw), P(-hl, hh, hw), P(-hl, -hh, hw), cZ);
         }
 
+        /// <summary>The original's dbox/dfrus in an entity basis: a box at offset (forward ox, up oy, right oz) of size (length, height,
+        /// width); the front face scaled by (ky, kz) and lifted by fo makes a tapered nose or tail. Forward is +z, right is +x.</summary>
+        public void Frustum(float ox, float oy, float oz, float len, float h, float w, float ky, float kz, float fo, Color32 col, bool shade = true)
+        {
+            float hl = len * 0.5f, hh = h * 0.5f, hw = w * 0.5f;
+            Vector3 P(float f, float u, float r) { return new Vector3(oz + r, oy + u, ox + f); }
+            // back face corners (b) and front face corners (f): indices 0 bottom-left, 1 top-left, 2 top-right, 3 bottom-right, seen from the front
+            var b0 = P(-hl, -hh, -hw); var b1 = P(-hl, hh, -hw); var b2 = P(-hl, hh, hw); var b3 = P(-hl, -hh, hw);
+            var f0 = P(hl, -hh * ky + fo, -hw * kz); var f1 = P(hl, hh * ky + fo, -hw * kz); var f2 = P(hl, hh * ky + fo, hw * kz); var f3 = P(hl, -hh * ky + fo, hw * kz);
+            var cT = col; var cB = shade ? Mul(col, 0.7f) : col; var cS = shade ? Mul(col, 0.85f) : col; var cF = shade ? Mul(col, 0.8f) : col;
+            Quad(f0, f3, f2, f1, cF);          // front
+            Quad(b1, b2, b3, b0, cF);          // back
+            Quad(f1, f2, b2, b1, cT);          // top
+            Quad(b0, b3, f3, f0, cB);          // bottom
+            Quad(b3, b2, f2, f3, cS);          // right (+x)
+            Quad(b1, b0, f0, f1, cS);          // left (-x)
+        }
+
+        public void DBox(float ox, float oy, float oz, float len, float h, float w, Color32 col, bool shade = true) { Frustum(ox, oy, oz, len, h, w, 1f, 1f, 0f, col, shade); }
+
         /// <summary>The original's prism3: an n-sided frustum from radius r0 at y0 to r1 at y1 (r1 = 0 makes a cone), per-side flat normals, radii stretched by (ex, ez).</summary>
         public void Prism(float cx, float y0, float y1, float cz, float r0, float r1, int n, float rot, float ex, float ez, Color32 col, bool capBottom = true)
         {

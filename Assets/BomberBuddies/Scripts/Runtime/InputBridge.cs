@@ -28,6 +28,10 @@ namespace BomberBuddies
         public float Throttle { get; private set; }
         /// <summary>Get in / get out of a vehicle: F, the pad's select, or the on-screen button.</summary>
         public bool InteractPressed { get; private set; }
+        /// <summary>Bomb in the air, grenade on foot: G, middle mouse, the pad's east button, or the Bomb/Grenade touch button.</summary>
+        public bool BombPressed { get; private set; }
+        /// <summary>Kick (on foot): X or the pad's west button.</summary>
+        public bool KickPressed { get; private set; }
         public bool IsTouch { get; private set; }
 
         [Header("Sensitivity")]
@@ -35,8 +39,8 @@ namespace BomberBuddies
         public float stickDegPerSecond = 170f;
         public float touchDegPerPixel = 0.16f;
 
-        InputAction move, look, fire, aim, sprint, jump, crouch, reload, view, throttle, interact;
-        bool jumpQ, crouchQ, reloadQ, viewQ, interactQ;
+        InputAction move, look, fire, aim, sprint, jump, crouch, reload, view, throttle, interact, bomb, kick;
+        bool jumpQ, crouchQ, reloadQ, viewQ, interactQ, bombQ, kickQ;
 
         void Awake()
         {
@@ -69,6 +73,17 @@ namespace BomberBuddies
             throttle.AddCompositeBinding("1DAxis").With("Positive", "<Keyboard>/e").With("Negative", "<Keyboard>/q");
             throttle.AddBinding("<Gamepad>/dpad/y");
 
+            bomb = new InputAction("Bomb", InputActionType.Button);
+            bomb.AddBinding("<Keyboard>/g");
+            bomb.AddBinding("<Mouse>/middleButton");
+            bomb.AddBinding("<Gamepad>/buttonEast");
+            bomb.performed += _ => bombQ = true;
+
+            kick = new InputAction("Kick", InputActionType.Button);
+            kick.AddBinding("<Keyboard>/x");
+            kick.AddBinding("<Gamepad>/buttonWest");
+            kick.performed += _ => kickQ = true;
+
             interact = new InputAction("Interact", InputActionType.Button);
             interact.AddBinding("<Keyboard>/f");
             interact.AddBinding("<Gamepad>/select");
@@ -82,12 +97,12 @@ namespace BomberBuddies
             crouch = new InputAction("Crouch", InputActionType.Button);
             crouch.AddBinding("<Keyboard>/c");
             crouch.AddBinding("<Keyboard>/leftCtrl");
-            crouch.AddBinding("<Gamepad>/buttonEast");
+            crouch.AddBinding("<Gamepad>/rightShoulder");
             crouch.performed += _ => crouchQ = true;
 
             reload = new InputAction("Reload", InputActionType.Button);
             reload.AddBinding("<Keyboard>/r");
-            reload.AddBinding("<Gamepad>/buttonWest");
+            reload.AddBinding("<Gamepad>/dpad/left");
             reload.performed += _ => reloadQ = true;
 
             view = new InputAction("View", InputActionType.Button);
@@ -101,12 +116,12 @@ namespace BomberBuddies
 
         void OnEnable()
         {
-            move.Enable(); look.Enable(); fire.Enable(); aim.Enable(); sprint.Enable(); jump.Enable(); crouch.Enable(); reload.Enable(); view.Enable(); throttle.Enable(); interact.Enable();
+            move.Enable(); look.Enable(); fire.Enable(); aim.Enable(); sprint.Enable(); jump.Enable(); crouch.Enable(); reload.Enable(); view.Enable(); throttle.Enable(); interact.Enable(); bomb.Enable(); kick.Enable();
         }
 
         void OnDisable()
         {
-            move.Disable(); look.Disable(); fire.Disable(); aim.Disable(); sprint.Disable(); jump.Disable(); crouch.Disable(); reload.Disable(); view.Disable(); throttle.Disable(); interact.Disable();
+            move.Disable(); look.Disable(); fire.Disable(); aim.Disable(); sprint.Disable(); jump.Disable(); crouch.Disable(); reload.Disable(); view.Disable(); throttle.Disable(); interact.Disable(); bomb.Disable(); kick.Disable();
         }
 
         void Update()
@@ -139,6 +154,8 @@ namespace BomberBuddies
             ReloadPressed = reloadQ; reloadQ = false;
             ViewPressed = viewQ; viewQ = false;
             InteractPressed = interactQ; interactQ = false;
+            BombPressed = bombQ; bombQ = false;
+            KickPressed = kickQ; kickQ = false;
             Throttle = Mathf.Clamp(throttle.ReadValue<float>(), -1f, 1f);
 
             // desktop: the mouse is captured while playing (Escape frees it)

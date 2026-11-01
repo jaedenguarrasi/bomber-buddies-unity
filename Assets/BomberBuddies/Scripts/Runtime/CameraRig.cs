@@ -8,7 +8,7 @@ namespace BomberBuddies
     {
         public Camera cam;
         public FootController player;
-        public bool firstPerson;
+        public bool firstPerson = true;
         public float yaw, pitch;
         public float tpDistance = 3.6f, tpAimDistance = 2.0f, shoulder = 0.6f, minDistance = 0.6f;
         public float baseFov = 70f, fpFov = 76f, aimFov = 46f, sprintFovAdd = 7f;
