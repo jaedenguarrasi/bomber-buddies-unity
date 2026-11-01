@@ -54,7 +54,7 @@ namespace BomberBuddies
             Txt("Label", hb, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(180f, 48f), 22, TextAnchor.MiddleCenter, Color.white, true).text = "Hangar";
             var cb = Btn("Credits", safe, new Vector2(1f, 1f), new Vector2(-250f, -34f), new Vector2(120f, 40f), "Credits", 16, () => ShowCredits());
             Btn("Setup", safe, new Vector2(1f, 1f), new Vector2(-380f, -34f), new Vector2(130f, 40f), "Battle setup", 16, () => ShowSetup());
-            Txt("Bank", safe, new Vector2(1f, 1f), new Vector2(-440f, -34f), new Vector2(300f, 30f), 16, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f)).text = "● " + Progress.Fmt(Progress.Bank) + " credits  ·  " + (Progress.Def(Progress.Craft) != null ? Progress.Def(Progress.Craft).name : "");
+            Txt("Bank", safe, new Vector2(1f, 1f), new Vector2(-150f, -84f), new Vector2(300f, 30f), 15, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f)).text = "● " + Progress.Fmt(Progress.Bank) + " credits  ·  " + (Progress.Def(Progress.Craft) != null ? Progress.Def(Progress.Craft).name : "");
 
             // the category tabs
             float x = 0f;
