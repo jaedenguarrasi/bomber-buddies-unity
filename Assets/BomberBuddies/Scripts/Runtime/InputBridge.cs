@@ -159,7 +159,14 @@ namespace BomberBuddies
             mapAct.performed += _ => mapQ = true;
 
             EnhancedTouchSupport.Enable();
+            // saved remaps (the Controls screen): overrides by action name, keyboard/mouse and pad kept apart
+            foreach (var a in Rebindable) { string ov = PlayerPrefs.GetString("bb_bind_" + a.name, ""); if (!string.IsNullOrEmpty(ov)) a.LoadBindingOverridesFromJson(ov); }
         }
+
+        /// <summary>The button actions the Controls screen can remap (sticks and the mouse look stay as they are).</summary>
+        public InputAction[] Rebindable { get { return new[] { fire, aim, sprint, jump, crouch, reload, view, interact, bomb, kick, pause, freeLook, support, seatAct, itemsAct, mapAct }; } }
+        public void SaveBinding(InputAction a) { PlayerPrefs.SetString("bb_bind_" + a.name, a.SaveBindingOverridesAsJson()); PlayerPrefs.Save(); }
+        public void ResetBindings() { foreach (var a in Rebindable) { a.RemoveAllBindingOverrides(); PlayerPrefs.DeleteKey("bb_bind_" + a.name); } PlayerPrefs.Save(); }
 
         void OnEnable()
         {
