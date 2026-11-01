@@ -55,8 +55,8 @@ namespace BomberBuddies
             { "lostworld", Set("lostworld", "Lost world", "Monsters", "Dinosaurs, and only dinosaurs: raptor packs from the start, pterodactyls swooping, a triceratops or two, and the tyrannosaur when it is ready. Nothing here needs a gun to kill you.", new Mode { comp = new[] { "raptor", "trex" }, force = (n, c) => { c["raptor"] = 3 + 2 * n; c["trex"] = n >= 2 ? 1 : 0; return c; } }) },
             { "kaiju", Set("kaiju", "The giant", "Monsters", "Something has come up out of the sea and it is walking toward the city. Every step shakes the ground, houses go under it, towers come down when it shoulders them, and it has a beam. Twelve thousand hit points. Bring everything.", new Mode { playable = false }) },
             { "colossus", Set("colossus", "The colossus", "Monsters", "A giant ape, the great ape four times over, with its monkeys. It hurls boulders the size of jeeps, and what it stands on it flattens.", new Mode { playable = false }) },
-            { "dragon", Set("dragon", "Dragon hunt", "Dragons", "One dragon, and it is enough: it circles, dives with fire, and lands to bite when you are on foot. Goblin packs and an ape or two keep you busy while you work on it. Bring it down and the credits are yours.", new Mode { playable = false }) },
-            { "dragons", Set("dragons", "Wyrm siege", "Dragons", "More than one. Dragons over the island with greys and their jet troopers below; every wave brings another. Aircraft and the heavy guns earn their keep here.", new Mode { playable = false }) },
+            { "dragon", Set("dragon", "Dragon hunt", "Dragons", "One dragon, and it is enough: it circles, dives with fire, and lands to bite when you are on foot. Goblin packs and an ape or two keep you busy while you work on it. Bring it down and the credits are yours.", new Mode { comp = new[] { "dragon", "gob", "ape" }, force = (n, c) => { c["dragon"] = 1; c["gob"] = 3 + n; c["ape"] = n / 2; return c; } }) },
+            { "dragons", Set("dragons", "Wyrm siege", "Dragons", "More than one. Dragons over the island with greys and their jet troopers below; every wave brings another. Aircraft and the heavy guns earn their keep here.", new Mode { comp = new[] { "dragon", "grey", "ejet", "aa" }, force = (n, c) => { c["dragon"] = 1 + ((n + 1) >> 1); c["grey"] = 2 + n; c["ejet"] = 1 + n / 2; c["aa"] = 1; return c; } }) },
             { "dragon_def", Set("dragon_def", "Burning village", "Dragons", "The dragon has come for the houses. It burns them from the air while its goblins keep you off it. Lose half the village and it is over. Every house you keep standing counts.", new Mode { playable = false }) },
             { "subway", Set("subway", "Subway sweep", "Underground", "You start in the tunnels. Sliders come up the line in the dark with riflemen behind them, and it does not stop. Fight along the platforms and through the stopped trains; the ladder under the shaft is the only way out, if you want it.", new Mode { playable = false }) },
             { "bunkers", Set("bunkers", "Bunker busters", "Underground", "Down the stairwell into the bunker complex. Breach the blast doors, take the rooms, and mind the ammo dumps: a stray round into one clears the room, you included. Both bunkers cleared wins the wave.", new Mode { playable = false }) },
@@ -82,7 +82,7 @@ namespace BomberBuddies
                 { "ejet", n >= 4 ? Mathf.Min(3, (n - 2) / 2) : 0 },
                 { "sam", n >= 4 ? Mathf.Min(4, (n - 2) / 2) : 0 },
                 { "bunker", n >= 2 ? Mathf.Min(3, 1 + (n - 2) / 3) : 0 },
-                { "gob", 0 }, { "ape", 0 }, { "raptor", 0 }, { "stalk", 0 }, { "trex", 0 }, { "grey", 0 }, { "ufo", 0 },
+                { "gob", 0 }, { "ape", 0 }, { "raptor", 0 }, { "stalk", 0 }, { "trex", 0 }, { "grey", 0 }, { "ufo", 0 }, { "dragon", 0 },
             };
             if (mode != null)
             {

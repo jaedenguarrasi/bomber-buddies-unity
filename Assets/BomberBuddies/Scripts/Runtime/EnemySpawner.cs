@@ -58,7 +58,7 @@ namespace BomberBuddies
             for (int i = 0; i < nCamps; i++) camps.Add(LandSpot(GameState.Wave <= 1 ? 90f : 60f, 180f));
             queue.Clear();
             // emplacements first, then the heavy stuff, then the men; aircraft arrive on their own from the edge
-            foreach (var t in new[] { "bunker", "aa", "sam", "tank", "jeep", "inf", "egun", "medic", "vest", "ejet", "grey", "trex", "ape", "stalk", "raptor", "gob", "eplane", "eheli", "ufo" })
+            foreach (var t in new[] { "bunker", "aa", "sam", "tank", "jeep", "inf", "egun", "medic", "vest", "ejet", "grey", "trex", "ape", "stalk", "raptor", "gob", "eplane", "eheli", "ufo", "dragon" })
             {
                 int k; if (!counts.TryGetValue(t, out k)) continue;
                 for (int i = 0; i < k; i++) queue.Add(t);
@@ -87,6 +87,15 @@ namespace BomberBuddies
         bool SpawnNext()
         {
             string type = queue[0];
+            if (type == "dragon")
+            {
+                float a = Random.Range(0f, Mathf.PI * 2f);
+                var centre = player != null ? player.transform.position : villageCenter;
+                var at = centre + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 500f; at.y = 200f * GalacticMode.U + Mathf.Max(0f, GameState.GroundHeight != null ? GameState.GroundHeight(at.x, at.z) : 0f);
+                var dr = Dragon.Build(transform, library, at);
+                alive.Add(dr.health);
+                return true;
+            }
             if (type == "eplane" || type == "eheli" || type == "ufo")
             {
                 // in from the edge of the island, high up
