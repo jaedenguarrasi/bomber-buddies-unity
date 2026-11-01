@@ -34,6 +34,8 @@ namespace BomberBuddies
         void Build()
         {
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var camGo = new GameObject("Hangar camera"); camGo.transform.SetParent(transform, false);
+            var cam = camGo.AddComponent<Camera>(); cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0.05f, 0.07f, 0.12f); cam.depth = 50f; cam.cullingMask = 0;
             var canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 30;
             var scaler = gameObject.AddComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1280f, 720f); scaler.matchWidthOrHeight = 1f;
             gameObject.AddComponent<GraphicRaycaster>();
