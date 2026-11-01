@@ -122,6 +122,8 @@ namespace BomberBuddies
         void OnDestroy() { if (Instance == this) Instance = null; }
 
         float listenerT; AudioListener ownListener;
+        /// <summary>The game camera has a listener now: ours goes at once.</summary>
+        public static void CameraReady() { if (Instance != null && Instance.ownListener != null) { DestroyImmediate(Instance.ownListener); Instance.ownListener = null; } }
         void Update()
         {
             // somebody has to listen: the game camera when there is one, else us (the menus)

@@ -207,6 +207,7 @@ namespace BomberBuddies
             cam.farClipPlane = 16000f * World3.U;
             cam.fieldOfView = 58f;
             camGo.AddComponent<AudioListener>();
+            Sfx.CameraReady();
             var extra = cam.GetUniversalAdditionalCameraData();
             extra.renderPostProcessing = true;
             extra.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
