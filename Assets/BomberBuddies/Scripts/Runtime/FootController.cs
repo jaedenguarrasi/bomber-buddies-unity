@@ -52,6 +52,79 @@ namespace BomberBuddies
 
         /// <summary>Read the hangar: class body, gun, upgrades (statsFrom for a soldier).</summary>
         float swingCd, swingT; bool slamArmed;
+        // the ape's arms (ape3 lift/throw): a soldier or a jeep over its head, thrown with Fire
+        Health carrying; EnemySoldier carriedMan; EnemyVehicle carriedCar;
+        public bool Carrying { get { return carrying != null; } }
+
+        /// <summary>Interact for the ape: pick up a soldier or a jeep within reach; a second press sets it down.</summary>
+        public bool TryCarry()
+        {
+            if (kit == null || !(kit.id == "ape" || kit.id == "devourer" || kit.id == "colossus")) return false;
+            if (carrying != null) { Drop(); return true; }
+            Health best = null; float bd = 3.5f;
+            foreach (var h in Health.All)
+            {
+                if (h == null || !h.alive || h.team == 0 || h.isAir) continue;
+                var es = h.GetComponent<EnemySoldier>(); var ev = h.GetComponent<EnemyVehicle>();
+                if (es == null && !(ev != null && ev.kind == EnemyVehicle.Kind.Jeep)) continue;
+                float d = Vector3.Distance(h.transform.position, transform.position); if (d < bd) { bd = d; best = h; }
+            }
+            if (best == null) return false;
+            carrying = best; carriedMan = best.GetComponent<EnemySoldier>(); carriedCar = best.GetComponent<EnemyVehicle>();
+            if (carriedMan != null) carriedMan.lifted = true;
+            if (carriedCar != null) carriedCar.enabled = false;
+            foreach (var c in best.GetComponentsInChildren<Collider>()) c.enabled = false;
+            Sfx.Play("grunt", 0.6f, 0.7f, transform.position); Sfx.Play("roar_ape", 0.4f, 1.1f, transform.position);
+            if (GameState.Hud != null) GameState.Hud.Comms(carriedCar != null ? "Got the jeep. Fire to throw it" : "Got him. Fire to throw");
+            return true;
+        }
+        void Drop()
+        {
+            if (carrying == null) return;
+            var h = carrying; carrying = null;
+            if (carriedMan != null) carriedMan.lifted = false;
+            if (carriedCar != null) carriedCar.enabled = true;
+            foreach (var c in h.GetComponentsInChildren<Collider>()) c.enabled = true;
+            var p = transform.position + transform.forward * 2f; p.y = GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : p.y; h.transform.position = p;
+            carriedMan = null; carriedCar = null;
+        }
+        void CarryUpdate(float dt, InputBridge input)
+        {
+            if (carrying == null) return;
+            if (!carrying.alive) { carrying = null; carriedMan = null; carriedCar = null; return; }
+            carrying.transform.position = transform.position + Vector3.up * (standHeight + 0.3f) + transform.forward * 0.3f;
+            carrying.transform.rotation = transform.rotation;
+            if (input.Fire && swingCd <= 0f)
+            {
+                swingCd = 0.8f; var h = carrying; carrying = null;
+                var dir = rig != null ? rig.cam.transform.forward : transform.forward; var v = (dir + Vector3.up * 0.25f).normalized * (carriedCar != null ? 22f : 28f);
+                StartCoroutine(Thrown(h, v, carriedMan, carriedCar)); carriedMan = null; carriedCar = null;
+                Sfx.Play("roar_ape", 0.7f, 0.9f, transform.position); Sfx.Play("swing", 0.6f, 0.6f, transform.position);
+            }
+        }
+        /// <summary>Through the air and into whatever is there: the thrown thing dies on landing and so does what it lands on.</summary>
+        System.Collections.IEnumerator Thrown(Health h, Vector3 v, EnemySoldier man, EnemyVehicle car)
+        {
+            float t = 0f;
+            while (t < 6f && h != null)
+            {
+                float dt = Time.deltaTime; t += dt; v += Vector3.down * 18f * dt;
+                var p = h.transform.position + v * dt; float g = GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : p.y;
+                h.transform.Rotate(0f, 0f, 540f * dt);
+                bool hitSomething = false;
+                foreach (var o in Health.All) if (o != null && o.alive && o != h && o.team != 0 && !o.isAir && Vector3.Distance(o.transform.position + Vector3.up, p) < 1.6f) { o.TakeDamage(new DamageInfo { amount = 150f * GalacticMode.K, point = p, direction = v.normalized, source = gameObject, foot = true }); hitSomething = true; }
+                if (p.y <= g || hitSomething || t > 0.4f && Physics.CheckSphere(p, 0.5f, ~((1 << 8) | (1 << 9)), QueryTriggerInteraction.Ignore))
+                {
+                    p.y = Mathf.Max(p.y, g); h.transform.position = p;
+                    if (Projectiles.Instance != null) Projectiles.Instance.Explode(p, 1.2f, car != null ? 6f : 3f, (car != null ? 120f : 60f) * GalacticMode.K, gameObject, 0);
+                    Sfx.Play("thud", 0.8f, 0.6f, p); if (Gore.Instance != null && man != null) Gore.Instance.Splat(p, 1f);
+                    h.TakeDamage(new DamageInfo { amount = 9999f, point = p, direction = v.normalized, source = gameObject, foot = man != null, explosive = car != null });
+                    yield break;
+                }
+                h.transform.position = p;
+                yield return null;
+            }
+        }
         // the Grapple's lines (the original's web-slinger): an anchor and a length per hand, a tap zips, a hold swings
         Vector3?[] anchor = new Vector3?[2]; float[] ropeLen = new float[2], holdT = new float[2]; LineRenderer[] lines = new LineRenderer[2]; float zipT;
         public bool Swinging { get { return anchor[0].HasValue || anchor[1].HasValue; } }
@@ -120,6 +193,7 @@ namespace BomberBuddies
         void Melee(float dt, InputBridge input)
         {
             swingCd -= dt; swingT -= dt;
+            if (carrying != null) { CarryUpdate(dt, input); return; }
             if (input.Fire && swingCd <= 0f)
             {
                 swingCd = kit.id == "ape" ? 0.5f : 0.32f; swingT = 0.22f; int hit = 0;

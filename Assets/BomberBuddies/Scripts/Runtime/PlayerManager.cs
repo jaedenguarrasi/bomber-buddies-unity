@@ -260,7 +260,7 @@ namespace BomberBuddies
             if (over) return;
             if (OnFoot && foot != null)
             {
-                if (InputBridge.Instance != null && InputBridge.Instance.InteractPressed) TryGetIn();
+                if (InputBridge.Instance != null && InputBridge.Instance.InteractPressed && !foot.TryCarry()) TryGetIn();
                 // into the sea
                 var fp = foot.transform.position;
                 float sea = World3.SEA * World3.U;
