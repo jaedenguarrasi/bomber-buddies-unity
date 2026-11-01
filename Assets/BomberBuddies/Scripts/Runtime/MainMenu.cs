@@ -57,7 +57,7 @@ namespace BomberBuddies
             var hbb = hb.gameObject.AddComponent<Button>(); hbb.onClick.AddListener(() => { Sfx.Play("ui_click", 0.5f); gameObject.SetActive(false); Hangar.Open(transform.parent, () => { gameObject.SetActive(true); RefreshBank(); }); });
             Txt("Label", hb, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(180f, 48f), 22, TextAnchor.MiddleCenter, Color.white, true).text = "Hangar";
             var cb = Btn("Credits", safe, new Vector2(1f, 1f), new Vector2(-250f, -34f), new Vector2(120f, 40f), "Credits", 16, () => ShowCredits());
-            Btn("Controls", safe, new Vector2(1f, 1f), new Vector2(-510f, -34f), new Vector2(120f, 40f), "Controls", 16, () => { ControlsScreen.Open(transform.parent, null); ControlsScreen.Instance.transform.SetAsLastSibling(); });
+            Btn("Controls", safe, new Vector2(1f, 1f), new Vector2(-510f, -34f), new Vector2(120f, 40f), "Controls", 16, () => { ControlsScreen.Open(transform, null); ControlsScreen.Instance.transform.SetAsLastSibling(); });
             Btn("Setup", safe, new Vector2(1f, 1f), new Vector2(-380f, -34f), new Vector2(130f, 40f), "Battle setup", 16, () => ShowSetup());
             bankText = Txt("Bank", safe, new Vector2(1f, 1f), new Vector2(-150f, -84f), new Vector2(300f, 30f), 15, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f)); RefreshBank();
 

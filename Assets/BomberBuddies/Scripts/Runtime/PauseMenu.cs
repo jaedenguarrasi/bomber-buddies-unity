@@ -37,7 +37,7 @@ namespace BomberBuddies
             Button("Resume", new Vector2(-180f, 230f), () => Close());
             Button("Hangar", new Vector2(-180f, -280f), () => { root.SetActive(false); Hangar.Open(transform.parent.parent, () => { root.SetActive(true); if (PlayerManager.Instance != null) PlayerManager.Instance.ApplyLoadout(); }); });
             Button("Quit to title", new Vector2(180f, -280f), () => { Time.timeScale = 1f; GameBootstrap.ChosenMode = null; UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex); });
-            Button("Controls", new Vector2(180f, 230f), () => { root.SetActive(false); ControlsScreen.Open(transform.parent, () => root.SetActive(true)); });
+            Button("Controls", new Vector2(180f, 230f), () => { root.SetActive(false); ControlsScreen.Open(transform.parent, () => root.SetActive(true)); ControlsScreen.Instance.transform.SetAsLastSibling(); });
             sensText = Txt("SensLabel", new Vector2(0f, 150f), new Vector2(800f, 40f), 24, "");
             Button("Look slower", new Vector2(-180f, 80f), () => { Sensitivity = Mathf.Max(0.3f, Sensitivity - 0.15f); Save(); });
             Button("Look faster", new Vector2(180f, 80f), () => { Sensitivity = Mathf.Min(3f, Sensitivity + 0.15f); Save(); });
