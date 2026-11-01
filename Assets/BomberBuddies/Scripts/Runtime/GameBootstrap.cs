@@ -19,7 +19,7 @@ namespace BomberBuddies
         public Mode mode = Mode.Galactic;
         /// <summary>Which battle to fight on the island (a key of ModeDefs.All): battle, horde, infantry, lightarmor, air.</summary>
         public string battleMode = "battle";
-        [Header("Feel")] public float pace = 0.85f, islandSpread = 1.25f;
+        [Header("Feel")] public float pace = 0.75f, islandSpread = 1.8f;
         public int seed = 7;
         public float islandSize = 1100f, maxHeight = 85f, seaLevel = 9f;
         public int treeCount = 420, rockCount = 90;

@@ -16,7 +16,7 @@ namespace BomberBuddies
         public const float U = GalacticMode.U;
         public static World3 Instance { get; private set; }
         /// <summary>How much wider the island is than the original (buildings keep their size, the land between them grows).</summary>
-        public static float Spread = 1.25f;
+        public static float Spread = 1.8f;
 
         public int seed;
         public Material lowPoly, water;

@@ -242,7 +242,8 @@ namespace BomberBuddies
             }
             else lastOk = from;
             transform.position = to;
-            if (gm != null && transform.position.y < gm.TerrainHeight(transform.position.x, transform.position.z) + 0.8f) { Crash(transform.position); return; }
+            float groundHere = GameState.GroundHeight != null ? GameState.GroundHeight(transform.position.x, transform.position.z) : (gm != null ? gm.TerrainHeight(transform.position.x, transform.position.z) : -999f);
+            if (transform.position.y < groundHere + 0.8f) { Crash(transform.position); return; }
             // wing tips scraping the hull
             for (int w = 0; w < 2; w++)
             {
