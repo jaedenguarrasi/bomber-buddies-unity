@@ -36,7 +36,7 @@ namespace BomberBuddies
         public float shake;
         public bool over;
         Transform beam;
-        float fighterT = 6f, modeLineT, endT = -1f, elapsed;
+        float fighterT = 6f, modeLineT, endT = -1f, elapsed, objT;
         float dropT = 25f, allyDropT = 4f, strikeT = 16f, bombT = 14f, allyT = 3f, pdT = 1f, fbT = 2f;
         bool onFoot { get { return pm != null && pm.OnFoot; } }
         bool respawning { get { return pm != null && pm.Respawning; } }
@@ -475,6 +475,20 @@ namespace BomberBuddies
                         var dir = enemy.MouthDirection;
                         fighters.Add(EnemyPlane.Build(transform, lib, at, Mathf.Atan2(dir.x, dir.z)));
                     }
+                }
+            }
+            // objectives: enemy riflemen march on the nearest post that is not theirs; yours on the nearest that is not yours
+            objT -= dt;
+            if (objT <= 0f)
+            {
+                objT = 2f;
+                foreach (var h in Health.All)
+                {
+                    if (h == null || !h.alive) continue;
+                    var inf = h.GetComponent<EnemySoldier>(); if (inf == null || inf.guard) continue;
+                    CommandPost best = null; float bd = 1e9f; int want = h.team == 1 ? -1 : 1;
+                    foreach (var p in posts) { if (p.own == want) continue; float d = Vector3.Distance(p.transform.position, h.transform.position); if (d < bd) { bd = d; best = p; } }
+                    inf.objective = best != null ? (Vector3?)best.transform.position : null;
                 }
             }
             // the ground war's clocks
