@@ -203,6 +203,7 @@ namespace BomberBuddies
         public void Explode(Vector3 at, float coreR, float dmgR, float dmg, GameObject source, int team)
         {
             Flash(at, Mathf.Max(1f, dmgR * 0.45f));
+            Sfx.Play(dmgR > 20f ? "expl_huge" : dmgR > 6f ? "expl_big" : "expl_small", dmgR > 6f ? 0.9f : 0.7f, 1f, at);
             var seen = new HashSet<Object>();
             foreach (var c in Physics.OverlapSphere(at, dmgR, ~0, QueryTriggerInteraction.Ignore))
             {

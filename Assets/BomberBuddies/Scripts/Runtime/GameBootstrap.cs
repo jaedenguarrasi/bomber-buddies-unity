@@ -45,6 +45,7 @@ namespace BomberBuddies
             GameState.Library = library;
             gameObject.AddComponent<InputBridge>();
             if (ChosenMode != null) { string m = ChosenMode; ChosenMode = null; Begin(m); return; }
+            Sfx.Create(transform);
             if (showMenu) { MainMenu.Create(transform, library, Begin); return; }
             Begin(mode == Mode.Galactic ? "galactic" : battleMode);
         }

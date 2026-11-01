@@ -24,7 +24,7 @@ namespace BomberBuddies
         public bool ControlsLocked { get; set; }
         /// <summary>Chute open: falls gently and steers. Jump opens it after a second in the air; landing closes it.</summary>
         public bool parachute;
-        float airT;
+        float airT, stepT; bool wasGrounded = true;
         /// <summary>The class from the hangar: rocket trooper, medic, jetpack... and its stats.</summary>
         public Progress.Kit kit;
         public Progress.Stats st;
@@ -121,18 +121,21 @@ namespace BomberBuddies
             {
                 if (vy < -20f && health != null) health.TakeDamage(new DamageInfo { amount = (-vy - 20f) * 5f, point = transform.position, direction = Vector3.down, source = gameObject });
                 vy = -2.5f; airT = 0f; parachute = false;
-                if (input.JumpPressed) { vy = jumpSpeed; crouching = false; }
+                if (input.JumpPressed) { vy = jumpSpeed; crouching = false; Sfx.Play("jump", 0.4f); }
+                if (!wasGrounded) Sfx.Play("land", 0.45f);
+                stepT += horizontal.magnitude * dt; if (stepT > 2.2f) { stepT = 0f; Sfx.Play("footstep", crouching ? 0.12f : 0.25f, sprinting ? 1.15f : 1f); }
             }
             else
             {
                 airT += dt;
                 vy -= gravity * dt;
-                if (airT > 0.6f && input.JumpPressed && !parachute && !(kit != null && kit.jetpack)) { parachute = true; if (GameState.Hud != null) GameState.Hud.Announce("Parachute open"); }
+                if (airT > 0.6f && input.JumpPressed && !parachute && !(kit != null && kit.jetpack)) { parachute = true; Sfx.Play("chute", 0.6f); if (GameState.Hud != null) GameState.Hud.Announce("Parachute open"); }
                 if (parachute) vy = Mathf.Max(vy, -4.1f);
                 else vy = Mathf.Max(vy, -52f);   // terminal velocity
             }
 
             var flags = cc.Move((horizontal + Vector3.up * vy) * dt);
+            wasGrounded = grounded;
             grounded = cc.isGrounded || (flags & CollisionFlags.Below) != 0;
             if ((flags & CollisionFlags.Above) != 0 && vy > 0f) vy = 0f;
 
@@ -151,7 +154,7 @@ namespace BomberBuddies
             // the rocket trooper: Bomb fires an anti-tank rocket in a straight line (RPG_W: v 330, dmg 240, blast 12/60)
             if (kit != null && kit.rocket && input.BombPressed && rocketCd <= 0f)
             {
-                rocketCd = 1.6f * (st != null ? st.bombReload / 2f : 1f);
+                rocketCd = 1.6f * (st != null ? st.bombReload / 2f : 1f); Sfx.Play("gun_rocket", 0.8f);
                 const float U2 = GalacticMode.U;
                 if (Projectiles.Instance != null) Projectiles.Instance.FireShell(rig.AimOrigin + rig.AimDirection * 0.8f, rig.AimDirection, 330f * U2, 12f * U2, 60f * U2, 240f * GalacticMode.K, 0, gameObject, false, 18f * U2);
                 rig.Kick(1.4f, 0f);
@@ -184,7 +187,7 @@ namespace BomberBuddies
             }
             if ((kit == null || !kit.rocket) && input.BombPressed && GameState.Grenades > 0 && nadeCd <= 0f)
             {
-                nadeCd = 2f; GameState.Grenades--; GameState.Touch();
+                nadeCd = 2f; GameState.Grenades--; GameState.Touch(); Sfx.Play("swing", 0.5f);
                 const float U = GalacticMode.U;
                 var from = rig.AimOrigin + rig.AimDirection * 0.6f + Vector3.up * 0.1f;
                 var dir = (rig.AimDirection + Vector3.up * 0.18f).normalized;

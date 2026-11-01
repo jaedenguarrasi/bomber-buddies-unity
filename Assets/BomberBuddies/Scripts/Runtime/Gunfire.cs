@@ -104,6 +104,7 @@ namespace BomberBuddies
         public void Impact(Vector3 point, Vector3 normal, bool flesh)
         {
             var dir = normal.sqrMagnitude > 0.01f ? normal : Vector3.up;
+            Sfx.Play(flesh ? "hit_flesh" : Random.value < 0.5f ? "hit_metal" : "hit_dirt", flesh ? 0.5f : 0.3f, 1f, point);
             if (flesh)
             {
                 dust.Emit(new ParticleSystem.EmitParams { position = point, velocity = dir * 1.5f, startColor = new Color(0.5f, 0.05f, 0.05f, 0.9f), startSize = 0.12f, startLifetime = 0.5f }, 6);

@@ -75,7 +75,7 @@ namespace BomberBuddies
             var btn = rt.gameObject.AddComponent<Button>();
             var colors = btn.colors; colors.highlightedColor = new Color(0.22f, 0.3f, 0.42f); colors.pressedColor = new Color(0.35f, 0.5f, 0.7f); btn.colors = colors;
             string id = mode.id;
-            btn.onClick.AddListener(() => Pick(id));
+            btn.onClick.AddListener(() => { Sfx.Play("ui_click", 0.6f); Pick(id); });
             Txt("Name", rt, new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(280f, 30f), 23, TextAnchor.MiddleLeft, Color.white).text = mode.name;
             var d = Txt("Desc", rt, new Vector2(0.5f, 1f), new Vector2(0f, -72f), new Vector2(280f, 76f), 14, TextAnchor.UpperLeft, new Color(0.8f, 0.85f, 0.92f));
             d.text = mode.desc; d.horizontalOverflow = HorizontalWrapMode.Wrap;

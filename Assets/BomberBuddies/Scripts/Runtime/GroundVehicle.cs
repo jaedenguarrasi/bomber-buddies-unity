@@ -117,6 +117,7 @@ namespace BomberBuddies
             if (input.Fire && mgT <= 0f && !Overheated) FireMg();
             if (input.BombPressed && shellT <= 0f) FireShell();
             if (input.InteractPressed && PlayerManager.Instance != null) { PlayerManager.Instance.ExitVehicle(); return; }
+            Sfx.Loop("engine", "engine_loop", 0.35f, (kind == Kind.Tank ? 0.45f : kind == Kind.Bike ? 1.1f : 0.8f) + Mathf.Abs(speedU) / spd * 0.5f);
             Camera(dt);
         }
 
@@ -143,6 +144,7 @@ namespace BomberBuddies
             var dir = Quaternion.AngleAxis(Random.Range(0f, 360f), AimDir) * Quaternion.Euler(Random.Range(0f, 0.5f * g.spread), 0f, 0f) * AimDir;
             if (Projectiles.Instance != null) Projectiles.Instance.FireRound(from, dir, g.speed * U, (st != null ? st.dmg : g.dmg) * GalacticMode.K, g.range * U, 0, gameObject, new Color(1f, 0.9f, 0.6f), 0.04f);
             if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(from, dir, 1f);
+            Sfx.Play("gun_lmg", 0.5f);
             if (GameState.Hud != null) GameState.Hud.OnShot();
         }
 
@@ -153,6 +155,7 @@ namespace BomberBuddies
             float bk = st != null ? st.blastK : 1f;
             if (Projectiles.Instance != null) Projectiles.Instance.FireShell(from, AimDir, shellV * U, shellCr * U * bk, shellDr * U * bk, shellDmg * GalacticMode.K * bk, 0, gameObject, false, shellG * U);
             if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(from, AimDir, kind == Kind.Tank ? 2.6f : 1.4f);
+            Sfx.Play(kind == Kind.Tank ? "gun_cannon" : "gun_rocket", 0.9f, kind == Kind.Tank ? 0.8f : 1f);
         }
 
         void Camera(float dt)

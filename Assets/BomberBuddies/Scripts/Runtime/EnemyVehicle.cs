@@ -127,6 +127,7 @@ namespace BomberBuddies
             if (Projectiles.Instance == null) return;
             var from = turret.position + turret.forward * 1.2f + Vector3.up * 0.3f;
             float K = GalacticMode.K;
+            Sfx.Play(kind == Kind.Tank ? "gun_cannon" : kind == Kind.Sam ? "gun_rocket" : "gun_lmg", kind == Kind.Tank ? 0.8f : 0.4f, kind == Kind.Tank ? 0.9f : 1f, from);
             Vector3 lead = target != null ? aim : aim;
             switch (kind)
             {

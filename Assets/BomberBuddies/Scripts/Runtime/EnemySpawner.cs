@@ -63,7 +63,7 @@ namespace BomberBuddies
                 int k; if (!counts.TryGetValue(t, out k)) continue;
                 for (int i = 0; i < k; i++) queue.Add(t);
             }
-            if (GameState.Hud != null) GameState.Hud.Announce("Wave " + n);
+            if (GameState.Hud != null) { GameState.Hud.Announce("Wave " + n); GameState.Hud.Sting(); }
             GameState.Touch();
         }
 

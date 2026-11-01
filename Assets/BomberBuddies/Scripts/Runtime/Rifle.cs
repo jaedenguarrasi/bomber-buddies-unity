@@ -10,7 +10,7 @@ namespace BomberBuddies
         public CameraRig rig;
         public float damage = 26f, headMultiplier = 2.2f, roundsPerMinute = 620f, spreadHip = 1.7f, spreadAim = 0.3f, range = 320f;
         public int magSize = 30, ammo = 30, pellets = 1;
-        public bool beam;
+        public bool beam; public string gunId = "rifle";
         public float reloadTime = 2.1f;
         public bool Aiming { get; private set; }
         public bool Reloading { get { return reloadT > 0f; } }
@@ -120,7 +120,7 @@ namespace BomberBuddies
             roundsPerMinute = 60f / (st != null ? st.fireInt : g.interval);
             range = g.range * GalacticMode.U;
             spreadHip = g.spread; spreadAim = g.pellets > 1 ? g.spread : Mathf.Min(0.3f, g.spread * 0.25f);
-            magSize = g.mag; ammo = magSize; pellets = g.pellets; beam = g.beam;
+            magSize = g.mag; ammo = magSize; pellets = g.pellets; beam = g.beam; gunId = g.id;
             reloadTime = g.mag <= 2 ? 2.6f : g.mag <= 8 ? 2.4f : g.mag >= 100 ? 4.5f : 2.1f;
         }
 
@@ -147,6 +147,8 @@ namespace BomberBuddies
                 Gunfire.Instance.MuzzleFlash(from, dir, 1f);
             }
             rig.Kick((Aiming ? 0.55f : 0.95f) * (pellets > 1 ? 1.8f : damage > 100f ? 1.6f : 1f), Random.Range(-0.25f, 0.25f));
+            Sfx.Play(Sfx.GunSound(gunId), 0.55f, gunId == "carbine" ? 1.1f : 1f);
+            if (pellets > 1) Sfx.Play("pump", 0.5f);
             if (GameState.Hud != null) GameState.Hud.OnShot();
         }
     }

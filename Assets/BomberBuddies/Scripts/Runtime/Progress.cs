@@ -164,7 +164,7 @@ namespace BomberBuddies
             var it = ItemOf(id); if (it == null) return false;
             int lvl = Level(craft, id); if (!CanBuyMore(it, lvl)) return false;
             int c = CostOf(it, lvl); if (c > Bank) return false;
-            Bank -= c; SetLevel(craft, id, lvl + 1); PlayerPrefs.Save(); return true;
+            Bank -= c; SetLevel(craft, id, lvl + 1); PlayerPrefs.Save(); Sfx.Play("ui_buy", 0.6f); return true;
         }
 
         public static int GunPrice(string craft, string gun) { return gun == DefaultGun(craft) ? 0 : GunDef(gun).price; }
@@ -172,18 +172,18 @@ namespace BomberBuddies
         {
             if (OwnsGun(craft, gun)) { SetGun(craft, gun); return true; }
             int p = GunPrice(craft, gun); if (p > Bank) return false;
-            Bank -= p; PlayerPrefs.SetInt("bb_own_" + craft + "_" + gun, 1); SetGun(craft, gun); return true;
+            Bank -= p; PlayerPrefs.SetInt("bb_own_" + craft + "_" + gun, 1); SetGun(craft, gun); Sfx.Play("ui_buy", 0.6f); return true;
         }
 
         public static int MateCost(string id) { var m = MateDef(id); int have = MatesOf(id); return Mathf.RoundToInt(m.basePrice * (1f + 0.12f * have) / 10f) * 10; }
-        public static bool Hire(string id) { int c = MateCost(id); if (c > Bank) return false; Bank -= c; PlayerPrefs.SetInt("bb_mate_" + id, MatesOf(id) + 1); PlayerPrefs.Save(); return true; }
+        public static bool Hire(string id) { int c = MateCost(id); if (c > Bank) return false; Sfx.Tone(700f, 0.09f, 0.08f, "triangle"); Bank -= c; PlayerPrefs.SetInt("bb_mate_" + id, MatesOf(id) + 1); PlayerPrefs.Save(); return true; }
         public static bool Fire(string id) { int have = MatesOf(id); if (have <= 0) return false; PlayerPrefs.SetInt("bb_mate_" + id, have - 1); Bank += Mathf.RoundToInt(MateCost(id) / 2f); PlayerPrefs.Save(); return true; }
 
         public static bool PickCraft(string id)
         {
             var d = Def(id); if (d == null || !d.available) return false;
             if (!OwnsCraft(id)) { if (d.price > Bank) return false; Bank -= d.price; PlayerPrefs.SetInt("bb_owncraft_" + id, 1); }
-            Craft = id; PlayerPrefs.Save(); return true;
+            Craft = id; PlayerPrefs.Save(); Sfx.Tone(520f, 0.09f, 0.08f, "triangle"); return true;
         }
 
         public static void EraseAll()

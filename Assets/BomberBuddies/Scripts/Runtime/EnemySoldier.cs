@@ -58,7 +58,7 @@ namespace BomberBuddies
             if (reach)
             {
                 if (agent != null && agent.enabled && agent.isOnNavMesh) agent.ResetPath();
-                if (meleeT <= 0f) { meleeT = kind == "trex" ? 1.6f : kind == "ape" ? 1.1f : 0.8f; target.TakeDamage(new DamageInfo { amount = meleeDmg * GalacticMode.K * 0.45f, point = target.transform.position + Vector3.up, direction = to.normalized, source = gameObject, foot = true }); if (Gunfire.Instance != null) Gunfire.Instance.Impact(target.transform.position + Vector3.up * 0.9f, -to.normalized, true); }
+                if (meleeT <= 0f) { meleeT = kind == "trex" ? 1.6f : kind == "ape" ? 1.1f : 0.8f; Sfx.Play(kind == "trex" ? "roar_big" : kind == "ape" ? "roar_ape" : kind == "raptor" ? "screech" : kind == "gob" ? "cackle" : "scream", 0.6f, 1f, transform.position); Sfx.Play(kind == "trex" ? "stomp" : "swing", 0.5f, 1f, transform.position); target.TakeDamage(new DamageInfo { amount = meleeDmg * GalacticMode.K * 0.45f, point = target.transform.position + Vector3.up, direction = to.normalized, source = gameObject, foot = true }); if (Gunfire.Instance != null) Gunfire.Instance.Impact(target.transform.position + Vector3.up * 0.9f, -to.normalized, true); }
                 moveSpeed = 0f;
             }
             else if (agent != null && agent.enabled && agent.isOnNavMesh)
@@ -129,6 +129,7 @@ namespace BomberBuddies
             foreach (var c in GetComponentsInChildren<Collider>()) c.enabled = false;
             if (model != null) model.Die(info.direction);
             if (Team != 0) GameState.EnemyKilled(info.headshot, score);
+            Sfx.Play(melee ? (kind == "trex" ? "roar_big" : kind == "ape" ? "roar_ape" : "screech") : (info.headshot ? "thud" : "grunt"), 0.5f, 1f, transform.position);
             deadT = 0f;
         }
 
@@ -361,6 +362,7 @@ namespace BomberBuddies
             if (burstLeft <= 0) { pauseT = pauseBetweenBursts * Random.Range(0.7f, 1.4f); return; }
             burstLeft--;
             burstT = burstGap;
+            Sfx.Play(kind == "egun" ? "gun_lmg" : "gun_rifle", 0.42f, 1.05f, transform.position);
             var from = model != null && model.muzzle != null ? model.muzzle.position : transform.TransformPoint(muzzleFallback);
             float spread = spreadDeg * (moveSpeed > 0.5f ? 1.6f : 1f) * Mathf.Lerp(0.6f, 1.4f, Mathf.InverseLerp(5f, attackRange, Vector3.Distance(from, at)));
             var dir = (at - from).normalized;

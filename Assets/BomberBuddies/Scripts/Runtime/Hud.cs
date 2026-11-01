@@ -209,7 +209,7 @@ namespace BomberBuddies
             RoundButton("View", new Vector2(-196f, -40f), "<Gamepad>/buttonNorth", "👁");
             RoundButton("Support", new Vector2(-272f, -40f), "<Gamepad>/dpad/up", "✦");
             RoundButton("Seat", new Vector2(-348f, -40f), "<Gamepad>/dpad/left", "⇄");
-            RoundButton("Sound", new Vector2(-120f, -40f), "", "♪");
+            RoundButton("Sound", new Vector2(-120f, -40f), "", "♪", () => { if (!Sfx.Muted && Sfx.MusicOn) { Sfx.MusicOn = false; Comms("Music off"); } else if (!Sfx.Muted) { Sfx.Muted = true; Comms("Sound off"); } else { Sfx.Muted = false; Sfx.MusicOn = true; Comms("Sound on"); } PlayerPrefs.Save(); });
             RoundButton("Pause", new Vector2(-44f, -40f), "", "⏸", () => { if (PauseMenu.Instance != null) PauseMenu.Instance.Toggle(); });
             waveText = Txt("Wave", safe, tr, new Vector2(-476f, -82f), new Vector2(240f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.9f, 0.9f, 0.9f));
             modeText = Txt("Mode", safe, new Vector2(0.5f, 1f), new Vector2(120f, -102f), new Vector2(900f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.75f, 0.85f, 1f, 0.9f));
@@ -324,6 +324,7 @@ namespace BomberBuddies
         public void Damaged(float amount) { flashT = Mathf.Min(0.6f, flashT + 0.12f + amount * 0.012f); }
         public void Announce(string text) { message.text = text; messageT = 2.6f; }
         public void Announce(string text, float seconds) { message.text = text; messageT = seconds; }
+        public void Sting() { Sfx.Play("sting", 0.6f); }
         /// <summary>The small comms line under the top-right row ("▸ On foot", "▸ Launch!").</summary>
         public void Comms(string text) { if (commsText != null) { commsText.text = "▸ " + text; commsT = 3f; } }
         /// <summary>Big buttons (×1.2) and the left-handed mirror, like the original's options.</summary>

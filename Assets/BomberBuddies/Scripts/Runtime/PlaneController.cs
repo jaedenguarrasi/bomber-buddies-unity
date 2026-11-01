@@ -188,6 +188,7 @@ namespace BomberBuddies
             else Fly(sx, sy, boosting, dt);
             if (rotor != null) { rotor.Rotate(0f, (Landed && thr < 0.2f ? 200f : 1800f) * dt, 0f); if (tailRotor != null) tailRotor.Rotate(0f, 0f, 2600f * dt); }
             if (propT != null) propT.Rotate(0f, 0f, 2400f * dt);
+            EngineSound(boosting);
 
             // guns and bombs
             heat = Mathf.Max(0f, heat - dt * 0.28f);
@@ -396,6 +397,7 @@ namespace BomberBuddies
             if (IsAC130 && (input.KickPressed || input.ReloadPressed)) { ac130Gun = (ac130Gun + 1) % 3; if (GameState.Hud != null) GameState.Hud.Announce(AC130Guns[ac130Gun], 1.5f); }
 
             if (IsHeli) AiHover(dt); else AiOrbit(dt);
+            EngineSound(false);
             if (rotor != null) { rotor.Rotate(0f, 1800f * dt, 0f); if (tailRotor != null) tailRotor.Rotate(0f, 0f, 2600f * dt); }
             if (propT != null) propT.Rotate(0f, 0f, 2400f * dt);
 
@@ -450,6 +452,7 @@ namespace BomberBuddies
                 }
             }
             if (heat >= 1f) { Overheated = true; heat = 1f; }
+            Sfx.Play(IsAC130 ? (ac130Gun == 0 ? "gun_lmg" : "gun_cannon") : Sfx.GunSound(st != null ? st.gun.id : "m2"), IsAC130 && ac130Gun == 2 ? 1f : 0.6f, IsAC130 && ac130Gun == 2 ? 0.7f : 1f, from);
             if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(from, dir, IsAC130 && ac130Gun == 2 ? 3f : 1.2f);
             if (GameState.Hud != null) GameState.Hud.OnShot();
         }
@@ -542,18 +545,28 @@ namespace BomberBuddies
                 }
                 if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(m.position, dir, 1.2f);
             }
+            Sfx.Play(Sfx.GunSound(g.id), g.id == "m2" ? 0.5f : 0.75f, 1f, transform.position);
             // rocket pods: a rocket now and then while the gun is held
             if (st != null && st.rocketInt > 0f && rocketT <= 0f && Projectiles.Instance != null)
             {
-                rocketT = st.rocketInt;
+                rocketT = st.rocketInt; Sfx.Play("gun_rocket", 0.7f, 1f, transform.position);
                 Projectiles.Instance.FireShell(transform.position - Vector3.up * 0.4f, AimDir, 520f * U, 20f * U, 60f * U, 90f * GalacticMode.K, 0, gameObject, false, 0f);
             }
             if (GameState.Hud != null) GameState.Hud.OnShot();
         }
 
+        /// <summary>The engine: the plane's drone rises with throttle and speed, the rotor beats with the collective; boost pushes the music.</summary>
+        void EngineSound(bool boosting)
+        {
+            if (!Active) return;
+            if (boosting && docked == null) Sfx.Boosting = true;
+            if (IsHeli) Sfx.Loop("engine", "rotor_loop", Landed && thr < 0.2f ? 0.25f : 0.5f, 0.85f + thr * 0.35f + (boosting ? 0.15f : 0f));
+            else Sfx.Loop("engine", "engine_loop", docked != null ? 0.2f : 0.45f, 0.7f + thr * 0.5f + Mathf.Clamp01(speedU / 600f) * 0.3f + (boosting ? 0.25f : 0f));
+        }
+
         void DropBomb()
         {
-            bombs--; bombCd = 0.34f;
+            bombs--; bombCd = 0.34f; Sfx.Play("whistle", 0.35f, 1f, transform.position);
             var vel = Velocity; vel.y = Mathf.Min(vel.y, 0f) - 25f * U;
             if (Projectiles.Instance != null) { float bk = st != null ? st.blastK : 1f; Projectiles.Instance.DropBomb(transform.position - Vector3.up * 0.9f, vel, 36f * U * bk, 86f * U * bk, 175f * GalacticMode.K * bk, gameObject); }
         }

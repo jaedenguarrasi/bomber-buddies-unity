@@ -206,7 +206,7 @@ namespace BomberBuddies
         {
             var t = Rect(name, parent, anchorMin, anchorMax, pos, size);
             var im = t.gameObject.AddComponent<Image>(); im.color = new Color(0.16f, 0.2f, 0.3f, 1f);
-            var b = t.gameObject.AddComponent<Button>(); if (onClick != null) b.onClick.AddListener(() => onClick());
+            var b = t.gameObject.AddComponent<Button>(); if (onClick != null) b.onClick.AddListener(() => { Sfx.Play("ui_click", 0.5f); onClick(); });
             var cols = b.colors; cols.disabledColor = new Color(0.6f, 0.6f, 0.6f, 0.6f); b.colors = cols;
             var tx = Txt("Label", t, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, fontSize, TextAnchor.MiddleCenter, Color.white, true); tx.text = label;
             return b;

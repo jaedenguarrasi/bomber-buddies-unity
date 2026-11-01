@@ -112,6 +112,7 @@ namespace BomberBuddies
         {
             if (!earned.Contains(id) || busy) return;
             earned.Remove(id);
+            Sfx.Play("ui_click", 0.6f); Sfx.Play("sting", 0.5f);
             ToggleTablet();
             switch (id)
             {
