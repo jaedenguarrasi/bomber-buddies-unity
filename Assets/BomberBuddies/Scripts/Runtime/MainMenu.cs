@@ -53,6 +53,7 @@ namespace BomberBuddies
             var hbb = hb.gameObject.AddComponent<Button>(); hbb.onClick.AddListener(() => { Sfx.Play("ui_click", 0.5f); gameObject.SetActive(false); Hangar.Open(transform.parent, () => gameObject.SetActive(true)); });
             Txt("Label", hb, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(180f, 48f), 22, TextAnchor.MiddleCenter, Color.white, true).text = "Hangar";
             var cb = Btn("Credits", safe, new Vector2(1f, 1f), new Vector2(-250f, -34f), new Vector2(120f, 40f), "Credits", 16, () => ShowCredits());
+            Btn("Setup", safe, new Vector2(1f, 1f), new Vector2(-380f, -34f), new Vector2(130f, 40f), "Battle setup", 16, () => ShowSetup());
             Txt("Bank", safe, new Vector2(1f, 1f), new Vector2(-440f, -34f), new Vector2(300f, 30f), 16, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f)).text = "● " + Progress.Fmt(Progress.Bank) + " credits  ·  " + (Progress.Def(Progress.Craft) != null ? Progress.Def(Progress.Craft).name : "");
 
             // the category tabs
@@ -101,6 +102,39 @@ namespace BomberBuddies
             Txt("Name", rt, new Vector2(0f, 1f), new Vector2(141f, -168f), new Vector2(270f, 24f), 19, TextAnchor.MiddleLeft, mode.playable ? Color.white : new Color(0.6f, 0.62f, 0.66f), true).text = mode.name + (mode.playable ? "" : "   · coming");
             var d = Txt("Desc", rt, new Vector2(0f, 1f), new Vector2(141f, -205f), new Vector2(270f, 48f), 11, TextAnchor.UpperLeft, new Color(0.8f, 0.85f, 0.92f));
             d.text = mode.desc; d.horizontalOverflow = HorizontalWrapMode.Wrap; d.verticalOverflow = VerticalWrapMode.Truncate;
+        }
+
+        GameObject setup; Transform setupList;
+        /// <summary>Battle setup: the enemy mix for Battle and Horde, the amount, lives and friendly fire (renderMatch).</summary>
+        void ShowSetup()
+        {
+            Sfx.Play("ui_click", 0.5f);
+            if (setup != null) { setup.SetActive(!setup.activeSelf); if (setup.activeSelf) RenderSetup(); return; }
+            setup = new GameObject("Battle setup", typeof(RectTransform)); setup.transform.SetParent(transform, false);
+            var rt = setup.GetComponent<RectTransform>(); rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+            var bg = setup.AddComponent<Image>(); bg.color = new Color(0.03f, 0.05f, 0.09f, 0.96f);
+            Txt("Title", setup.transform, new Vector2(0.5f, 1f), new Vector2(0f, -50f), new Vector2(900f, 50f), 32, TextAnchor.MiddleCenter, Color.white, true).text = "BATTLE SETUP  ·  applies to Battle and Horde";
+            var panel = Rect("List", setup.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(1000f, 520f));
+            var grid = panel.gameObject.AddComponent<GridLayoutGroup>(); grid.cellSize = new Vector2(320f, 50f); grid.spacing = new Vector2(12f, 10f); grid.childAlignment = TextAnchor.UpperCenter;
+            setupList = panel;
+            Btn("Close", setup.transform, new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(220f, 50f), "Done", 20, () => { PlayerPrefs.Save(); setup.SetActive(false); });
+            RenderSetup();
+        }
+
+        void RenderSetup()
+        {
+            foreach (Transform c in setupList) Destroy(c.gameObject);
+            for (int i = 0; i < BattleSetup.Types.Length; i++)
+            {
+                string t = BattleSetup.Types[i]; bool on = BattleSetup.On(t);
+                var b = Btn("T " + t, setupList, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(320f, 50f), (on ? "✓  " : "   ") + BattleSetup.Names[i], 17, () => { BattleSetup.Set(t, !BattleSetup.On(t)); Sfx.Tone(520f, 0.04f, 0.04f, "triangle"); RenderSetup(); });
+                b.GetComponent<Image>().color = on ? new Color(0.22f, 0.4f, 0.3f, 1f) : new Color(0.14f, 0.16f, 0.2f, 1f);
+            }
+            float am = BattleSetup.Amount;
+            Btn("Amount", setupList, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(320f, 50f), "Amount: " + (am <= 0.5f ? "half" : am >= 2f ? "double" : "normal"), 17, () => { BattleSetup.Amount = am <= 0.5f ? 1f : am >= 2f ? 0.5f : 2f; RenderSetup(); });
+            int lv = BattleSetup.Lives;
+            Btn("Lives", setupList, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(320f, 50f), "Lives: " + lv, 17, () => { BattleSetup.Lives = lv >= 5 ? 1 : lv + 2; RenderSetup(); });
+            Btn("FF", setupList, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(320f, 50f), "Friendly fire: " + (BattleSetup.FriendlyFire ? "on" : "off"), 17, () => { BattleSetup.FriendlyFire = !BattleSetup.FriendlyFire; RenderSetup(); });
         }
 
         GameObject credits;

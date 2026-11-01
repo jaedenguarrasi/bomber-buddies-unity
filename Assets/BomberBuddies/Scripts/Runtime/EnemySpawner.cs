@@ -52,7 +52,7 @@ namespace BomberBuddies
         public void StartWave(int n)
         {
             GameState.Wave = n;
-            var counts = ModeDefs.WaveCounts(Mode, n);
+            var counts = BattleSetup.Apply(modeId, ModeDefs.WaveCounts(Mode, n), n);
             camps.Clear();
             int nCamps = 2 + Mathf.Min(2, n / 2);
             for (int i = 0; i < nCamps; i++) camps.Add(LandSpot(GameState.Wave <= 1 ? 90f : 60f, 180f));
