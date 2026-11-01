@@ -22,6 +22,8 @@ namespace BomberBuddies
         float hitT, flashT, messageT, crossSpread = 12f, commsT;
         Font font;
         GameObject touchRoot;
+        RectTransform safe;   // everything anchored to the screen edges lives in here, inset by the phone's notch / home bar
+        Rect lastSafe;
         PlaneController flight;
         readonly Dictionary<string, Text> labels = new Dictionary<string, Text>();
         readonly Dictionary<string, Image> buttons = new Dictionary<string, Image>();
@@ -133,6 +135,8 @@ namespace BomberBuddies
                 es.AddComponent<InputSystemUIInputModule>();
             }
 
+            safe = Rect("Safe", transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            safe.offsetMin = Vector2.zero; safe.offsetMax = Vector2.zero;
             var mid = new Vector2(0.5f, 0.5f);
             var cross = new Color(1f, 1f, 1f, 0.9f);
             crossA = Img("CrossUp", transform, mid, new Vector2(0f, crossSpread), new Vector2(2f, 10f), cross);
@@ -155,7 +159,7 @@ namespace BomberBuddies
 
             // top-left panel: Hull / Gun / Boost bars, lives, bombs, throttle
             var tl = new Vector2(0f, 1f);
-            var panel = Img("Panel", transform, tl, new Vector2(18f + 131f, -18f - 36f), new Vector2(262f, 72f), new Color(0.02f, 0.03f, 0.05f, 0.55f));
+            var panel = Img("Panel", safe, tl, new Vector2(18f + 131f, -18f - 36f), new Vector2(262f, 72f), new Color(0.02f, 0.03f, 0.05f, 0.55f));
             var barBack = new Color(0.25f, 0.27f, 0.3f, 0.9f);
             string[] rows = { "Hull", "Gun", "Boost" };
             Color[] fills = { new Color(0.55f, 0.75f, 0.3f), new Color(0.75f, 0.72f, 0.65f), new Color(0.55f, 0.85f, 0.95f) };
@@ -183,24 +187,24 @@ namespace BomberBuddies
 
             // top-right row: credits, Get out, mark, view, sound, pause
             var tr = new Vector2(1f, 0f + 1f);
-            var pill = Img("GetOut", transform, tr, new Vector2(-250f, -36f), new Vector2(118f, 44f), new Color(0.05f, 0.08f, 0.12f, 0.6f), true);
+            var pill = Img("GetOut", safe, tr, new Vector2(-250f, -36f), new Vector2(118f, 44f), new Color(0.05f, 0.08f, 0.12f, 0.6f), true);
             pill.sprite = Circle(); pill.type = Image.Type.Sliced;
             var pillBtn = pill.gameObject.AddComponent<OnScreenButton>(); pillBtn.controlPath = "<Gamepad>/select";
             getOutLabel = Txt("Label", pill.transform, mid, Vector2.zero, new Vector2(118f, 44f), 17, TextAnchor.MiddleCenter, Color.white, true); getOutLabel.text = "Get out";
-            creditsText = Txt("Credits", transform, tr, new Vector2(-350f, -36f), new Vector2(120f, 30f), 17, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f), true); creditsText.text = "● 0";
+            creditsText = Txt("Credits", safe, tr, new Vector2(-350f, -36f), new Vector2(120f, 30f), 17, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f), true); creditsText.text = "● 0";
             RoundButton("View", new Vector2(-160f, -36f), "<Gamepad>/buttonNorth", "👁");
             RoundButton("Sound", new Vector2(-100f, -36f), "", "♪");
             RoundButton("Pause", new Vector2(-40f, -36f), "", "⏸", () => { if (PauseMenu.Instance != null) PauseMenu.Instance.Toggle(); });
-            waveText = Txt("Wave", transform, tr, new Vector2(-250f, -72f), new Vector2(240f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.9f, 0.9f, 0.9f));
-            modeText = Txt("Mode", transform, new Vector2(0.5f, 1f), new Vector2(120f, -102f), new Vector2(900f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.75f, 0.85f, 1f, 0.9f));
-            commsText = Txt("Comms", transform, new Vector2(1f, 1f), new Vector2(-180f, -112f), new Vector2(300f, 22f), 13, TextAnchor.MiddleRight, new Color(0.95f, 0.95f, 0.95f));
+            waveText = Txt("Wave", safe, tr, new Vector2(-250f, -72f), new Vector2(240f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.9f, 0.9f, 0.9f));
+            modeText = Txt("Mode", safe, new Vector2(0.5f, 1f), new Vector2(120f, -102f), new Vector2(900f, 22f), 13, TextAnchor.MiddleCenter, new Color(0.75f, 0.85f, 1f, 0.9f));
+            commsText = Txt("Comms", safe, new Vector2(1f, 1f), new Vector2(-180f, -112f), new Vector2(300f, 22f), 13, TextAnchor.MiddleRight, new Color(0.95f, 0.95f, 0.95f));
             message = Txt("Message", transform, new Vector2(0.5f, 0.78f), Vector2.zero, new Vector2(1000f, 60f), 34, TextAnchor.MiddleCenter, Color.white, true);
             message.text = "";
 
             // throttle slider on the right
-            throttleTrack = Rect("ThrottleTrack", transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-187f, -20f), new Vector2(10f, 150f));
+            throttleTrack = Rect("ThrottleTrack", safe, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-187f, 30f), new Vector2(10f, 150f));
             var trackIm = throttleTrack.gameObject.AddComponent<Image>(); trackIm.color = new Color(0.9f, 0.75f, 0.3f, 0.55f); trackIm.raycastTarget = false;
-            Txt("ThrottleLabel", transform, new Vector2(1f, 0.5f), new Vector2(-187f, 78f), new Vector2(120f, 20f), 13, TextAnchor.MiddleCenter, new Color(0.95f, 0.95f, 0.95f), true).text = "Throttle";
+            Txt("ThrottleLabel", safe, new Vector2(1f, 0.5f), new Vector2(-187f, 128f), new Vector2(120f, 20f), 13, TextAnchor.MiddleCenter, new Color(0.95f, 0.95f, 0.95f), true).text = "Throttle";
             throttleKnob = Img("ThrottleKnob", throttleTrack, mid, Vector2.zero, new Vector2(46f, 30f), new Color(0.97f, 0.95f, 0.9f, 0.95f));
             throttleKnob.sprite = Circle(); throttleKnob.type = Image.Type.Sliced;
             throttleChip = Txt("Chip", throttleKnob.transform, mid, Vector2.zero, new Vector2(46f, 30f), 14, TextAnchor.MiddleCenter, new Color(0.1f, 0.1f, 0.12f), true);
@@ -234,7 +238,7 @@ namespace BomberBuddies
         void BuildTouchControls()
         {
             touchRoot = new GameObject("Touch", typeof(RectTransform));
-            touchRoot.transform.SetParent(transform, false);
+            touchRoot.transform.SetParent(safe, false);
             var r = touchRoot.GetComponent<RectTransform>(); r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = Vector2.zero; r.offsetMax = Vector2.zero;
             // the stick: home at (2r + 44, h - 2r - 10) in the original
             var bl = new Vector2(0f, 0f);
@@ -244,7 +248,7 @@ namespace BomberBuddies
             stick.movementRange = R * 0.8f;
             stick.controlPath = "<Gamepad>/leftStick";
             // the throttle slider's touch area (dpad y)
-            var thrArea = Img("ThrottleTouch", touchRoot.transform, new Vector2(1f, 0.5f), new Vector2(-187f, -20f), new Vector2(90f, 200f), new Color(1f, 1f, 1f, 0.01f), true);
+            var thrArea = Img("ThrottleTouch", touchRoot.transform, new Vector2(1f, 0.5f), new Vector2(-187f, 30f), new Vector2(90f, 200f), new Color(1f, 1f, 1f, 0.01f), true);
             var thrKnob = Img("ThrottleStick", thrArea.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(60f, 40f), new Color(1f, 1f, 1f, 0.0f), true);
             var thr = thrKnob.gameObject.AddComponent<OnScreenStick>(); thr.movementRange = 80f; thr.controlPath = "<Gamepad>/dpad";
             // buttons from the Gun button, exactly the original's offsets (its y grows downward)
@@ -323,7 +327,7 @@ namespace BomberBuddies
             SetButton("pn", "Kick", !fly);
             SetButton("gb", "Crouch", !fly);
             if (throttleTrack != null) throttleTrack.gameObject.SetActive(fly);
-            foreach (Transform t in transform) if (t.name == "ThrottleLabel") t.gameObject.SetActive(fly);
+            foreach (Transform t in safe) if (t.name == "ThrottleLabel") t.gameObject.SetActive(fly);
             if (touchRoot != null) { var ta = touchRoot.transform.Find("ThrottleTouch"); if (ta != null) ta.gameObject.SetActive(fly); }
             if (getOutLabel != null) getOutLabel.text = fly ? "Get out" : "Get in";
             if (heightText != null) heightText.gameObject.SetActive(fly);
@@ -342,6 +346,7 @@ namespace BomberBuddies
         void Update()
         {
             float dt = Time.deltaTime;
+            ApplySafeArea();
             var p = GameState.Player;
             bool fly = flight != null && flight.Active;
             if (fly)
@@ -396,6 +401,18 @@ namespace BomberBuddies
             crossB.rectTransform.anchoredPosition = new Vector2(0f, -crossSpread);
             crossC.rectTransform.anchoredPosition = new Vector2(-crossSpread, 0f);
             crossD.rectTransform.anchoredPosition = new Vector2(crossSpread, 0f);
+        }
+
+        /// <summary>Keeps the edge-anchored HUD and the touch controls out of the notch and the home bar.</summary>
+        void ApplySafeArea()
+        {
+            var sa = Screen.safeArea;
+            if (safe == null || sa == lastSafe || Screen.width == 0 || Screen.height == 0) return;
+            lastSafe = sa;
+            var min = new Vector2(sa.xMin / Screen.width, sa.yMin / Screen.height);
+            var max = new Vector2(sa.xMax / Screen.width, sa.yMax / Screen.height);
+            safe.anchorMin = min; safe.anchorMax = max;
+            safe.offsetMin = Vector2.zero; safe.offsetMax = Vector2.zero;
         }
 
         void UpdateRadar()
