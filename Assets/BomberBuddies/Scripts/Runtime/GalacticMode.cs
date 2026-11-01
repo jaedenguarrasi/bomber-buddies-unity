@@ -410,9 +410,9 @@ namespace BomberBuddies
             plane.gameObject.SetActive(false);
             SetOnFoot(true);
             foot.Teleport(pos, plane.yaw * Mathf.Rad2Deg);
-            foot.parachute = true;
+            foot.parachute = false;
             foot.ControlsLocked = false;
-            if (GameState.Hud != null) GameState.Hud.Announce("Bailed out! Steer with the stick");
+            if (GameState.Hud != null) GameState.Hud.Announce("Bailed out! Jump opens your parachute", 3f);
         }
 
         // ---- the player ----

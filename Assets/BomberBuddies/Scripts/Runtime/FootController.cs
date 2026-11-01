@@ -109,8 +109,9 @@ namespace BomberBuddies
             {
                 airT += dt;
                 vy -= gravity * dt;
-                if (airT > 1.2f && input.JumpPressed && !parachute) { parachute = true; if (GameState.Hud != null) GameState.Hud.Announce("Parachute open"); }
+                if (airT > 0.6f && input.JumpPressed && !parachute) { parachute = true; if (GameState.Hud != null) GameState.Hud.Announce("Parachute open"); }
                 if (parachute) vy = Mathf.Max(vy, -4.1f);
+                else vy = Mathf.Max(vy, -52f);   // terminal velocity
             }
 
             var flags = cc.Move((horizontal + Vector3.up * vy) * dt);
