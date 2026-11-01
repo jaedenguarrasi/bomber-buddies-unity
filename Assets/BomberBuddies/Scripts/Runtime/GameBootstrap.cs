@@ -83,8 +83,10 @@ namespace BomberBuddies
             GameState.Spawner = spawner;
             IslandMode.Create(transform, library, world, spawner, battleMode);
             // like the original: you start in your plane over the island, and come back the same way
-            pm.placeOnRespawn = () => { pm.SpawnInAir(world.spawn + new Vector3(Random.Range(-40f, 40f), 0f, Random.Range(-40f, 40f))); return true; };
+            var team = Teammates.Create(transform, library, spawner, seaLevel);
+            pm.placeOnRespawn = () => { var at = world.spawn + new Vector3(Random.Range(-40f, 40f), 0f, Random.Range(-40f, 40f)); pm.SpawnInAir(at); team.Deploy(at); return true; };
             pm.SpawnInAir(world.spawn);
+            team.Deploy(world.spawn);
             GameState.Hud.Announce(spawner.Mode.name);
             GameState.Touch();
         }
