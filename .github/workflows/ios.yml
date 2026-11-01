@@ -18,9 +18,10 @@ permissions:
   contents: read
   issues: write
 
+# never cancel a build that is already signing/uploading: a skipped push run would otherwise kill a manual one
 concurrency:
-  group: ios-${{ github.ref }}
-  cancel-in-progress: true
+  group: ios-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || 'push' }}
+  cancel-in-progress: false
 
 jobs:
   unity:
