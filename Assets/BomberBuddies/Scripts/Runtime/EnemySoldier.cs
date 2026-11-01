@@ -26,7 +26,7 @@ namespace BomberBuddies
         public bool melee; public int score = 10;
         float meleeDmg, meleeReach = 1.6f, meleeT, creatureSpeed = 4f, leapT;
 
-        public void MakeCreature(string k)
+        public void MakeCreature(string k, MaterialLibrary lib = null)
         {
             kind = k; melee = true;
             float K = GalacticMode.K; Vector3 scale = Vector3.one; Color tint = Color.white;
@@ -40,12 +40,23 @@ namespace BomberBuddies
             }
             health.current = health.max; health.aimHeight = 1.1f * scale.y;
             sightRange = 140f;
-            if (model != null)
+            if (lib != null)
+            {
+                // its own body
+                if (model != null) Destroy(model.gameObject);
+                model = CreatureModel.Create(transform, lib, k, gameObject.layer);
+                scale = Vector3.one * (k == "trex" ? 1f : 1f);
+            }
+            else if (model != null)
             {
                 model.transform.localScale = scale;
                 foreach (var r in model.GetComponentsInChildren<Renderer>()) { foreach (var m in r.materials) if (m.HasProperty("_Tint")) m.SetVector("_Tint", new Vector4(tint.r, tint.g, tint.b, 1f)); }
             }
-            if (agent != null) { agent.speed = creatureSpeed; agent.radius = 0.35f * scale.x; agent.height = 1.8f * scale.y; agent.acceleration = 30f; agent.stoppingDistance = meleeReach * 0.6f; }
+            float bodyH = k == "trex" ? 8f : k == "ape" ? 2.6f : k == "stalk" ? 3.2f : k == "raptor" ? 1.6f : 1.1f;
+            health.aimHeight = bodyH * 0.55f;
+            var cc = GetComponent<CapsuleCollider>(); if (cc != null) { cc.height = bodyH; cc.center = new Vector3(0f, bodyH * 0.5f, 0f); cc.radius = k == "trex" ? 1.4f : k == "ape" ? 0.7f : 0.35f; }
+            var hz = transform.Find("HeadZone"); if (hz != null) { hz.localPosition = new Vector3(0f, k == "trex" ? 6.5f : k == "ape" ? 2.5f : k == "stalk" ? 2.8f : k == "raptor" ? 1.9f : 1.0f, k == "trex" ? 4f : k == "raptor" ? 1.1f : 0f); var sc = hz.GetComponent<SphereCollider>(); if (sc != null) sc.radius = k == "trex" ? 1.2f : k == "ape" ? 0.4f : 0.2f; }
+            if (agent != null) { agent.speed = creatureSpeed; agent.radius = k == "trex" ? 1.4f : k == "ape" ? 0.7f : 0.35f; agent.height = bodyH; agent.acceleration = 30f; agent.stoppingDistance = meleeReach * 0.6f; }
         }
 
         /// <summary>A creature: run straight at the nearest thing on the ground and hit it; apes and raptors leap the last stretch.</summary>

@@ -111,7 +111,7 @@ namespace BomberBuddies
                     NavMeshHit hit = default(NavMeshHit);
                     bool onMesh = NavMesh.SamplePosition(p, out hit, 10f, NavMesh.AllAreas);
                     var e = Spawn(onMesh ? hit.position : p, onMesh);
-                    e.MakeCreature(type);
+                    e.MakeCreature(type, library);
                     alive.Add(e.health);
                 }
                 else if (type == "inf" || type == "medic" || type == "egun" || type == "vest" || type == "ejet")
