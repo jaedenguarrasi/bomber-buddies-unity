@@ -220,7 +220,10 @@ namespace BomberBuddies
                 if (k <= 0f) continue;
                 var target = hz != null ? (IDamageable)hz.owner : d;
                 if (target == null) continue;
-                target.TakeDamage(new DamageInfo { amount = dmg * k, point = c.ClosestPoint(at), direction = (c.transform.position - at).normalized, source = source, explosive = true });
+                // teammates' blasts only scratch each other (the original's friendly fire is a Battle-setup option; off by default here)
+                var th = target as Health; float ff = 1f;
+                if (th != null && th.team == team && source != null && source != th.gameObject && team != 2) ff = 0.15f;
+                target.TakeDamage(new DamageInfo { amount = dmg * k * ff, point = c.ClosestPoint(at), direction = (c.transform.position - at).normalized, source = source, explosive = true });
             }
             if (GameState.Rig != null && GameState.Rig.cam != null)
             {
