@@ -148,10 +148,20 @@ namespace BomberBuddies
             var kind = Progress.Craft == "heli" ? PlaneController.Craft.Heli : Progress.Craft == "heli2" ? PlaneController.Craft.Heli2 : Progress.Craft == "ac130" ? PlaneController.Craft.AC130 : PlaneController.Craft.Plane;
             var c = NewCraft(kind, at, yaw, null);
             Fly(c, at, yaw, null, c.IsHeli ? 60f : 180f);
+            StartCoroutine(Grace(c.health, 3f));
         }
 
         /// <summary>After the hangar: every aircraft of ours picks up the new upgrades, and so does the soldier.</summary>
         public void ApplyLoadout() { foreach (var c in craft) if (c != null) c.ApplyLoadout(); foreach (var r in rides) if (r != null) r.ApplyLoadout(); if (foot != null) foot.ApplyKit(); }
+
+        /// <summary>A few seconds of grace after a spawn: nothing can hurt you while you get your bearings.</summary>
+        public IEnumerator Grace(Health h, float seconds)
+        {
+            if (h == null) yield break;
+            h.invulnerable = true;
+            yield return new WaitForSeconds(seconds);
+            if (h != null) h.invulnerable = false;
+        }
 
         /// <summary>Into the driver's seat of a ground vehicle.</summary>
         public void Drive(GroundVehicle v)
@@ -194,6 +204,7 @@ namespace BomberBuddies
             rides.Add(v);
             if (foot != null) { foot.health.ResetFull(); foot.ApplyKit(); foot.Teleport(at, yaw); }
             Drive(v);
+            StartCoroutine(Grace(v.health, 4f));
         }
 
         /// <summary>A soldier class: start on the ground at the spawn, facing the island's centre.</summary>
@@ -208,6 +219,7 @@ namespace BomberBuddies
             foot.ApplyKit();
             foot.Teleport(at, yaw);
             foot.ControlsLocked = false;
+            StartCoroutine(Grace(foot.health, 4f));
             if (GameState.Hud != null) GameState.Hud.Comms("On foot");
         }
 

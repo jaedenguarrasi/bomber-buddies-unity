@@ -105,7 +105,8 @@ namespace BomberBuddies
                 float h = GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : camp.y;
                 if (h <= seaLevel + 1f) continue;
                 p.y = h;
-                if (player != null && Vector3.Distance(p, player.transform.position) < (GameState.Wave <= 1 ? 60f : 35f)) continue;
+                bool creature = type == "gob" || type == "ape" || type == "raptor" || type == "stalk" || type == "trex";
+                if (player != null && Vector3.Distance(p, player.transform.position) < (creature ? 110f : GameState.Wave <= 1 ? 60f : 35f)) continue;
                 if (type == "gob" || type == "ape" || type == "raptor" || type == "stalk" || type == "trex")
                 {
                     NavMeshHit hit = default(NavMeshHit);
