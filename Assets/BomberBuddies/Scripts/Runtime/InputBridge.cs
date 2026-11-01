@@ -40,6 +40,9 @@ namespace BomberBuddies
         public bool LookHeld { get; private set; }
         /// <summary>A support call (the Predator missile) has the controls: the player's craft sees nothing, the call reads RawLook / RawFire.</summary>
         public static bool Hijacked;
+        /// <summary>Where "level" is for tilt steering: set from the pause menu (Level tilt).</summary>
+        public static Vector2 tiltLevel;
+        public static void LevelTilt() { if (Accelerometer.current != null) { if (!Accelerometer.current.enabled) InputSystem.EnableDevice(Accelerometer.current); var a = Accelerometer.current.acceleration.ReadValue(); tiltLevel = new Vector2(a.x, a.y); } }
         public Vector2 RawLook { get; private set; }
         public Vector2 RawMove { get; private set; }
         public bool RawFire { get; private set; }
@@ -171,6 +174,15 @@ namespace BomberBuddies
         void Update()
         {
             Move = Vector2.ClampMagnitude(move.ReadValue<Vector2>(), 1f);
+            // tilt steering (the original's steer: 'tilt'): in the air on a phone, the phone's lean is the stick
+            if (PauseMenu.Tilt && IsTouch && Accelerometer.current != null && PlayerManager.Instance != null && !PlayerManager.Instance.OnFoot && PlayerManager.Instance.drive == null)
+            {
+                if (!Accelerometer.current.enabled) InputSystem.EnableDevice(Accelerometer.current);
+                var a = Accelerometer.current.acceleration.ReadValue();
+                // landscape: the long axis is x; lean left/right rolls, nose up/down pitches, relative to where you held it when you levelled
+                float tx = Mathf.Clamp((a.x - tiltLevel.x) * 2.2f, -1f, 1f), ty = Mathf.Clamp((a.y - tiltLevel.y) * 2.2f, -1f, 1f);
+                if (Mathf.Abs(Move.x) < 0.15f) Move = new Vector2(tx, Move.y); if (Mathf.Abs(Move.y) < 0.15f) Move = new Vector2(Move.x, -ty);
+            }
 
             var l = look.ReadValue<Vector2>();
             bool fromMouse = look.activeControl != null && look.activeControl.device is Mouse;
