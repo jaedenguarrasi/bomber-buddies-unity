@@ -11,6 +11,9 @@ namespace BomberBuddies
     /// and a tile per mode with its art and blurb. Modes this build cannot run yet are shown dimmed with "coming".</summary>
     public class MainMenu : MonoBehaviour
     {
+        Text bankText;
+        void RefreshBank() { if (bankText != null) bankText.text = "● " + Progress.Fmt(Progress.Bank) + " credits  ·  " + (Progress.Def(Progress.Craft) != null ? Progress.Def(Progress.Craft).name : ""); }
+
         Font font;
         Action<string> onPick;
         string cat;
@@ -50,11 +53,11 @@ namespace BomberBuddies
             // hangar + bank, top right
             var hb = Rect("Hangar button", safe, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-90f, -34f), new Vector2(180f, 48f));
             var hbi = hb.gameObject.AddComponent<Image>(); hbi.color = new Color(0.22f, 0.4f, 0.3f, 1f);
-            var hbb = hb.gameObject.AddComponent<Button>(); hbb.onClick.AddListener(() => { Sfx.Play("ui_click", 0.5f); gameObject.SetActive(false); Hangar.Open(transform.parent, () => gameObject.SetActive(true)); });
+            var hbb = hb.gameObject.AddComponent<Button>(); hbb.onClick.AddListener(() => { Sfx.Play("ui_click", 0.5f); gameObject.SetActive(false); Hangar.Open(transform.parent, () => { gameObject.SetActive(true); RefreshBank(); }); });
             Txt("Label", hb, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(180f, 48f), 22, TextAnchor.MiddleCenter, Color.white, true).text = "Hangar";
             var cb = Btn("Credits", safe, new Vector2(1f, 1f), new Vector2(-250f, -34f), new Vector2(120f, 40f), "Credits", 16, () => ShowCredits());
             Btn("Setup", safe, new Vector2(1f, 1f), new Vector2(-380f, -34f), new Vector2(130f, 40f), "Battle setup", 16, () => ShowSetup());
-            Txt("Bank", safe, new Vector2(1f, 1f), new Vector2(-150f, -84f), new Vector2(300f, 30f), 15, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f)).text = "● " + Progress.Fmt(Progress.Bank) + " credits  ·  " + (Progress.Def(Progress.Craft) != null ? Progress.Def(Progress.Craft).name : "");
+            bankText = Txt("Bank", safe, new Vector2(1f, 1f), new Vector2(-150f, -84f), new Vector2(300f, 30f), 15, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f)); RefreshBank();
 
             // the category tabs
             float x = 0f;

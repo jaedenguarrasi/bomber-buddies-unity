@@ -79,7 +79,7 @@ namespace BomberBuddies
                 CameraInsideBody = true;
                 return;
             }
-            float wantDist = aiming ? tpAimDistance : tpDistance;
+            float wantDist = (aiming ? tpAimDistance : tpDistance) * Mathf.Max(1f, player.SizeK * 1.15f);
             dist = Mathf.Lerp(dist, wantDist, Mathf.Min(1f, 8f * dt));
             var offset = rot * new Vector3(shoulder, 0.15f, -dist);
             var desired = head + offset;

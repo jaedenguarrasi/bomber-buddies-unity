@@ -20,7 +20,9 @@ namespace BomberBuddies
         public bool Sprinting { get { return sprinting; } }
         public float MoveSpeed { get { return horizontal.magnitude; } }
         public bool Crouching { get { return crouching; } }
-        public float EyeHeight { get { return Mathf.Lerp(1.64f, 1.12f, crouchK) + (InCover ? (Peeking ? 0.42f : -0.18f) : 0f); } }
+        public float EyeHeight { get { return (Mathf.Lerp(1.64f, 1.12f, crouchK) + (InCover ? (Peeking ? 0.42f : -0.18f) : 0f)) * (standHeight / 1.8f); } }
+        /// <summary>How big the body is next to a soldier: the camera stands further back from an ape.</summary>
+        public float SizeK { get { return standHeight / 1.8f; } }
         /// <summary>Cover (coverNear / coverSnap): crouched against something waist-high you tuck in behind it; aiming peeks over.</summary>
         public bool InCover { get; private set; }
         public bool Peeking { get; private set; }
