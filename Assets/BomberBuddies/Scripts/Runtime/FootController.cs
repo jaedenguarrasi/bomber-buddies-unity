@@ -28,7 +28,15 @@ namespace BomberBuddies
         /// <summary>The class from the hangar: rocket trooper, medic, jetpack... and its stats.</summary>
         public Progress.Kit kit;
         public Progress.Stats st;
-        float healCd, rocketCd, jetFuel = 1f;
+        float healCd, rocketCd, jetFuel = 1f, knockT;
+        /// <summary>A blast or a big hit nearby puts you on the ground for a moment (Knocked off your feet).</summary>
+        public void Knock(float seconds, string why)
+        {
+            if (knockT > 0f) return;
+            knockT = seconds; crouching = true;
+            if (GameState.Hud != null) GameState.Hud.Announce(why, 1.6f);
+            Sfx.Play("thud", 0.6f);
+        }
         public bool Jetting { get; private set; }
 
         /// <summary>Read the hangar: class body, gun, upgrades (statsFrom for a soldier).</summary>
@@ -111,6 +119,7 @@ namespace BomberBuddies
             float h = Mathf.Lerp(standHeight, crouchHeight, crouchK);
             cc.height = h; cc.center = new Vector3(0f, h * 0.5f, 0f);
 
+            if (knockT > 0f) { knockT -= dt; move = Vector2.zero; sprinting = false; if (knockT <= 0f) crouching = false; }
             float speed = aiming ? aimSpeed : crouching ? crouchSpeed : sprinting ? sprintSpeed : walkSpeed;
             var flat = rig.FlatRotation;
             var want = (flat * Vector3.forward * move.y + flat * Vector3.right * move.x) * speed;

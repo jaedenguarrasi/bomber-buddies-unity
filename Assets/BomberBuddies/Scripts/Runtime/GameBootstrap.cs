@@ -224,7 +224,12 @@ namespace BomberBuddies
             player.rifle = rifle;
             player.ApplyKit();
 
-            playerHealth.OnDamaged += info => { lastHurt = Time.time; if (GameState.Hud != null) GameState.Hud.Damaged(info.amount); };
+            playerHealth.OnDamaged += info =>
+            {
+                lastHurt = Time.time; if (GameState.Hud != null) GameState.Hud.Damaged(info.amount);
+                if (info.amount > 40f && !info.foot && player != null && player.gameObject.activeInHierarchy) player.Knock(0.9f, "Knocked off your feet!");
+                else if (info.foot && info.source != null && info.amount > 30f && player != null) { var es = info.source.GetComponent<EnemySoldier>(); if (es != null && es.melee) player.Knock(0.7f, es.kind == "ape" ? "An ape hit you!" : es.kind == "trex" ? "Crushed" : "Knocked off your feet!"); }
+            };
             playerHealth.OnDied += info => { Debug.Log("Player down: " + info.amount + " damage from " + (info.source != null ? info.source.name : "?") + " at " + player.transform.position); };
             GameState.Player = player;
             GameState.Rig = rig;

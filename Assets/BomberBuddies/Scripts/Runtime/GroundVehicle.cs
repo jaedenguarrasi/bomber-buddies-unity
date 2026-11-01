@@ -20,6 +20,7 @@ namespace BomberBuddies
         // GV: speed, reverse, turn rate (rad/s), hull, length, shell
         float spd, rev, turn, len, shellV, shellG, shellDmg, shellDr, shellCr, reloadK, reach, camDist;
         float speedU, mgT, shellT, heat;
+        public bool crippled;   // the tank's track, the car's tyre
         Transform model, turret, barrel;
         public string ProgressId { get { return kind == Kind.Tank ? "tank" : kind == Kind.Scout ? "scout" : "bike"; } }
         public string Name { get { return kind == Kind.Tank ? "battle tank" : kind == Kind.Scout ? "scout car" : "dirt bike"; } }
@@ -46,6 +47,11 @@ namespace BomberBuddies
             if (kind == Kind.Bike) body.transform.localScale = new Vector3(0.45f, 0.7f, 0.75f);
             v.turret = t; v.barrel = b;
             v.ApplyLoadout();
+            hp.OnDamaged += info =>
+            {
+                if (GameState.Hud != null && v.Active) GameState.Hud.Damaged(info.amount);
+                if (!v.crippled && hp.Fraction < 0.3f) { v.crippled = true; if (v.Active && GameState.Hud != null) GameState.Hud.Announce(kind == Kind.Tank ? "Track broken: you cannot move, but you can still fight" : "Tyre popped!", 3f); }
+            };
             hp.OnDied += info =>
             {
                 if (Projectiles.Instance != null) Projectiles.Instance.Explode(go.transform.position + Vector3.up * 0.8f, 1.5f, 4f, 0f, go, 0);
@@ -79,6 +85,7 @@ namespace BomberBuddies
             float fwdIn = input.Move.y, steer = input.Move.x;
             float thk = st != null ? st.thrustK : 1f, tk = st != null ? st.turnK : 1f;
             float target = fwdIn > 0f ? spd * thk * fwdIn : rev * fwdIn;
+            if (crippled) { target *= kind == Kind.Tank ? 0f : 0.45f; if (kind != Kind.Tank) steer += Mathf.Sin(Time.time * 7f) * 0.25f; }
             float accel = kind == Kind.Tank ? 45f : 120f;
             speedU = Mathf.MoveTowards(speedU, target, accel * dt * (fwdIn == 0f ? 1.6f : 1f));
             float sk = Mathf.Clamp(Mathf.Abs(speedU) / (spd * 0.35f), kind == Kind.Tank ? 1f : 0.2f, 1f);

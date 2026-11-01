@@ -24,6 +24,8 @@ namespace BomberBuddies
         public float gunYaw, gunPitch = -20f; public int ac130Gun;
         public static readonly string[] AC130Guns = { "25mm Gatling", "40mm Bofors", "105mm howitzer" };
         float gunT, aiGunT; Vector3 orbitCentre; bool orbitSet; Transform gunMount;
+        /// <summary>The original's damage states: a hit engine (half power) and a hit tail (the heli spins, the plane will not hold a line).</summary>
+        public bool engineHit, tailHit; float spinDir = 1f;
         public Health health;
         public Camera cam;
         public MaterialLibrary lib;
@@ -68,7 +70,13 @@ namespace BomberBuddies
             p.gunMount = new GameObject("GunMount").transform; p.gunMount.SetParent(p.model, false);
             p.gunMount.localPosition = craft == Craft.AC130 ? new Vector3(-2.6f * U, -0.5f * U, 0f) : new Vector3(0f, -4f * U, 9f * U);
             p.ApplyLoadout();
-            p.health.OnDamaged += info => { if (GameState.Hud != null && p.Active) GameState.Hud.Damaged(info.amount); };
+            p.health.OnDamaged += info =>
+            {
+                if (GameState.Hud != null && p.Active) GameState.Hud.Damaged(info.amount);
+                float f = p.health.Fraction;
+                if (!p.engineHit && f < 0.45f) { p.engineHit = true; if (p.Active && GameState.Hud != null) GameState.Hud.Announce(p.IsHeli ? "Engine hit: losing lift" : "Engine hit: losing power", 2.5f); }
+                if (!p.tailHit && f < 0.22f && Random.value < 0.5f) { p.tailHit = true; p.spinDir = Random.value < 0.5f ? -1f : 1f; if (p.Active && GameState.Hud != null) GameState.Hud.Announce(p.IsHeli ? "Tail rotor hit! You are spinning" : "Tail fin shot off: she will not hold a line", 3f); }
+            };
             go.SetActive(false);
             return p;
         }
@@ -104,7 +112,7 @@ namespace BomberBuddies
             yaw = yawDeg * Mathf.Deg2Rad; pitch = 0f; bank = 0f;
             docked = dockedIn; speedU = speed; launchT = 0f; thr = IsHeli ? 0.5f : 0.73f; heat = 0f; Overheated = false; boost = 1f; boostOut = false;
             fwdU = IsHeli ? speed : 0f; vyU = 0f; Landed = false;
-            bombs = maxBombs; wingDamage[0] = wingDamage[1] = 0f; seat = 1; orbitSet = false; gunYaw = IsAC130 ? -90f : 0f; gunPitch = IsAC130 ? -40f : -15f;
+            bombs = maxBombs; wingDamage[0] = wingDamage[1] = 0f; seat = 1; engineHit = false; tailHit = false; orbitSet = false; gunYaw = IsAC130 ? -90f : 0f; gunPitch = IsAC130 ? -40f : -15f;
             health.ResetFull();
             Velocity = Vector3.zero;
             ApplyPose();
@@ -223,7 +231,7 @@ namespace BomberBuddies
             float d = Mathf.Max(Mathf.Abs(p.x), Mathf.Abs(p.z));
             if (d < limit) { edgeT = 0f; return; }
             edgeT += dt;
-            if (GameState.Hud != null && Mathf.Repeat(edgeT, 2f) < dt) GameState.Hud.Announce("Turn back! You are leaving the island");
+            if (GameState.Hud != null && Mathf.Repeat(edgeT, 2f) < dt) GameState.Hud.Announce("Turn around or something bad will happen");
             if (edgeT > 8f || d > limit * 1.6f) Crash(p);
         }
 
@@ -245,7 +253,8 @@ namespace BomberBuddies
         {
             bool stalled = speedU < 70f;
             float k = Mathf.Clamp(speedU / 150f, 0.45f, 1.1f);
-            float tk = st != null ? st.turnK : 1f, thk = st != null ? st.thrustK : 1f;
+            float tk = st != null ? st.turnK : 1f, thk = (st != null ? st.thrustK : 1f) * (engineHit ? 0.5f : 1f);
+            if (tailHit) yaw += spinDir * 0.35f * dt + Mathf.Sin(Time.time * 3f) * 0.3f * dt;   // she will not hold a line
             yaw += sx * 1.35f * k * tk * dt;
             pitch += -sy * 1.5f * k * tk * (stalled ? 0.35f : 1f) * dt;
             if (sy == 0f) pitch -= pitch * 0.55f * dt;      // auto-level
@@ -310,8 +319,9 @@ namespace BomberBuddies
         /// (half way hovers), boost doubles the engine. It lands on anything flat and can be left there.</summary>
         void FlyHeli(float sx, float sy, bool boosting, float dt)
         {
-            float power = (boosting ? 2.6f : 1f) * (st != null ? st.thrustK : 1f);
+            float power = (boosting ? 2.6f : 1f) * (st != null ? st.thrustK : 1f) * (engineHit ? 0.6f : 1f);
             yaw += sx * 1.7f * (st != null ? st.turnK : 1f) * dt;
+            if (tailHit) yaw += spinDir * 1.6f * dt;   // the tail rotor is gone: round and round
             float fwdTarget = -sy * 205f * power;
             fwdU += (fwdTarget - fwdU) * Mathf.Min(1f, 2.7f * dt);
             float vyTarget = (thr - 0.5f) * 2f * 150f * power;

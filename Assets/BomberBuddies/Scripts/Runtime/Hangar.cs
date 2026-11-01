@@ -35,6 +35,9 @@ namespace BomberBuddies
 #endif
 
         public static bool IsOpen { get { return Instance != null && Instance.gameObject.activeSelf; } }
+        float flashT; string flashText;
+        public static void Flash(string text) { if (Instance != null) { Instance.flashT = 1.6f; Instance.flashText = text; } }
+        void LateUpdate() { if (flashT > 0f) { flashT -= Time.unscaledDeltaTime; if (bankText != null) bankText.text = flashT > 0f ? flashText : "● " + Progress.Fmt(Progress.Bank) + " credits"; } }
 
         void Build()
         {

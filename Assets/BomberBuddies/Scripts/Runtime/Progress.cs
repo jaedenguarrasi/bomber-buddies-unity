@@ -164,7 +164,10 @@ namespace BomberBuddies
             var it = ItemOf(id); if (it == null) return false;
             int lvl = Level(craft, id); if (!CanBuyMore(it, lvl)) return false;
             int c = CostOf(it, lvl); if (c > Bank) return false;
-            Bank -= c; SetLevel(craft, id, lvl + 1); PlayerPrefs.Save(); Sfx.Play("ui_buy", 0.6f); return true;
+            bool over = lvl >= it.max;
+            Bank -= c; SetLevel(craft, id, lvl + 1); PlayerPrefs.Save(); Sfx.Play("ui_buy", 0.6f, over ? 1.15f : 1f);
+            if (over) Hangar.Flash("You rebel");   /* past the top, it keeps going: dearer each time, and a word for it */
+            return true;
         }
 
         public static int GunPrice(string craft, string gun) { return gun == DefaultGun(craft) ? 0 : GunDef(gun).price; }
