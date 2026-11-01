@@ -21,6 +21,10 @@ namespace BomberBuddies
         public Carrier docked;
         public float speedU = 0f, yaw, pitch, bank, thr = 0.73f, boost = 1f, launchT, heat;
         public int bombs = 8, maxBombs = 8;
+        /// <summary>The hangar's upgrades and gun for this craft (original units).</summary>
+        public Progress.Stats st;
+        float bombT, rocketT;
+        public bool IsPlayers { get { return PlayerManager.Instance != null && PlayerManager.Instance.craft.Contains(this); } }
         public bool Overheated { get; private set; }
         public bool Airborne { get { return docked == null; } }
         public Vector3 Velocity { get; private set; }
@@ -49,6 +53,7 @@ namespace BomberBuddies
             var zone = go.AddComponent<HitZone>(); zone.owner = p.health; zone.multiplier = 1f;
             var col = go.AddComponent<SphereCollider>(); col.radius = 1.3f;
             if (craft == Craft.Heli) p.BuildHeliModel(); else p.BuildModel();
+            p.ApplyLoadout();
             p.health.OnDamaged += info => { if (GameState.Hud != null && p.Active) GameState.Hud.Damaged(info.amount); };
             go.SetActive(false);
             return p;
@@ -131,8 +136,15 @@ namespace BomberBuddies
             if (Mathf.Abs(sx) < 0.12f) sx = 0f; if (Mathf.Abs(sy) < 0.12f) sy = 0f;
             thr = Mathf.Clamp01(thr + input.Throttle * 0.9f * dt);
             bool boosting = input.Sprint && !boostOut && boost > 0f && docked == null;
-            if (boosting) { boost -= dt / 2.4f; if (boost <= 0f) { boost = 0f; boostOut = true; } }
-            else { boost = Mathf.Min(1f, boost + dt / (2.4f * 2.3f)); if (boostOut && boost > 0.25f) boostOut = false; }
+            float bsec = st != null ? st.boostSec : 2.4f, brk = st != null ? st.boostRegenK : 1f;
+            if (boosting) { boost -= dt / bsec; if (boost <= 0f) { boost = 0f; boostOut = true; } }
+            else { boost = Mathf.Min(1f, boost + dt * brk / (bsec * 2.3f)); if (boostOut && boost > 0.25f) boostOut = false; }
+            if (st != null)
+            {
+                if (st.regen > 0f && health.alive && health.current < health.max) health.current = Mathf.Min(health.max, health.current + st.regen * dt);
+                if (bombs < maxBombs) { bombT += dt; if (bombT >= st.bombReload * 4f) { bombT = 0f; bombs++; } } else bombT = 0f;
+                rocketT -= dt;
+            }
 
             if (launchT > 0f) launchT -= dt;
             health.isAir = docked == null;
@@ -198,14 +210,15 @@ namespace BomberBuddies
         {
             bool stalled = speedU < 70f;
             float k = Mathf.Clamp(speedU / 150f, 0.45f, 1.1f);
-            yaw += sx * 1.35f * k * dt;
-            pitch += -sy * 1.5f * k * (stalled ? 0.35f : 1f) * dt;
+            float tk = st != null ? st.turnK : 1f, thk = st != null ? st.thrustK : 1f;
+            yaw += sx * 1.35f * k * tk * dt;
+            pitch += -sy * 1.5f * k * tk * (stalled ? 0.35f : 1f) * dt;
             if (sy == 0f) pitch -= pitch * 0.55f * dt;      // auto-level
             if (stalled) pitch -= 1.4f * dt;
             if (AltitudeU > 4700f && pitch > -0.2f) pitch -= 1.8f * dt;
             pitch = Mathf.Clamp(pitch, -1.3f, 1.3f);
             bank += (Mathf.Clamp(sx, -1.15f, 1.15f) * 0.95f - bank) * Mathf.Min(1f, 2.6f * dt);
-            speedU += (140f * (0.45f + 0.75f * thr) + (boosting ? 460f : 0f) - 0.8f * speedU - 110f * Mathf.Sin(pitch) - Mathf.Abs(sx) * 22f) * dt;
+            speedU += (140f * thk * (0.45f + 0.75f * thr) + (boosting ? 460f : 0f) - 0.8f * speedU - 110f * Mathf.Sin(pitch) - Mathf.Abs(sx) * 22f) * dt;
             speedU = Mathf.Clamp(speedU, 35f, 820f);
             var v = Forward * speedU * U * GameTuning.Pace;
             if (stalled) v.y -= (1f - speedU / 70f) * 90f * U;
@@ -262,8 +275,8 @@ namespace BomberBuddies
         /// (half way hovers), boost doubles the engine. It lands on anything flat and can be left there.</summary>
         void FlyHeli(float sx, float sy, bool boosting, float dt)
         {
-            float power = boosting ? 2.6f : 1f;
-            yaw += sx * 1.7f * dt;
+            float power = (boosting ? 2.6f : 1f) * (st != null ? st.thrustK : 1f);
+            yaw += sx * 1.7f * (st != null ? st.turnK : 1f) * dt;
             float fwdTarget = -sy * 205f * power;
             fwdU += (fwdTarget - fwdU) * Mathf.Min(1f, 2.7f * dt);
             float vyTarget = (thr - 0.5f) * 2f * 150f * power;
@@ -337,18 +350,44 @@ namespace BomberBuddies
             }
         }
 
+        /// <summary>Reads the hangar: hull, engine, boost, bombs, gun. Upgrades bought mid-flight take effect at once (applyLoadout).</summary>
+        public void ApplyLoadout()
+        {
+            var ns = Progress.StatsFor(IsHeli ? "heli" : "plane");
+            float oldMax = health != null ? health.max : 100f;
+            st = ns;
+            if (health != null) { health.max = ns.maxHp; if (health.alive) health.current = Mathf.Min(health.max, health.current + Mathf.Max(0f, health.max - oldMax)); }
+            int oldMaxBombs = maxBombs; maxBombs = ns.maxBombs; bombs = Mathf.Min(maxBombs, bombs + Mathf.Max(0, maxBombs - oldMaxBombs));
+        }
+
         void Shoot()
         {
-            fireT = 0.085f;
-            heat += 0.042f;
+            var g = st != null ? st.gun : Progress.GunDef("m2");
+            fireT = st != null ? st.fireInt : 0.085f;
+            heat += st != null ? st.heatShot : 0.042f;
             if (heat >= 1f) { Overheated = true; heat = 1f; }
             lastFire = !lastFire;
-            var m = lastFire ? muzzleL : muzzleR;
-            var dir = Forward;
-            dir = Quaternion.AngleAxis(Random.Range(0f, 360f), dir) * Quaternion.Euler(Random.Range(0f, 0.6f), 0f, 0f) * dir;
-            if (IsHeli) dir = Quaternion.Euler(8f, 0f, 0f) * Quaternion.Euler(0f, yaw * Mathf.Rad2Deg, 0f) * Vector3.forward;
-            if (Projectiles.Instance != null) Projectiles.Instance.FireRound(m.position, dir, 640f * U, 10f * GalacticMode.K, 640f * U, 0, gameObject, new Color(1f, 0.9f, 0.6f), 0.04f);
-            if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(m.position, dir, 1.2f);
+            int barrels = st != null ? st.barrels : 1;
+            for (int b = 0; b < (barrels > 1 ? 2 : 1); b++)
+            {
+                var m = (barrels > 1 ? b == 0 : lastFire) ? muzzleL : muzzleR;
+                var dir = Forward;
+                dir = Quaternion.AngleAxis(Random.Range(0f, 360f), dir) * Quaternion.Euler(Random.Range(0f, 0.4f * g.spread), 0f, 0f) * dir;
+                if (IsHeli) dir = Quaternion.Euler(8f, 0f, 0f) * Quaternion.Euler(0f, yaw * Mathf.Rad2Deg, 0f) * Vector3.forward;
+                float dmg = (st != null ? st.dmg : 10f) * GalacticMode.K;
+                if (Projectiles.Instance != null)
+                {
+                    if (g.splash > 0f) Projectiles.Instance.FireShell(m.position, dir, g.speed * U, g.splash * 0.5f * U, g.splash * 1.6f * U, dmg, 0, gameObject, false, 0f);
+                    else Projectiles.Instance.FireRound(m.position, dir, g.speed * U, dmg, g.range * U, 0, gameObject, new Color(1f, 0.9f, 0.6f), g.id == "mini" ? 0.03f : 0.04f + g.dmg * 0.001f);
+                }
+                if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(m.position, dir, 1.2f);
+            }
+            // rocket pods: a rocket now and then while the gun is held
+            if (st != null && st.rocketInt > 0f && rocketT <= 0f && Projectiles.Instance != null)
+            {
+                rocketT = st.rocketInt;
+                Projectiles.Instance.FireShell(transform.position - Vector3.up * 0.4f, Forward, 520f * U, 20f * U, 60f * U, 90f * GalacticMode.K, 0, gameObject, false, 0f);
+            }
             if (GameState.Hud != null) GameState.Hud.OnShot();
         }
 
@@ -356,7 +395,7 @@ namespace BomberBuddies
         {
             bombs--; bombCd = 0.34f;
             var vel = Velocity; vel.y = Mathf.Min(vel.y, 0f) - 25f * U;
-            if (Projectiles.Instance != null) Projectiles.Instance.DropBomb(transform.position - Vector3.up * 0.9f, vel, 36f * U, 86f * U, 175f * GalacticMode.K, gameObject);
+            if (Projectiles.Instance != null) { float bk = st != null ? st.blastK : 1f; Projectiles.Instance.DropBomb(transform.position - Vector3.up * 0.9f, vel, 36f * U * bk, 86f * U * bk, 175f * GalacticMode.K * bk, gameObject); }
         }
 
         void Crash(Vector3 at)

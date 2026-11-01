@@ -139,9 +139,12 @@ namespace BomberBuddies
             var at = new Vector3(near.x, Mathf.Max(320f * U, g + 190f * U), near.z);
             var toCentre = -new Vector3(at.x, 0f, at.z);
             float yaw = toCentre.sqrMagnitude > 1f ? Mathf.Atan2(toCentre.x, toCentre.z) * Mathf.Rad2Deg : 0f;
-            var c = NewCraft(PlaneController.Craft.Plane, at, yaw, null);
-            Fly(c, at, yaw, null, 180f);
+            var c = NewCraft(Progress.Craft == "heli" ? PlaneController.Craft.Heli : PlaneController.Craft.Plane, at, yaw, null);
+            Fly(c, at, yaw, null, Progress.Craft == "heli" ? 60f : 180f);
         }
+
+        /// <summary>After the hangar: every aircraft of ours picks up the new upgrades.</summary>
+        public void ApplyLoadout() { foreach (var c in craft) if (c != null) c.ApplyLoadout(); }
 
         public IEnumerator Respawn(string why)
         {

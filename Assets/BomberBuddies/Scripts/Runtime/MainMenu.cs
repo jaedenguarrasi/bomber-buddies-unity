@@ -41,6 +41,11 @@ namespace BomberBuddies
             var bg = Img("Background", transform, Vector2.zero, Vector2.one, new Color(0.05f, 0.07f, 0.12f, 1f));
             Txt("Title", transform, new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(1200f, 90f), 64, TextAnchor.MiddleCenter, Color.white).text = "BOMBER BUDDIES";
             Txt("Sub", transform, new Vector2(0.5f, 1f), new Vector2(0f, -130f), new Vector2(1200f, 40f), 22, TextAnchor.MiddleCenter, new Color(0.7f, 0.78f, 0.9f)).text = "Pick a mode";
+            var hb = Rect("Hangar button", transform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-150f, -70f), new Vector2(220f, 60f));
+            var hbi = hb.gameObject.AddComponent<Image>(); hbi.color = new Color(0.22f, 0.4f, 0.3f, 1f);
+            var hbb = hb.gameObject.AddComponent<Button>(); hbb.onClick.AddListener(() => { gameObject.SetActive(false); Hangar.Open(transform.parent, () => gameObject.SetActive(true)); });
+            Txt("Label", hb, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(220f, 60f), 24, TextAnchor.MiddleCenter, Color.white).text = "Hangar";
+            Txt("Bank", transform, new Vector2(1f, 1f), new Vector2(-150f, -115f), new Vector2(300f, 26f), 17, TextAnchor.MiddleCenter, new Color(1f, 0.85f, 0.35f)).text = "● " + Progress.Fmt(Progress.Bank) + " credits  ·  " + (Progress.Def(Progress.Craft) != null ? Progress.Def(Progress.Craft).name : "");
 
             // tiles, grouped like the original's tabs
             var groups = new List<string>();

@@ -23,11 +23,11 @@ namespace BomberBuddies
             Player = null; Rig = null; Hud = null; Spawner = null;
         }
 
-        public static void Earn(int credits) { Credits += credits; Touch(); }
+        public static void Earn(int credits) { Credits += credits; Progress.Bank += credits; Touch(); }
 
         public static void EnemyKilled(bool headshot, int score = 10)
         {
-            Kills++; Credits += score;
+            Kills++; Credits += score; Progress.Bank += score;
             if (headshot) Headshots++;
             if (Killed != null) Killed(headshot);
             Touch();
