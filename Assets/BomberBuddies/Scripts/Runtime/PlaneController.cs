@@ -110,7 +110,7 @@ namespace BomberBuddies
         /// <summary>The gravity beam (ufoAbduct3 for the player): hold Bomb while hovering low and the nearest soldier under you is pulled up into the hull.</summary>
         void Beam(float dt)
         {
-            bool want = input.BombHeld && docked == null && !Landed;
+            var input = InputBridge.Instance; bool want = input != null && input.BombHeld && docked == null && !Landed;
             if (want && (beaming == null || !beaming.alive))
             {
                 beaming = null; float bd = 14f;
