@@ -111,7 +111,7 @@ namespace BomberBuddies
             int stepsBefore = Mathf.FloorToInt((255f - before) / 51f), stepsAfter = Mathf.FloorToInt((255f - php[k]) / 51f);
             if (stepsAfter > stepsBefore && php[k] > 0f && floors > 2)
             {
-                bfl[k] = Mathf.Max(2, floors - (stepsAfter - stepsBefore));
+                bfl[k] = (byte)Mathf.Max(2, floors - (stepsAfter - stepsBefore));
                 var top = ToWorld(x, h + bfl[k] * FLOOR_H, z);
                 for (int i = 0; i < 10; i++) Shed(top + new Vector3(Random.Range(-hw, hw) * U * Spread, 1f, Random.Range(-hw, hw) * U * Spread), Random.insideUnitSphere * 4f + Vector3.up * 3f, col, Random.Range(0.6f, 1.6f));
                 if (GameState.Hud != null) GameState.Hud.Comms(stepsAfter == 1 ? "The top floor is gone" : "The corner is going");
@@ -143,7 +143,7 @@ namespace BomberBuddies
             var axis = Vector3.Cross(Vector3.up, d).normalized;
             falls.Add(new Fall { t = go.transform, hinge = hinge, axis = axis, angle = 0f, w = 0.05f, length = len * U, hw = hw * U * Spread, k = k, col = col });
             // what stays: a stump, or rubble
-            if (keep >= 1) { bfl[k] = keep; php[k] = 60f; } else { house3[k] = 28; bfl[k] = 0; php[k] = 0f; }
+            if (keep >= 1) { bfl[k] = (byte)keep; php[k] = 60f; } else { house3[k] = 28; bfl[k] = 0; php[k] = 0f; }
             buildingsDown++;
             GameState.Earn(200 + gone * 15);
             if (GameState.Hud != null) GameState.Hud.Announce(keep >= 1 ? "It is going over" : "The whole tower is going over", 2.5f);
