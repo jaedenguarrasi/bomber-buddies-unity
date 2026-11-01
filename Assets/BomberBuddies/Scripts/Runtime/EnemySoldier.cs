@@ -205,8 +205,20 @@ namespace BomberBuddies
             else if (info.source != null) { lastKnown = info.source.transform.position; lastSeen = Time.time; if (state == State.Wander) state = State.Chase; }
         }
 
+        float woundedT; bool wasWounded; Vector3 crawlDir; DamageInfo woundInfo;
         void OnDied(DamageInfo info)
         {
+            // a rifle round that just drops him: one in four crawls for a while first (the original's wounded)
+            if (!melee && !info.headshot && info.foot && !info.explosive && !wasWounded && Random.value < 0.25f && (kind == "inf" || kind == "medic" || kind == "egun" || kind == "vest" || kind == "dummy"))
+            {
+                woundedT = Random.Range(4f, 9f); wasWounded = true; woundInfo = info; state = State.Dead;
+                if (agent != null && agent.enabled) agent.enabled = false;
+                crawlDir = -info.direction; crawlDir.y = 0f; crawlDir = (crawlDir.sqrMagnitude > 0.01f ? crawlDir.normalized : transform.forward);
+                Sfx.Play("scream", 0.5f, 0.8f, transform.position);
+                if (Gore.Instance != null) Gore.Instance.Splat(transform.position, 0.6f);
+                if (GameState.Hud != null && Random.value < 0.3f) GameState.Hud.Comms("Medic!");
+                return;
+            }
             state = State.Dead;
             if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
             if (agent != null && agent.enabled) agent.enabled = false;
@@ -263,6 +275,18 @@ namespace BomberBuddies
             float dt = Time.deltaTime;
             if (staggerT > 0f && state != State.Dead) { staggerT -= dt; var sp = transform.position + staggerV * dt; staggerV *= 1f - 4f * dt; sp.y = GameState.GroundHeight != null ? GameState.GroundHeight(sp.x, sp.z) : sp.y; if (agent != null && agent.enabled && agent.isOnNavMesh) agent.Warp(sp); else transform.position = sp; if (model != null) model.Animate(0f, 0f, 1f, false, dt); return; }
             if (lifted && state != State.Dead) { if (agent != null && agent.enabled) agent.enabled = false; if (model != null) model.Animate(0f, 0f, 0f, true, dt); transform.Rotate(0f, 90f * dt, 0f); return; }
+            if (woundedT > 0f)
+            {
+                // crawling away, bleeding, until he does not
+                woundedT -= dt;
+                var p = transform.position + crawlDir * 0.5f * dt; p.y = GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : p.y; transform.position = p;
+                transform.rotation = Quaternion.Euler(0f, Mathf.Atan2(crawlDir.x, crawlDir.z) * Mathf.Rad2Deg, 0f);
+                if (model != null) model.Animate(0.6f, 0f, 1f, false, dt);
+                if (Mathf.Repeat(Time.time, 1.1f) < dt && Gore.Instance != null) Gore.Instance.Splat(transform.position, 0.3f);
+                if (Mathf.Repeat(Time.time, 2.5f) < dt) Sfx.Play("grunt", 0.35f, 0.8f, transform.position);
+                if (woundedT <= 0f) { woundedT = -1f; var wi = woundInfo; wi.foot = true; wi.headshot = false; OnDied(wi); }
+                return;
+            }
             if (state == State.Dead)
             {
                 deadT += dt;

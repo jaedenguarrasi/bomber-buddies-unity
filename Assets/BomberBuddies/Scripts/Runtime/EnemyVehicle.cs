@@ -44,8 +44,21 @@ namespace BomberBuddies
             hp.current = hp.max;
             v.health = hp;
             v.BuildModel(lib, team, layer);
+            // a big blast close by throws the lighter vehicles into the air (the original's wrecks tumbling)
+            hp.OnDamaged += info =>
+            {
+                if (!info.explosive || kind == Kind.Bunker) return;
+                float mass = kind == Kind.Jeep ? 1f : kind == Kind.AA || kind == Kind.Sam ? 1.6f : 4f;
+                float k = info.amount / (60f * GalacticMode.K) / mass;
+                if (k < 0.35f) return;
+                var away = go.transform.position - info.point; away.y = 0f; if (away.sqrMagnitude < 0.01f) away = Random.insideUnitSphere; away.Normalize();
+                v.tossVel = away * Mathf.Min(k, 2.5f) * 6f + Vector3.up * Mathf.Min(k, 2.5f) * 7f;
+                v.tossSpin = new Vector3(Random.Range(-1f, 1f), Random.Range(-0.3f, 0.3f), Random.Range(-1f, 1f)).normalized * Mathf.Min(k, 2.5f) * 240f;
+                v.tossT = 0.05f;
+            };
             hp.OnDied += info =>
             {
+                if (info.explosive) { var away = go.transform.position - info.point; away.y = 0f; away.Normalize(); v.tossVel = away * 5f + Vector3.up * 7f; v.tossSpin = new Vector3(Random.Range(-1f, 1f), 0f, Random.Range(-1f, 1f)).normalized * 300f; v.tossT = 0.05f; v.deadToss = true; }
                 if (Projectiles.Instance != null) Projectiles.Instance.Explode(go.transform.position + Vector3.up * 0.8f, 1.5f, 4f, 0f, go, team);
                 foreach (var c in go.GetComponentsInChildren<Collider>()) c.enabled = false;
                 foreach (var r in go.GetComponentsInChildren<Renderer>()) { var m = r.material; if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", new Color(0.12f, 0.1f, 0.09f)); }
@@ -71,10 +84,35 @@ namespace BomberBuddies
             var hz = gameObject.AddComponent<HitZone>(); hz.owner = health; hz.multiplier = 1f;
         }
 
+        Vector3 tossVel, tossSpin; float tossT; bool deadToss;
+        /// <summary>In the air after a blast: it flies, tumbles, and comes down on whatever is there (jeeps land on their roofs).</summary>
+        bool Toss(float dt)
+        {
+            if (tossT <= 0f) return false;
+            tossT += dt;
+            tossVel += Vector3.down * 18f * dt;
+            var p = transform.position + tossVel * dt;
+            float g = GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : p.y;
+            transform.rotation = Quaternion.Euler(tossSpin * dt) * transform.rotation;
+            if (p.y <= g && tossVel.y < 0f)
+            {
+                p.y = g; tossT = 0f;
+                Sfx.Play("thud", 0.7f, 0.6f, p); if (GalacticMode.Instance != null) GalacticMode.Instance.Shake(0.25f);
+                // crushes whoever it lands on
+                foreach (var h in Health.All) if (h != null && h.alive && h != health && !h.isAir && Vector3.Distance(h.transform.position, p) < 2.5f) h.TakeDamage(new DamageInfo { amount = 80f * GalacticMode.K, point = p, direction = Vector3.down, source = gameObject });
+                if (deadToss) { transform.rotation = Quaternion.Euler(Random.Range(150f, 210f), transform.eulerAngles.y, Random.Range(-20f, 20f)); }
+                else { yaw = transform.eulerAngles.y; transform.rotation = Quaternion.Euler(0f, yaw, 0f); if (health != null && health.alive && Random.value < 0.4f && kind == Kind.Jeep) { health.TakeDamage(new DamageInfo { amount = health.max, point = p, direction = Vector3.down, source = gameObject, explosive = false }); } }
+            }
+            transform.position = p;
+            return true;
+        }
+
         void Update()
         {
+            float dtT = Mathf.Min(Time.deltaTime, 0.05f);
+            if (Toss(dtT)) return;
             if (health == null || !health.alive) return;
-            float dt = Mathf.Min(Time.deltaTime, 0.05f);
+            float dt = dtT;
             cd -= dt; retargetT -= dt;
             if (retargetT <= 0f)
             {
