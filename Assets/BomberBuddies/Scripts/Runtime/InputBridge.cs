@@ -31,6 +31,7 @@ namespace BomberBuddies
         public bool InteractPressed { get; private set; }
         /// <summary>Bomb in the air, grenade on foot: G, middle mouse, the pad's east button, or the Bomb/Grenade touch button.</summary>
         public bool BombPressed { get; private set; }
+        public bool BombHeld { get; private set; }
         /// <summary>Kick (on foot): X or the pad's west button.</summary>
         public bool KickPressed { get; private set; }
         public bool PausePressed { get; private set; }
@@ -204,7 +205,7 @@ namespace BomberBuddies
             ReloadPressed = reloadQ; reloadQ = false;
             ViewPressed = viewQ; viewQ = false;
             InteractPressed = interactQ; interactQ = false;
-            BombPressed = bombQ; bombQ = false;
+            BombPressed = bombQ; bombQ = false; BombHeld = bomb.IsPressed() && !Hijacked;
             KickPressed = kickQ; kickQ = false;
             PausePressed = pauseQ; pauseQ = false;
             Throttle = Mathf.Clamp(throttle.ReadValue<float>() + TouchThrottle, -1f, 1f);

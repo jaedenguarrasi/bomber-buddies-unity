@@ -10,16 +10,19 @@ namespace BomberBuddies
     public class PlaneController : MonoBehaviour
     {
         const float U = GalacticMode.U;
-        public enum Craft { Plane, Heli, Heli2, AC130 }
+        public enum Craft { Plane, Heli, Heli2, AC130, Saucer }
+        public bool IsSaucer { get { return craft == Craft.Saucer; } }
+        /// <summary>Abduction: raid — soldiers pulled up the beam so far.</summary>
+        public static int Abducted; Health beaming; float beamT; Transform beamFx;
         public Craft craft = Craft.Plane;
-        public bool IsHeli { get { return craft == Craft.Heli || craft == Craft.Heli2; } }
+        public bool IsHeli { get { return craft == Craft.Heli || craft == Craft.Heli2 || craft == Craft.Saucer; } }
         public bool IsAC130 { get { return craft == Craft.AC130; } }
         public int Seats { get { return craft == Craft.Heli2 || craft == Craft.AC130 ? 2 : 1; } }
         /// <summary>1 pilot, 2 gunner. In the gunner seat the AI flies (a hover for the gunship, an orbit for the AC-130).</summary>
         public int seat = 1;
         public bool Gunner { get { return Seats == 2 && seat == 2; } }
-        public string CraftName { get { return craft == Craft.AC130 ? "AC-130 gunship" : craft == Craft.Heli2 ? "two-seat gunship" : IsHeli ? "attack helicopter" : "fighter-bomber"; } }
-        public string ProgressId { get { return craft == Craft.AC130 ? "ac130" : craft == Craft.Heli2 ? "heli2" : IsHeli ? "heli" : "plane"; } }
+        public string CraftName { get { return craft == Craft.Saucer ? "flying saucer" : craft == Craft.AC130 ? "AC-130 gunship" : craft == Craft.Heli2 ? "two-seat gunship" : IsHeli ? "attack helicopter" : "fighter-bomber"; } }
+        public string ProgressId { get { return craft == Craft.Saucer ? "ufo" : craft == Craft.AC130 ? "ac130" : craft == Craft.Heli2 ? "heli2" : IsHeli ? "heli" : "plane"; } }
         // the gunner's gun: where it looks (degrees, relative to the aircraft), and which of the AC-130's three it is
         public float gunYaw, gunPitch = -20f; public int ac130Gun;
         public static readonly string[] AC130Guns = { "25mm Gatling", "40mm Bofors", "105mm howitzer" };
@@ -55,16 +58,16 @@ namespace BomberBuddies
 
         public static PlaneController Build(Transform parent, MaterialLibrary lib, Camera cam, Craft craft = Craft.Plane)
         {
-            var go = new GameObject(craft == Craft.AC130 ? "AC-130" : craft == Craft.Heli2 ? "Gunship" : craft == Craft.Heli ? "Helicopter" : "Plane");
+            var go = new GameObject(craft == Craft.Saucer ? "Saucer" : craft == Craft.AC130 ? "AC-130" : craft == Craft.Heli2 ? "Gunship" : craft == Craft.Heli ? "Helicopter" : "Plane");
             go.transform.SetParent(parent, false);
             go.layer = 8;
             var p = go.AddComponent<PlaneController>();
             p.lib = lib; p.cam = cam; p.craft = craft;
-            if (craft == Craft.Heli) p.thr = 0.5f;
+            if (craft == Craft.Heli || craft == Craft.Saucer) p.thr = 0.5f;
             p.health = go.AddComponent<Health>(); p.health.max = 100f; p.health.current = 100f; p.health.team = 0; p.health.aimHeight = 0f; p.health.isAir = true;
             var zone = go.AddComponent<HitZone>(); zone.owner = p.health; zone.multiplier = 1f;
             var col = go.AddComponent<SphereCollider>(); col.radius = 1.3f;
-            if (p.IsHeli) p.BuildHeliModel(); else p.BuildModel();
+            if (p.IsSaucer) p.BuildSaucerModel(); else if (p.IsHeli) p.BuildHeliModel(); else p.BuildModel();
             if (craft == Craft.Heli2) p.model.localScale = Vector3.one * 1.2f;
             if (craft == Craft.AC130) { p.model.localScale = Vector3.one * 2.6f; col.radius = 3.2f; }
             p.gunMount = new GameObject("GunMount").transform; p.gunMount.SetParent(p.model, false);
@@ -91,6 +94,58 @@ namespace BomberBuddies
             muzzleR = new GameObject("MuzzleR").transform; muzzleR.SetParent(model, false); muzzleR.localPosition = new Vector3(4f * U, -0.6f * U, 7f * U);
             wingTips[0] = new GameObject("TipL").transform; wingTips[0].SetParent(model, false); wingTips[0].localPosition = new Vector3(-21f * U, -0.6f * U, 2f * U);
             wingTips[1] = new GameObject("TipR").transform; wingTips[1].SetParent(model, false); wingTips[1].localPosition = new Vector3(21f * U, -0.6f * U, 2f * U);
+        }
+
+        void BuildSaucerModel()
+        {
+            model = new GameObject("Model").transform;
+            model.SetParent(transform, false);
+            CraftModels.Saucer(model, lib, 8);
+            muzzleL = new GameObject("MuzzleL").transform; muzzleL.SetParent(model, false); muzzleL.localPosition = new Vector3(-10f * U, -3f * U, 10f * U);
+            muzzleR = new GameObject("MuzzleR").transform; muzzleR.SetParent(model, false); muzzleR.localPosition = new Vector3(10f * U, -3f * U, 10f * U);
+            wingTips[0] = new GameObject("TipL").transform; wingTips[0].SetParent(model, false); wingTips[0].localPosition = new Vector3(-14f * U, -2f * U, 0f);
+            wingTips[1] = new GameObject("TipR").transform; wingTips[1].SetParent(model, false); wingTips[1].localPosition = new Vector3(14f * U, -2f * U, 0f);
+        }
+
+        /// <summary>The gravity beam (ufoAbduct3 for the player): hold Bomb while hovering low and the nearest soldier under you is pulled up into the hull.</summary>
+        void Beam(float dt)
+        {
+            bool want = input.BombHeld && docked == null && !Landed;
+            if (want && (beaming == null || !beaming.alive))
+            {
+                beaming = null; float bd = 14f;
+                foreach (var h in Health.All)
+                {
+                    if (h == null || !h.alive || h.team == 0 || h.isAir || h.GetComponent<EnemySoldier>() == null) continue;
+                    var d = h.transform.position - transform.position; if (d.y > -2f || d.y < -60f) continue; d.y = 0f;
+                    if (d.magnitude < bd) { bd = d.magnitude; beaming = h; }
+                }
+                beamT = 0f;
+            }
+            if (!want) { beaming = null; beamT = 0f; }
+            if (beaming != null)
+            {
+                if (beamFx == null)
+                {
+                    var b = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Destroy(b.GetComponent<Collider>()); b.name = "Beam"; b.transform.SetParent(model, false); b.layer = 8;
+                    var m = new Material(Shader.Find("Universal Render Pipeline/Unlit")); m.SetColor("_BaseColor", new Color(0.6f, 1f, 0.8f, 0.3f)); m.SetFloat("_Surface", 1f); m.renderQueue = 3000; m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha); m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha); m.SetInt("_ZWrite", 0); m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                    b.GetComponent<Renderer>().sharedMaterial = m; beamFx = b.transform; Sfx.Play("ufo_hum", 0.5f, 1.2f, transform.position);
+                }
+                float h = Mathf.Max(2f, transform.position.y - beaming.transform.position.y);
+                beamFx.localPosition = new Vector3(0f, -h * 0.5f, 0f); beamFx.localScale = new Vector3(2f, h * 0.5f, 2f);
+                beamT += dt;
+                var es = beaming.GetComponent<EnemySoldier>(); if (es != null) es.lifted = true;
+                var dest = transform.position - Vector3.up * 1f;
+                beaming.transform.position = Vector3.MoveTowards(beaming.transform.position, dest, (3f + beamT) * dt);
+                if (Vector3.Distance(beaming.transform.position, dest) < 1.2f)
+                {
+                    Abducted++; GameState.Earn(80);
+                    if (GameState.Hud != null) GameState.Hud.Comms("Got one  (" + Abducted + ")");
+                    Sfx.Play("scream", 0.5f, 1.3f, transform.position); Sfx.Play("squeak", 0.4f, 0.8f, transform.position);
+                    Destroy(beaming.gameObject); beaming = null;
+                }
+            }
+            else if (beamFx != null) { Destroy(beamFx.gameObject); beamFx = null; }
         }
 
         void BuildHeliModel()
@@ -220,7 +275,7 @@ namespace BomberBuddies
             if (input.Fire && !Overheated && fireT <= 0f && docked == null && !Landed) Shoot();
             if (Seats == 2 && docked == null && !Landed) AiGunner(dt);
             bombCd -= dt;
-            if (input.BombPressed && docked == null && bombs > 0 && bombCd <= 0f) DropBomb();
+            if (IsSaucer) Beam(dt); else if (input.BombPressed && docked == null && bombs > 0 && bombCd <= 0f) DropBomb();
             if (input.InteractPressed)
             {
                 var pm = PlayerManager.Instance;
@@ -563,6 +618,7 @@ namespace BomberBuddies
                 dir = Quaternion.AngleAxis(Random.Range(0f, 360f), dir) * Quaternion.Euler(Random.Range(0f, 0.4f * g.spread), 0f, 0f) * dir;
                 if (IsHeli) dir = Quaternion.Euler(8f - AimOffset.y, yaw * Mathf.Rad2Deg + AimOffset.x, 0f) * Vector3.forward;
                 float dmg = (st != null ? st.dmg : 10f) * GalacticMode.K;
+                if (IsSaucer && Projectiles.Instance != null) { Projectiles.Instance.FireBolt(m.position, dir, 520f * U, 22f * GalacticMode.K, 1.6f, 0, gameObject); continue; }
                 if (Projectiles.Instance != null)
                 {
                     if (g.splash > 0f) Projectiles.Instance.FireShell(m.position, dir, g.speed * U, g.splash * 0.5f * U, g.splash * 1.6f * U, dmg, 0, gameObject, false, 0f);
@@ -570,7 +626,7 @@ namespace BomberBuddies
                 }
                 if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(m.position, dir, 1.2f);
             }
-            Sfx.Play(Sfx.GunSound(g.id), g.id == "m2" ? 0.5f : 0.75f, 1f, transform.position);
+            Sfx.Play(IsSaucer ? "gun_zap" : Sfx.GunSound(g.id), g.id == "m2" ? 0.5f : 0.75f, 1f, transform.position);
             // rocket pods: a rocket now and then while the gun is held
             if (st != null && st.rocketInt > 0f && rocketT <= 0f && Projectiles.Instance != null)
             {
@@ -585,7 +641,8 @@ namespace BomberBuddies
         {
             if (!Active) return;
             if (boosting && docked == null) Sfx.Boosting = true;
-            if (IsHeli) Sfx.Loop("engine", "rotor_loop", Landed && thr < 0.2f ? 0.25f : 0.5f, 0.85f + thr * 0.35f + (boosting ? 0.15f : 0f));
+            if (IsSaucer) Sfx.Loop("engine", "ufo_hum", 0.35f, 0.9f + thr * 0.3f);
+            else if (IsHeli) Sfx.Loop("engine", "rotor_loop", Landed && thr < 0.2f ? 0.25f : 0.5f, 0.85f + thr * 0.35f + (boosting ? 0.15f : 0f));
             else Sfx.Loop("engine", "engine_loop", docked != null ? 0.2f : 0.45f, 0.7f + thr * 0.5f + Mathf.Clamp01(speedU / 600f) * 0.3f + (boosting ? 0.25f : 0f));
         }
 

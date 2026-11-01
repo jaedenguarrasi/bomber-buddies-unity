@@ -145,7 +145,7 @@ namespace BomberBuddies
             var at = new Vector3(near.x, Mathf.Max(320f * U, g + 190f * U), near.z);
             var toCentre = -new Vector3(at.x, 0f, at.z);
             float yaw = toCentre.sqrMagnitude > 1f ? Mathf.Atan2(toCentre.x, toCentre.z) * Mathf.Rad2Deg : 0f;
-            var kind = Progress.Craft == "heli" ? PlaneController.Craft.Heli : Progress.Craft == "heli2" ? PlaneController.Craft.Heli2 : Progress.Craft == "ac130" ? PlaneController.Craft.AC130 : PlaneController.Craft.Plane;
+            var kind = Progress.Craft == "ufo" ? PlaneController.Craft.Saucer : Progress.Craft == "heli" ? PlaneController.Craft.Heli : Progress.Craft == "heli2" ? PlaneController.Craft.Heli2 : Progress.Craft == "ac130" ? PlaneController.Craft.AC130 : PlaneController.Craft.Plane;
             var c = NewCraft(kind, at, yaw, null);
             Fly(c, at, yaw, null, c.IsHeli ? 60f : 180f);
             if (GameState.Deaths == 0 && c.st != null) GameState.Lives = c.st.lives;

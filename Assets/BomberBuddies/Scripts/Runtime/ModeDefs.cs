@@ -13,6 +13,7 @@ namespace BomberBuddies
         {
             public string id, name, group, desc;
             public string[] comp;          // allowed enemy types (null = everything)
+            public string craft;           // the mode puts you in this (Abduction: raid → the saucer)
             public float infK = 1f;
             public bool horde, playable = true, night;
             public float timer;            // a timed mode: seconds to survive / finish
@@ -41,7 +42,7 @@ namespace BomberBuddies
             { "strike", Set("strike", "Strike", "Missions", "Five enemy fuel depots, each ringed with flak and missiles. Destroy all five in six minutes.", new Mode { }) },
             { "assassin", Set("assassin", "Assassination", "Missions", "An enemy general is somewhere on the island with his bodyguards, marked on your radar in gold. He will try to get to his escape helicopter. Kill him in five minutes.", new Mode { }) },
             { "abduct_def", Set("abduct_def", "Abduction: defend", "Missions", "The saucers have come for the islanders. Ten of them wander the field; the saucers hover over them and beam them up while the greys and their jetpack troopers cover them. Lose six and the island is lost. Bring the saucers down.", new Mode { comp = new[] { "ufo", "grey", "ejet" }, force = (n, c) => { c["ufo"] = 1 + Mathf.Min(3, n / 2); c["grey"] = 3 + n; c["ejet"] = n / 2; return c; } }) },
-            { "abduct_att", Set("abduct_att", "Abduction: raid", "Missions", "You fly the saucer. The army is spread out below: hold the beam on a soldier until he is pulled inside. Fifteen taken wins it. Their guns and jeeps will not make it easy.", new Mode { playable = false }) },
+            { "abduct_att", Set("abduct_att", "Abduction: raid", "Missions", "You fly the saucer. The army is spread out below: hold the beam on a soldier until he is pulled inside. Fifteen taken wins it. Their guns and jeeps will not make it easy.", new Mode { craft = "ufo", comp = new[] { "inf", "jeep", "aa" }, force = (n, c) => { c["inf"] = 8 + n * 3; c["jeep"] = 1 + n / 2; c["aa"] = n / 2; return c; } }) },
             { "nest", Set("nest", "Goblin nest", "Missions", "You have walked into a nest. Goblins only, in packs, more every wave, coming from every side. Keep moving.", new Mode { comp = new[] { "gob", "ape" }, force = (n, c) => { c["gob"] = 6 + 3 * n; c["ape"] = 1; return c; } }) },
             { "shadow", Set("shadow", "Shadow war", "Missions", "Ninjas of both kinds and Grapples, nothing else: fast, close, and hard to keep in front of you. Aim for the ones in mid-leap.", new Mode { night = true, comp = new[] { "eninja", "eshade", "esling" }, force = (n, c) => { c["eninja"] = 3 + n * 2; c["eshade"] = 1 + n; c["esling"] = 1 + n / 2; return c; } }) },
             { "invasion", Set("invasion", "Saucer invasion", "Missions", "The greys come in force: saucers overhead, greys and their jetpack troopers on the ground, ray guns that leave skeletons. Daylight. No islanders to save this time, only yourselves.", new Mode { comp = new[] { "ufo", "grey", "ejet" }, force = (n, c) => { c["ufo"] = 2 + Mathf.Min(4, n); c["grey"] = 4 + 2 * n; c["ejet"] = 1 + n / 2; return c; } }) },

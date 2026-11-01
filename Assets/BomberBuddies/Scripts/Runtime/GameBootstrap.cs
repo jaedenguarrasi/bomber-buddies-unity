@@ -55,7 +55,7 @@ namespace BomberBuddies
         {
             mode = modeId == "galactic" ? Mode.Galactic : Mode.Island;
             battleMode = modeId; LastMode = modeId;
-            { ModeDefs.Mode md; Night = ModeDefs.All.TryGetValue(battleMode, out md) && md.night; }
+            { ModeDefs.Mode md; Night = ModeDefs.All.TryGetValue(battleMode, out md) && md.night; Progress.Forced = md != null ? md.craft : null; }
             Random.InitState(seed);
             bool mobile = Application.isMobilePlatform;
 

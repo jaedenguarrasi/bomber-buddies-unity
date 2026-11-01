@@ -131,12 +131,14 @@ namespace BomberBuddies
             new CraftDef { id = "trex", name = "Tyrannosaur", desc = "The biggest thing on two legs.", price = 8000 },
             new CraftDef { id = "neph", name = "Nephilim", desc = "Half angel and half demon, with great dark wings.", price = 8000 },
             new CraftDef { id = "dragon", name = "Dragon", desc = "A mountain with wings. Fire breath and fireballs.", price = 9000 },
-            new CraftDef { id = "ufo", name = "Flying saucer", desc = "Twin lasers, a gravity beam, and a cloak.", price = 9000 },
+            new CraftDef { id = "ufo", name = "Flying saucer", desc = "Twin lasers and a gravity beam: hover low and hold Bomb to pull a soldier up.", price = 9000, available = true },
         };
 
         public static int Bank { get { return PlayerPrefs.GetInt("bb_bank", 0); } set { PlayerPrefs.SetInt("bb_bank", Mathf.Max(0, value)); } }
         public static int Best { get { return PlayerPrefs.GetInt("bb_best", 0); } set { PlayerPrefs.SetInt("bb_best", value); } }
-        public static string Craft { get { return PlayerPrefs.GetString("bb_craft", "plane"); } set { PlayerPrefs.SetString("bb_craft", value); } }
+        /// <summary>A mode that decides what you fly (Abduction: raid): overrides the chosen craft for the match.</summary>
+        public static string Forced;
+        public static string Craft { get { return Forced ?? PlayerPrefs.GetString("bb_craft", "plane"); } set { PlayerPrefs.SetString("bb_craft", value); } }
         public static string GunOf(string craft) { return PlayerPrefs.GetString("bb_gun_" + craft, DefaultGun(craft)); }
         public static void SetGun(string craft, string gun) { PlayerPrefs.SetString("bb_gun_" + craft, gun); PlayerPrefs.Save(); }
         public static bool OwnsGun(string craft, string gun) { return gun == DefaultGun(craft) || PlayerPrefs.GetInt("bb_own_" + craft + "_" + gun, 0) == 1; }

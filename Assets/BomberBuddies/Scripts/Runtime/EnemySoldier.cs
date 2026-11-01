@@ -24,6 +24,8 @@ namespace BomberBuddies
         public string kind = "inf";
         /// <summary>Creatures (DEF ape/gob/raptor/stalk/trex): melee, fast, built from the soldier body scaled and tinted until they get bodies of their own.</summary>
         public bool melee; public int score = 10;
+        /// <summary>Caught in a saucer's beam: no fighting, just rising.</summary>
+        public bool lifted;
         float meleeDmg, meleeReach = 1.6f, meleeT, creatureSpeed = 4f, leapT;
         /// <summary>The giants (colossus / Beast / kaiju): a creature body blown up, boulders, a beam, and the ground shakes.</summary>
         public bool giant; float giantScale = 1f, throwT = 4f, stompDist, beamT;
@@ -257,6 +259,7 @@ namespace BomberBuddies
         void Update()
         {
             float dt = Time.deltaTime;
+            if (lifted && state != State.Dead) { if (agent != null && agent.enabled) agent.enabled = false; if (model != null) model.Animate(0f, 0f, 0f, true, dt); transform.Rotate(0f, 90f * dt, 0f); return; }
             if (state == State.Dead)
             {
                 deadT += dt;
