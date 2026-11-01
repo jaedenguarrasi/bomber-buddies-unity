@@ -10,19 +10,19 @@ namespace BomberBuddies
     public class PlaneController : MonoBehaviour
     {
         const float U = GalacticMode.U;
-        public enum Craft { Plane, Heli, Heli2, AC130, Saucer }
+        public enum Craft { Plane, Heli, Heli2, AC130, Saucer, B52, Bomber2, Transport, Drone }
         public bool IsSaucer { get { return craft == Craft.Saucer; } }
         /// <summary>Abduction: raid — soldiers pulled up the beam so far.</summary>
         public static int Abducted; Health beaming; float beamT; Transform beamFx;
         public Craft craft = Craft.Plane;
-        public bool IsHeli { get { return craft == Craft.Heli || craft == Craft.Heli2 || craft == Craft.Saucer; } }
+        public bool IsHeli { get { return craft == Craft.Heli || craft == Craft.Heli2 || craft == Craft.Saucer || craft == Craft.Transport || craft == Craft.Drone; } }
         public bool IsAC130 { get { return craft == Craft.AC130; } }
-        public int Seats { get { return craft == Craft.Heli2 || craft == Craft.AC130 ? 2 : 1; } }
+        public int Seats { get { return craft == Craft.Heli2 || craft == Craft.AC130 || craft == Craft.Bomber2 || craft == Craft.Transport ? 2 : 1; } }
         /// <summary>1 pilot, 2 gunner. In the gunner seat the AI flies (a hover for the gunship, an orbit for the AC-130).</summary>
         public int seat = 1;
         public bool Gunner { get { return Seats == 2 && seat == 2; } }
-        public string CraftName { get { return craft == Craft.Saucer ? "flying saucer" : craft == Craft.AC130 ? "AC-130 gunship" : craft == Craft.Heli2 ? "two-seat gunship" : IsHeli ? "attack helicopter" : "fighter-bomber"; } }
-        public string ProgressId { get { return craft == Craft.Saucer ? "ufo" : craft == Craft.AC130 ? "ac130" : craft == Craft.Heli2 ? "heli2" : IsHeli ? "heli" : "plane"; } }
+        public string CraftName { get { return craft == Craft.B52 ? "B-52" : craft == Craft.Bomber2 ? "two-seat bomber" : craft == Craft.Transport ? "transport helicopter" : craft == Craft.Drone ? "bomber drone" : craft == Craft.Saucer ? "flying saucer" : craft == Craft.AC130 ? "AC-130 gunship" : craft == Craft.Heli2 ? "two-seat gunship" : IsHeli ? "attack helicopter" : "fighter-bomber"; } }
+        public string ProgressId { get { return craft == Craft.B52 ? "b52" : craft == Craft.Bomber2 ? "bomber2" : craft == Craft.Transport ? "transport" : craft == Craft.Drone ? "drone" : craft == Craft.Saucer ? "ufo" : craft == Craft.AC130 ? "ac130" : craft == Craft.Heli2 ? "heli2" : IsHeli ? "heli" : "plane"; } }
         // the gunner's gun: where it looks (degrees, relative to the aircraft), and which of the AC-130's three it is
         public float gunYaw, gunPitch = -20f; public int ac130Gun;
         public static readonly string[] AC130Guns = { "25mm Gatling", "40mm Bofors", "105mm howitzer" };
@@ -70,9 +70,13 @@ namespace BomberBuddies
             var col = go.AddComponent<SphereCollider>(); col.radius = 1.3f;
             if (p.IsSaucer) p.BuildSaucerModel(); else if (p.IsHeli) p.BuildHeliModel(); else p.BuildModel();
             if (craft == Craft.Heli2) p.model.localScale = Vector3.one * 1.2f;
+            if (craft == Craft.Transport) { p.model.localScale = new Vector3(1.5f, 1.5f, 1.8f); col.radius = 2.2f; }
+            if (craft == Craft.Drone) { p.model.localScale = Vector3.one * 0.3f; col.radius = 0.5f; p.cockpit = true; }
+            if (craft == Craft.B52) { p.model.localScale = new Vector3(2.6f, 2.2f, 2.6f); col.radius = 3.4f; }
+            if (craft == Craft.Bomber2) { p.model.localScale = Vector3.one * 1.3f; col.radius = 1.7f; }
             if (craft == Craft.AC130) { p.model.localScale = Vector3.one * 2.6f; col.radius = 3.2f; }
             p.gunMount = new GameObject("GunMount").transform; p.gunMount.SetParent(p.model, false);
-            p.gunMount.localPosition = craft == Craft.AC130 ? new Vector3(-2.6f * U, -0.5f * U, 0f) : new Vector3(0f, -4f * U, 9f * U);
+            p.gunMount.localPosition = craft == Craft.AC130 ? new Vector3(-2.6f * U, -0.5f * U, 0f) : craft == Craft.Bomber2 ? new Vector3(0f, -4f * U, -2f * U) : craft == Craft.Transport ? new Vector3(6f * U, -1f * U, 0f) : new Vector3(0f, -4f * U, 9f * U);
             p.ApplyLoadout();
             p.health.OnDamaged += info =>
             {
@@ -649,9 +653,24 @@ namespace BomberBuddies
 
         void DropBomb()
         {
+            if (craft == Craft.B52) { StartCoroutine(Carpet()); return; }
+            if (craft == Craft.Drone) { bombs--; bombCd = 0.6f; if (Projectiles.Instance != null) Projectiles.Instance.FireShell(transform.position - Vector3.up * 0.4f, Vector3.down, 20f * U, 9f * U, 58f * U, 120f * GalacticMode.K, 0, gameObject, false, 250f * U); Sfx.Play("whistle", 0.25f, 1.4f, transform.position); return; }
             bombs--; bombCd = 0.34f; Sfx.Play("whistle", 0.35f, 1f, transform.position);
             var vel = Velocity; vel.y = Mathf.Min(vel.y, 0f) - 25f * U;
             if (Projectiles.Instance != null) { float bk = st != null ? st.blastK : 1f; Projectiles.Instance.DropBomb(transform.position - Vector3.up * 0.9f, vel, 36f * U * bk, 86f * U * bk, 175f * GalacticMode.K * bk, gameObject); }
+        }
+
+        /// <summary>The B-52's carpet: five bombs in a line, a third of a second apart.</summary>
+        System.Collections.IEnumerator Carpet()
+        {
+            bombCd = 2.2f;
+            for (int i = 0; i < 5 && bombs > 0; i++)
+            {
+                bombs--; Sfx.Play("whistle", 0.35f, 0.9f, transform.position);
+                var vel = Velocity; vel.y = Mathf.Min(vel.y, 0f) - 25f * U;
+                if (Projectiles.Instance != null) { float bk = st != null ? st.blastK : 1f; Projectiles.Instance.DropBomb(transform.position - Vector3.up * 1.5f + transform.right * Random.Range(-1f, 1f), vel, 36f * U * bk, 86f * U * bk, 175f * GalacticMode.K * bk, gameObject); }
+                yield return new WaitForSeconds(0.33f);
+            }
         }
 
         void Crash(Vector3 at)
