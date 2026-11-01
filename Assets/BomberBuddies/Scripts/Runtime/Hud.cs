@@ -373,6 +373,15 @@ namespace BomberBuddies
                 var sb = new System.Text.StringBuilder();
                 foreach (var g in UnityEngine.InputSystem.Gamepad.all) sb.Append(g.name).Append('[').Append(g.description.interfaceName).Append("] ls=").Append(g.leftStick.ReadValue().ToString("F2")).Append(" rt=").Append(g.rightTrigger.ReadValue().ToString("F2")).Append("  ");
                 sb.Append(" move=").Append(InputBridge.Instance.Move.ToString("F2")).Append(" fire=").Append(InputBridge.Instance.Fire).Append(" touch=").Append(InputBridge.Instance.IsTouch).Append(" ts=").Append(UnityEngine.InputSystem.Touchscreen.current != null);
+                var ts = UnityEngine.InputSystem.Touchscreen.current;
+                if (ts != null && EventSystem.current != null)
+                {
+                    var pos = ts.primaryTouch.position.ReadValue();
+                    var ped = new PointerEventData(EventSystem.current) { position = pos };
+                    var res = new List<RaycastResult>(); EventSystem.current.RaycastAll(ped, res);
+                    sb.Append(" press=").Append(ts.primaryTouch.press.isPressed).Append(" pos=").Append(pos.ToString("F0")).Append(" hit=").Append(res.Count > 0 ? res[0].gameObject.name + "/" + (res[0].gameObject.transform.parent != null ? res[0].gameObject.transform.parent.name : "") : "none");
+                    sb.Append(" sel=").Append(EventSystem.current.currentSelectedGameObject != null ? EventSystem.current.currentSelectedGameObject.name : "-");
+                }
                 debugText.text = sb.ToString();
             }
             var p = GameState.Player;
