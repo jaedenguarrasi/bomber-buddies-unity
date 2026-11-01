@@ -361,8 +361,7 @@ namespace BomberBuddies
                     mb.Clear();
                     BuildChunk(cx, cz);
                     if (mb.VertexCount == 0) continue;
-                    var go = mb.Spawn("Chunk " + cx + "," + cz, transform, lowPoly, true);
-                    go.isStatic = true;
+                    mb.Spawn("Chunk " + cx + "," + cz, transform, lowPoly, true);
                 }
             BuildWater();
             BuildRidges();
