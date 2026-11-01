@@ -73,15 +73,15 @@ namespace BomberBuddies
         // ---------- napalm (the hangar's Napalm upgrade: every bomb bursts into a river of fire that keeps burning) ----------
         class Fire { public Vector3 at; public float t; public Transform fx; }
         readonly List<Fire> fires = new List<Fire>();
-        Material fireMat;
+        Material napalmMat;
         void Napalm(Vector3 at, Vector3 vel, GameObject source)
         {
             var along = vel; along.y = 0f; along = along.sqrMagnitude > 0.1f ? along.normalized : Vector3.forward;
-            if (fireMat == null) { fireMat = new Material(Shader.Find("Universal Render Pipeline/Unlit")); fireMat.SetColor("_BaseColor", new Color(1f, 0.45f, 0.1f, 0.85f)); fireMat.SetFloat("_Surface", 1f); fireMat.renderQueue = 3000; fireMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha); fireMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.One); fireMat.SetInt("_ZWrite", 0); fireMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); }
+            if (napalmMat == null) { napalmMat = new Material(Shader.Find("Universal Render Pipeline/Unlit")); napalmMat.SetColor("_BaseColor", new Color(1f, 0.45f, 0.1f, 0.85f)); napalmMat.SetFloat("_Surface", 1f); napalmMat.renderQueue = 3000; napalmMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha); napalmMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.One); napalmMat.SetInt("_ZWrite", 0); napalmMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); }
             for (int i = 0; i < 7; i++)
             {
                 var p = at + along * (i - 3) * 4.5f + new Vector3(Random.Range(-2f, 2f), 0f, Random.Range(-2f, 2f)); p.y = (GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : at.y) + 0.1f;
-                var go = GameObject.CreatePrimitive(PrimitiveType.Sphere); Destroy(go.GetComponent<Collider>()); go.name = "Fire"; go.transform.SetParent(transform, false); go.transform.position = p; go.transform.localScale = new Vector3(5f, 2.2f, 5f); go.GetComponent<Renderer>().sharedMaterial = fireMat;
+                var go = GameObject.CreatePrimitive(PrimitiveType.Sphere); Destroy(go.GetComponent<Collider>()); go.name = "Fire"; go.transform.SetParent(transform, false); go.transform.position = p; go.transform.localScale = new Vector3(5f, 2.2f, 5f); go.GetComponent<Renderer>().sharedMaterial = napalmMat;
                 fires.Add(new Fire { at = p, t = Random.Range(7f, 10f), fx = go.transform });
             }
             Sfx.Play("fire_loop", 0.7f, 1f, at);
