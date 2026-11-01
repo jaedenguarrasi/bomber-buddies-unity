@@ -82,6 +82,10 @@ namespace BomberBuddies
                 case "colossus": giant = true; giantScale = 4f; health.max = 4000f * K; health.armor = 0.75f; creatureSpeed = 50f * GalacticMode.U * 1.2f; meleeDmg = 140f; meleeReach = 9f; score = 6000; break;
                 case "beast": giant = true; giantScale = 3f; health.max = 3000f * K; health.armor = 0.6f; creatureSpeed = 75f * GalacticMode.U * 1.3f; meleeDmg = 110f; meleeReach = 8f; score = 5000; break;
                 case "kaiju": giant = true; giantScale = 3.5f; health.max = 12000f * K; health.armor = 0.8f; creatureSpeed = 40f * GalacticMode.U; meleeDmg = 220f; meleeReach = 16f; score = 12000; break;
+                case "eninja": health.max = 260f * K * 0.5f; creatureSpeed = 36f * GalacticMode.U * 2.4f * 1.3f; meleeDmg = 70f; meleeReach = 2.2f; score = 260; tint = new Color(0.9f, 0.9f, 0.95f); lib = null; break;
+                case "eshade": health.max = 260f * K * 0.5f; creatureSpeed = 36f * GalacticMode.U * 2.4f * 1.3f; meleeDmg = 70f; meleeReach = 2.2f; score = 280; tint = new Color(0.15f, 0.12f, 0.2f); lib = null; break;
+                case "esling": health.max = 180f * K * 0.5f; creatureSpeed = 36f * GalacticMode.U * 2f * 1.3f; meleeDmg = 45f; meleeReach = 2.0f; score = 220; tint = new Color(0.8f, 0.2f, 0.25f); lib = null; break;
+                case "clown": health.max = 170f * K * 0.6f; creatureSpeed = 62f * GalacticMode.U * 0.9f; meleeDmg = 14f; meleeReach = 2.4f; score = 220; scale = new Vector3(1.1f, 1.1f, 1.1f); tint = new Color(1f, 0.95f, 0.95f); lib = null; break;
                 case "trex": health.max = 950f * K; health.armor = 0.7f; creatureSpeed = 88f * GalacticMode.U * 0.9f; meleeDmg = 70f; meleeReach = 5f; score = 900; scale = new Vector3(3.2f, 3.5f, 4.5f); tint = new Color(0.4f, 0.5f, 0.3f); break;
             }
             health.current = health.max; health.aimHeight = 1.1f * scale.y;
@@ -130,7 +134,7 @@ namespace BomberBuddies
             if (reach)
             {
                 if (agent != null && agent.enabled && agent.isOnNavMesh) agent.ResetPath();
-                if (meleeT <= 0f) { meleeT = kind == "trex" ? 1.6f : kind == "ape" ? 1.1f : 0.8f; Sfx.Play(kind == "trex" ? "roar_big" : kind == "ape" ? "roar_ape" : kind == "raptor" ? "screech" : kind == "gob" ? "cackle" : "scream", 0.6f, 1f, transform.position); Sfx.Play(kind == "trex" ? "stomp" : "swing", 0.5f, 1f, transform.position); target.TakeDamage(new DamageInfo { amount = meleeDmg * GalacticMode.K * 0.45f, point = target.transform.position + Vector3.up, direction = to.normalized, source = gameObject, foot = true }); if (Gunfire.Instance != null) Gunfire.Instance.Impact(target.transform.position + Vector3.up * 0.9f, -to.normalized, true); }
+                if (meleeT <= 0f) { meleeT = kind == "trex" ? 1.6f : kind == "ape" ? 1.1f : kind == "clown" ? 0.45f : 0.8f; Sfx.Play(kind == "trex" ? "roar_big" : kind == "ape" ? "roar_ape" : kind == "raptor" ? "screech" : kind == "gob" ? "cackle" : kind == "clown" ? "hit_flesh" : kind == "eninja" || kind == "eshade" ? "swing" : "scream", 0.6f, 1f, transform.position); Sfx.Play(kind == "trex" ? "stomp" : "swing", 0.5f, 1f, transform.position); target.TakeDamage(new DamageInfo { amount = meleeDmg * GalacticMode.K * 0.45f, point = target.transform.position + Vector3.up, direction = to.normalized, source = gameObject, foot = true }); if (Gunfire.Instance != null) Gunfire.Instance.Impact(target.transform.position + Vector3.up * 0.9f, -to.normalized, true); }
                 moveSpeed = 0f;
             }
             else if (agent != null && agent.enabled && agent.isOnNavMesh)
@@ -139,6 +143,10 @@ namespace BomberBuddies
                 moveSpeed = agent.velocity.magnitude;
                 // the leap: apes and raptors cover the last 12 m in one bound
                 if ((kind == "ape" || kind == "raptor") && dist < 12f && dist > 4f && leapT <= 0f) { leapT = 2.5f; agent.Warp(Vector3.Lerp(transform.position, target.transform.position, 0.7f)); }
+                // ninjas and Grapples cover ground in bounds; the clown honks you off your feet
+                if ((kind == "eninja" || kind == "eshade" || kind == "esling") && dist < (kind == "esling" ? 40f : 18f) && dist > 5f && leapT <= 0f) { leapT = kind == "esling" ? 3f : 1.8f; Sfx.Play("swing", 0.5f, 1.3f, transform.position); if (model != null) model.Animate(creatureSpeed, 0f, 0f, true, dt); agent.Warp(Vector3.Lerp(transform.position, target.transform.position, kind == "esling" ? 0.8f : 0.65f)); }
+                if (kind == "eshade" && dist < 45f && leapT > 1.2f && Projectiles.Instance != null && Mathf.Repeat(Time.time, 1.6f) < dt) { var hand = transform.position + Vector3.up * 1.4f; Projectiles.Instance.FireShell(hand, (target.transform.position + Vector3.up - hand).normalized, 380f * GalacticMode.U, 2f * GalacticMode.U, 5f * GalacticMode.U, 18f * GalacticMode.K, health.team, gameObject, true, 0f); Sfx.Play("gun_zap", 0.5f, 1.4f, hand); }
+                if (kind == "clown" && dist < 9f && leapT <= 0f) { leapT = 4.5f; Sfx.Tone(260f, 0.45f, 0.4f, "square"); Sfx.Tone(390f, 0.45f, 0.25f, "square"); var pl = target.GetComponent<FootController>(); if (pl != null) { pl.Knock(1.3f, "A clown honked you off your feet"); } if (GalacticMode.Instance != null) GalacticMode.Instance.Shake(0.4f); }
             }
             else
             {
