@@ -261,7 +261,7 @@ namespace BomberBuddies
             yield return new WaitForSeconds(delay);
             at.y = GameState.GroundHeight != null ? GameState.GroundHeight(at.x, at.z) : at.y;
             foreach (var h in Health.All) { if (h == null || !h.alive || h.team == 0 || h.isAir) continue; var d = h.transform.position - at; if (d.magnitude > 9f) continue; var es = h.GetComponent<EnemySoldier>(); if (es != null) es.Stagger(2.2f, d.normalized * 3f); h.TakeDamage(new DamageInfo { amount = 20f * GalacticMode.K, point = h.transform.position, direction = d.normalized, source = gameObject, foot = true }); }
-            Sfx.Play("gun_bolt", 0.8f, 0.6f, at); if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(at + Vector3.up, Vector3.up, 4f);
+            Sfx.Play("shock", 0.9f, 1f, at); if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(at + Vector3.up, Vector3.up, 4f);
         }
 
         public void ApplyKit()

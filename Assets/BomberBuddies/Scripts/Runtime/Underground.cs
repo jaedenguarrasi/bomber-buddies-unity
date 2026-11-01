@@ -170,7 +170,7 @@ namespace BomberBuddies
                 // the blast door: thick, grey, 600 hp; blow it and the room is open
                 var dmin = new Vector3(Mathf.Min(near, cx), c.y, c.z + rz - 2.5f); var dmax = new Vector3(Mathf.Max(near, cx) + 0.01f, c.y + H, c.z + rz + 2.5f);
                 if (Mathf.Abs(dmax.x - dmin.x) < 0.5f) { dmin.x = cx - 0.4f; dmax.x = cx + 0.4f; }
-                doors.Add(Breakable("Blast door", dmin, dmax, C(90, 95, 100), 600f * GalacticMode.K, h => { Sfx.Play("expl_big", 0.8f, 0.7f, h.transform.position); if (GameState.Hud != null) GameState.Hud.Comms("Door breached"); GameState.Earn(60); if (Projectiles.Instance != null) Projectiles.Instance.Explode((dmin + dmax) * 0.5f, 1f, 4f, 30f, null, 2); }));
+                doors.Add(Breakable("Blast door", dmin, dmax, C(90, 95, 100), 600f * GalacticMode.K, h => { Sfx.Play("expl_big", 0.8f, 0.7f, h.transform.position); Sfx.Play("door", 0.9f, 0.6f, h.transform.position); if (GameState.Hud != null) GameState.Hud.Comms("Door breached"); GameState.Earn(60); if (Projectiles.Instance != null) Projectiles.Instance.Explode((dmin + dmax) * 0.5f, 1f, 4f, 30f, null, 2); }));
                 // the ammo dump: crates in the back corner; one stray round and the whole room goes
                 var amin = new Vector3(far + (side < 0 ? 1f : -5f), c.y, rmax.z - 6f); var amax = amin + new Vector3(4f, 1.6f, 4f);
                 var room = (rmin + rmax) * 0.5f;
