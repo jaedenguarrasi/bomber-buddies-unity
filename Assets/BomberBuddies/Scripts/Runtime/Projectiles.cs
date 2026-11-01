@@ -147,6 +147,8 @@ namespace BomberBuddies
                         }
                         var ship = hit.collider.GetComponentInParent<Carrier>();
                         if (ship != null) ship.HullHit(hit.point, s);
+                        var bt = hit.collider.GetComponent<BuildingTag>();
+                        if (bt != null && World3.Instance != null && s.damage >= 15f) World3.Instance.Hit(bt.k, s.damage, hit.point);
                         if (Gunfire.Instance != null) Gunfire.Instance.Impact(hit.point, hit.normal, d != null && ship == null);
                         if (s.bolt) Flash(hit.point, 1.6f);
                     }
@@ -203,6 +205,7 @@ namespace BomberBuddies
         public void Explode(Vector3 at, float coreR, float dmgR, float dmg, GameObject source, int team)
         {
             Flash(at, Mathf.Max(1f, dmgR * 0.45f));
+            if (World3.Instance != null && team != 2) World3.Instance.Blast(at, dmgR, dmg);
             Sfx.Play(dmgR > 20f ? "expl_huge" : dmgR > 6f ? "expl_big" : "expl_small", dmgR > 6f ? 0.9f : 0.7f, 1f, at);
             var seen = new HashSet<Object>();
             foreach (var c in Physics.OverlapSphere(at, dmgR, ~0, QueryTriggerInteraction.Ignore))

@@ -108,6 +108,8 @@ namespace BomberBuddies
                     d.TakeDamage(new DamageInfo { amount = damage, point = hit.point, direction = dir, source = owner != null ? owner.gameObject : gameObject, foot = true });
                     if (GameState.Hud != null) GameState.Hud.HitMarker(hit.collider.GetComponent<HitZone>() != null && hit.collider.GetComponent<HitZone>().head);
                 }
+                var bt = hit.collider.GetComponent<BuildingTag>();
+                if (bt != null && World3.Instance != null && damage >= 40f) World3.Instance.Hit(bt.k, damage * 0.3f, hit.point);
                 if (Gunfire.Instance != null) Gunfire.Instance.Impact(hit.point, hit.normal, flesh);
             }
             return end;

@@ -9,7 +9,7 @@ namespace BomberBuddies
     /// 520 trees; drawn as flat-shaded vertex-coloured chunks with the terrain's own colouring rules. World units are the
     /// original's (1 unit = 0.12 m); the island is centred on the Unity origin.
     /// </summary>
-    public class World3 : MonoBehaviour
+    public partial class World3 : MonoBehaviour
     {
         public const int N3 = 224, BS = 14, CH = 16;
         public const float WORLD3 = N3 * BS, MID3 = WORLD3 * 0.5f, SEA = 28f, FLOOR3 = 21f, FLOOR_H = 13f;
@@ -366,20 +366,31 @@ namespace BomberBuddies
             return col;
         }
 
+        readonly Dictionary<int, GameObject> chunkGos = new Dictionary<int, GameObject>();
+        readonly List<GameObject> pendingColliders = new List<GameObject>();
+
         void BuildMeshes()
         {
             int nch = N3 / CH;
             for (int cz = 0; cz < nch; cz++)
-                for (int cx = 0; cx < nch; cx++)
-                {
-                    mb.Clear();
-                    BuildChunk(cx, cz);
-                    if (mb.VertexCount == 0) continue;
-                    mb.Spawn("Chunk " + cx + "," + cz, transform, lowPoly, true);
-                }
+                for (int cx = 0; cx < nch; cx++) RebuildChunk(cx, cz);
             BuildWater();
             BuildRidges();
             BuildClouds();
+        }
+
+        /// <summary>Builds (or rebuilds, after damage) one 16×16 chunk: its ground, what stands on it, and their colliders.</summary>
+        public void RebuildChunk(int cx, int cz)
+        {
+            int key = cz * 1000 + cx; GameObject old;
+            if (chunkGos.TryGetValue(key, out old) && old != null) Destroy(old);
+            chunkGos.Remove(key);
+            mb.Clear(); pendingColliders.Clear();
+            BuildChunk(cx, cz);
+            if (mb.VertexCount == 0) { foreach (var c in pendingColliders) Destroy(c); return; }
+            var go = mb.Spawn("Chunk " + cx + "," + cz, transform, lowPoly, true);
+            foreach (var c in pendingColliders) c.transform.SetParent(go.transform, true);
+            chunkGos[key] = go;
         }
 
         void BuildChunk(int cx, int cz)
@@ -402,6 +413,7 @@ namespace BomberBuddies
                     else if (house3[k] == 30) HomeMesh(k, px, ph, pz);
                     else if (house3[k] >= 1 && house3[k] <= 4) SimpleHouse(k, px, ph, pz);
                     else if (house3[k] == 10) FuelTank(px, ph, pz);
+                    else if (house3[k] == 28) Rubble(k, px, ph, pz);
                 }
             // village cover on this chunk
             foreach (var c in cover)
@@ -428,6 +440,8 @@ namespace BomberBuddies
             AddCollider(WM(x, h + 4.5f * s, z), new Vector3(2.6f * U, 9f * s * U, 2.6f * U), "Tree");
         }
 
+        void Update() { UpdateDamage(Mathf.Min(Time.deltaTime, 0.05f)); }
+
         static Vector3 WM(float x, float y, float z) { return new Vector3(x * U, y * U, z * U); }   // spread units (chunk space) to metres
 
         void AddCollider(Vector3 worldCentre, Vector3 size, string name)
@@ -436,6 +450,7 @@ namespace BomberBuddies
             go.transform.SetParent(transform, false);
             go.transform.position = worldCentre;
             var bc = go.AddComponent<BoxCollider>(); bc.size = size;
+            pendingColliders.Add(go);
         }
 
         void Tower(int k, float x, float h, float z)
@@ -468,6 +483,7 @@ namespace BomberBuddies
             }
             var wc = WM(x, h + top * 0.5f, z);
             AddCollider(wc, new Vector3(hw * 2f * U, (top + 3f) * U, hw * 2f * U), "Tower");
+            pendingColliders[pendingColliders.Count - 1].AddComponent<BuildingTag>().k = k;
         }
 
         void HomeMesh(int k, float x, float h, float z)
