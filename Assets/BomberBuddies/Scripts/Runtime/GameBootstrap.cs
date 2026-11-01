@@ -14,7 +14,9 @@ namespace BomberBuddies
     /// </summary>
     public class GameBootstrap : MonoBehaviour
     {
+        public enum Mode { Galactic, Island }
         public MaterialLibrary library;
+        public Mode mode = Mode.Galactic;
         public int seed = 7;
         public float islandSize = 1100f, maxHeight = 85f, seaLevel = 9f;
         public int treeCount = 420, rockCount = 90;
@@ -24,6 +26,8 @@ namespace BomberBuddies
         WorldProps.WorldInfo world;
         FootController player;
         Health playerHealth;
+        Camera cam;
+        CameraRig rig;
         Vector3 spawnPoint;
         float spawnYaw;
         bool respawning;
@@ -38,17 +42,26 @@ namespace BomberBuddies
 
             gameObject.AddComponent<InputBridge>();
             Gunfire.Create(transform, library);
+            Projectiles.Create(transform, library);
             BuildLighting();
             terrain = IslandBuilder.Build(transform, seed, islandSize, maxHeight, seaLevel, library);
             BuildWater();
             world = WorldProps.Build(transform, terrain, seed, islandSize, seaLevel, library, treeCount, rockCount);
-            BuildNavMesh();
+            if (mode == Mode.Island) BuildNavMesh();
             BuildPlayer();
             GameState.Hud = Hud.Create(transform);
             var spawner = new GameObject("Enemies").AddComponent<EnemySpawner>();
             spawner.transform.SetParent(transform, false);
             spawner.library = library; spawner.player = player; spawner.baseCount = waveBase; spawner.perWave = wavePerWave;
             spawner.villageCenter = world.villageCenter; spawner.villageRadius = world.villageRadius;
+            if (mode == Mode.Galactic)
+            {
+                spawner.enabled = false;   // no waves: the ships' guards come from the mode itself
+                cam.farClipPlane = 4000f;
+                RenderSettings.fogEndDistance = 2600f;
+                GalacticMode.Create(transform, library, terrain, player, rig, cam, spawner);
+                return;
+            }
             GameState.Spawner = spawner;
             GameState.Hud.Announce("Hold the village");
             GameState.Touch();
@@ -150,7 +163,7 @@ namespace BomberBuddies
             var camGo = new GameObject("Main Camera");
             camGo.tag = "MainCamera";
             camGo.transform.SetParent(transform, false);
-            var cam = camGo.AddComponent<Camera>();
+            cam = camGo.AddComponent<Camera>();
             cam.nearClipPlane = 0.05f;
             cam.farClipPlane = 2600f;
             cam.fieldOfView = 70f;
@@ -161,7 +174,7 @@ namespace BomberBuddies
             extra.renderShadows = true;
             var rigGo = new GameObject("CameraRig");
             rigGo.transform.SetParent(transform, false);
-            var rig = rigGo.AddComponent<CameraRig>();
+            rig = rigGo.AddComponent<CameraRig>();
             rig.cam = cam; rig.player = player; rig.yaw = spawnYaw; rig.pitch = 6f;
             player.rig = rig;
 
@@ -171,7 +184,7 @@ namespace BomberBuddies
             player.rifle = rifle;
 
             playerHealth.OnDamaged += info => { lastHurt = Time.time; if (GameState.Hud != null) GameState.Hud.Damaged(info.amount); };
-            playerHealth.OnDied += info => { Debug.Log("Player down: " + info.amount + " damage from " + (info.source != null ? info.source.name : "?") + " at " + player.transform.position); if (!respawning) StartCoroutine(Respawn()); };
+            playerHealth.OnDied += info => { Debug.Log("Player down: " + info.amount + " damage from " + (info.source != null ? info.source.name : "?") + " at " + player.transform.position); if (!respawning && mode == Mode.Island) StartCoroutine(Respawn()); };
             GameState.Player = player;
             GameState.Rig = rig;
         }
@@ -206,7 +219,7 @@ namespace BomberBuddies
             {
                 if (Time.time - lastHurt > 4f && playerHealth.current < playerHealth.max) playerHealth.Heal(22f * Time.deltaTime);
             }
-            if (player != null && playerHealth != null && playerHealth.alive && player.transform.position.y < seaLevel - 1.4f && IslandBuilder.GroundHeight(terrain, player.transform.position.x, player.transform.position.z) < seaLevel && !respawning)
+            if (mode == Mode.Island && player != null && playerHealth != null && playerHealth.alive && player.transform.position.y < seaLevel - 1.4f && IslandBuilder.GroundHeight(terrain, player.transform.position.x, player.transform.position.z) < seaLevel && !respawning)
             {
                 playerHealth.TakeDamage(new DamageInfo { amount = 9999f, point = player.transform.position, direction = Vector3.down, source = gameObject });
             }

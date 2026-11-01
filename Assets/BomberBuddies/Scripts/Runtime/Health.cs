@@ -10,6 +10,8 @@ namespace BomberBuddies
         public Vector3 direction;
         public GameObject source;
         public bool headshot;
+        public bool foot;        // fired by a rifle on foot: ship parts (turrets, cores) shrug these off
+        public bool explosive;   // blast damage: ship parts use their bomb multiplier
     }
 
     public interface IDamageable

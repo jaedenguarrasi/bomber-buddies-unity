@@ -13,10 +13,12 @@ namespace BomberBuddies
         Canvas canvas;
         Image healthFill, damageFlash, reloadFill, crossA, crossB, crossC, crossD;
         RectTransform hitMarkerRoot;
-        Text ammoText, waveText, killText, message, reloadText;
+        Text ammoText, waveText, killText, message, reloadText, modeText, speedText;
         float hitT, flashT, messageT, crossSpread = 12f;
         Font font;
-        GameObject touchRoot;
+        GameObject touchRoot, flightTouchRoot;
+        PlaneController flight;
+        Image boostFill, heatRing;
 
         public static Hud Create(Transform parent)
         {
@@ -105,8 +107,16 @@ namespace BomberBuddies
             killText = Txt("Kills", transform, tl, new Vector2(150f, -72f), new Vector2(280f, 30f), 20, TextAnchor.MiddleLeft, new Color(0.9f, 0.9f, 0.9f));
             message = Txt("Message", transform, new Vector2(0.5f, 0.68f), Vector2.zero, new Vector2(900f, 80f), 48, TextAnchor.MiddleCenter, Color.white);
             message.text = "";
+            modeText = Txt("Mode", transform, new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(1200f, 34f), 22, TextAnchor.MiddleCenter, new Color(0.92f, 0.95f, 1f));
+            modeText.text = "";
+            speedText = Txt("Speed", transform, bl, new Vector2(150f, 100f), new Vector2(300f, 30f), 20, TextAnchor.MiddleLeft, new Color(0.85f, 0.9f, 1f));
+            speedText.text = "";
+            Img("BoostBack", transform, bl, new Vector2(150f, 22f), new Vector2(240f, 6f), new Color(0f, 0f, 0f, 0.5f));
+            boostFill = Img("BoostFill", transform, bl, new Vector2(150f, 22f), new Vector2(240f, 6f), new Color(0.5f, 0.8f, 1f, 0.95f));
+            boostFill.type = Image.Type.Filled; boostFill.fillMethod = Image.FillMethod.Horizontal; boostFill.enabled = false;
 
             BuildTouchControls();
+            BuildFlightTouchControls();
             GameState.Changed += Refresh;
             Refresh();
         }
@@ -141,8 +151,50 @@ namespace BomberBuddies
             TouchButton("Crouch", touchRoot.transform, br, new Vector2(-260f, 330f), 86f, "<Gamepad>/buttonEast", new Color(1f, 0.9f, 0.6f, 0.45f));
             TouchButton("Reload", touchRoot.transform, br, new Vector2(-400f, 280f), 86f, "<Gamepad>/buttonWest", new Color(1f, 1f, 1f, 0.4f));
             TouchButton("View", touchRoot.transform, new Vector2(1f, 1f), new Vector2(-80f, -60f), 72f, "<Gamepad>/buttonNorth", new Color(1f, 1f, 1f, 0.35f));
+            TouchButton("Get in", touchRoot.transform, new Vector2(1f, 1f), new Vector2(-170f, -60f), 72f, "<Gamepad>/select", new Color(1f, 1f, 1f, 0.35f));
             touchRoot.SetActive(InputBridge.Instance != null && InputBridge.Instance.IsTouch);
         }
+
+        void BuildFlightTouchControls()
+        {
+            flightTouchRoot = new GameObject("FlightTouch", typeof(RectTransform));
+            flightTouchRoot.transform.SetParent(transform, false);
+            var r = flightTouchRoot.GetComponent<RectTransform>(); r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = Vector2.zero; r.offsetMax = Vector2.zero;
+            var bl = new Vector2(0f, 0f);
+            var stickBack = Img("StickBack", flightTouchRoot.transform, bl, new Vector2(190f, 190f), new Vector2(200f, 200f), new Color(1f, 1f, 1f, 0.12f), true);
+            var knob = Img("Stick", stickBack.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(84f, 84f), new Color(1f, 1f, 1f, 0.45f), true);
+            var stick = knob.gameObject.AddComponent<OnScreenStick>();
+            stick.movementRange = 70f;
+            stick.controlPath = "<Gamepad>/leftStick";
+            // throttle: a tall slider on the right edge (pushes the pad's dpad up/down)
+            var br = new Vector2(1f, 0f);
+            var thrBack = Img("ThrottleBack", flightTouchRoot.transform, br, new Vector2(-60f, 420f), new Vector2(44f, 260f), new Color(1f, 1f, 1f, 0.12f), true);
+            var thrKnob = Img("Throttle", thrBack.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(60f, 60f), new Color(1f, 1f, 1f, 0.45f), true);
+            var thr = thrKnob.gameObject.AddComponent<OnScreenStick>();
+            thr.movementRange = 100f;
+            thr.controlPath = "<Gamepad>/dpad";
+            Txt("Label", thrBack.transform, new Vector2(0.5f, 1f), new Vector2(0f, 18f), new Vector2(120f, 24f), 16, TextAnchor.MiddleCenter, Color.white).text = "THR";
+            TouchButton("Gun", flightTouchRoot.transform, br, new Vector2(-150f, 200f), 150f, "<Gamepad>/rightTrigger", new Color(1f, 0.45f, 0.35f, 0.5f));
+            TouchButton("Bomb", flightTouchRoot.transform, br, new Vector2(-330f, 170f), 120f, "<Gamepad>/buttonSouth", new Color(1f, 0.85f, 0.4f, 0.5f));
+            TouchButton("Boost", flightTouchRoot.transform, br, new Vector2(-250f, 330f), 100f, "<Gamepad>/leftShoulder", new Color(0.6f, 0.8f, 1f, 0.45f));
+            TouchButton("Exit", flightTouchRoot.transform, new Vector2(1f, 1f), new Vector2(-80f, -60f), 72f, "<Gamepad>/select", new Color(1f, 1f, 1f, 0.35f));
+            flightTouchRoot.SetActive(false);
+        }
+
+        /// <summary>Flying or on foot: swaps the readouts and the touch layout.</summary>
+        public void SetFlight(PlaneController p)
+        {
+            flight = p;
+            bool touch = InputBridge.Instance != null && InputBridge.Instance.IsTouch;
+            if (flightTouchRoot != null) flightTouchRoot.SetActive(touch && p != null);
+            if (touchRoot != null) touchRoot.SetActive(touch && p == null);
+            if (boostFill != null) boostFill.enabled = p != null;
+            if (speedText != null) speedText.text = "";
+        }
+
+        public void SetModeLine(string text) { if (modeText != null) modeText.text = text; }
+
+        public void Announce(string text, float seconds) { message.text = text; messageT = seconds; }
 
         void TouchButton(string label, Transform parent, Vector2 anchor, Vector2 pos, float size, string path, Color c)
         {
@@ -165,7 +217,8 @@ namespace BomberBuddies
 
         void Refresh()
         {
-            if (waveText != null) waveText.text = GameState.Wave > 0 ? "WAVE " + GameState.Wave + (GameState.Spawner != null ? "   " + GameState.Spawner.Remaining + " left" : "") : "GET READY";
+            if (waveText != null && GalacticMode.Instance != null) waveText.text = "GALACTIC ASSAULT";
+            else if (waveText != null) waveText.text = GameState.Wave > 0 ? "WAVE " + GameState.Wave + (GameState.Spawner != null ? "   " + GameState.Spawner.Remaining + " left" : "") : "GET READY";
             if (killText != null) killText.text = "Kills " + GameState.Kills + (GameState.Headshots > 0 ? "   Headshots " + GameState.Headshots : "");
         }
 
@@ -173,8 +226,24 @@ namespace BomberBuddies
         {
             float dt = Time.deltaTime;
             var p = GameState.Player;
-            if (p != null && p.health != null) healthFill.fillAmount = Mathf.Lerp(healthFill.fillAmount, p.health.Fraction, Mathf.Min(1f, 10f * dt));
-            if (p != null && p.rifle != null)
+            if (flight != null && flight.Active)
+            {
+                healthFill.fillAmount = Mathf.Lerp(healthFill.fillAmount, flight.health.Fraction, Mathf.Min(1f, 10f * dt));
+                ammoText.text = "BOMBS " + flight.bombs;
+                reloadText.text = flight.Overheated ? "GUNS HOT" : (flight.docked != null ? "DOCKED  ·  throttle up to launch" : "");
+                reloadFill.fillAmount = flight.heat; reloadFill.enabled = true;
+                reloadFill.color = flight.Overheated ? new Color(1f, 0.3f, 0.2f, 0.95f) : new Color(1f, 0.85f, 0.4f, 0.95f);
+                boostFill.fillAmount = flight.boost;
+                speedText.text = "SPD " + Mathf.RoundToInt(flight.speedU) + "   ALT " + Mathf.RoundToInt(flight.AltitudeU) + "   THR " + Mathf.RoundToInt(flight.thr * 100f) + "%";
+                crossSpread = Mathf.Lerp(crossSpread, 9f, Mathf.Min(1f, 8f * dt));
+                crossA.enabled = crossB.enabled = crossC.enabled = crossD.enabled = true;
+                crossA.rectTransform.anchoredPosition = new Vector2(0f, crossSpread);
+                crossB.rectTransform.anchoredPosition = new Vector2(0f, -crossSpread);
+                crossC.rectTransform.anchoredPosition = new Vector2(-crossSpread, 0f);
+                crossD.rectTransform.anchoredPosition = new Vector2(crossSpread, 0f);
+            }
+            else if (p != null && p.health != null) healthFill.fillAmount = Mathf.Lerp(healthFill.fillAmount, p.health.Fraction, Mathf.Min(1f, 10f * dt));
+            if ((flight == null || !flight.Active) && p != null && p.rifle != null)
             {
                 ammoText.text = p.rifle.ammo + " / " + p.rifle.magSize;
                 reloadText.text = p.rifle.Reloading ? "RELOADING" : (p.rifle.ammo == 0 ? "EMPTY" : "");
@@ -192,7 +261,12 @@ namespace BomberBuddies
             if (hitT > 0f) { hitT -= dt; if (hitT <= 0f) foreach (var im in hitMarkerRoot.GetComponentsInChildren<Image>()) im.color = new Color(1f, 1f, 1f, 0f); }
             if (flashT > 0f) { flashT -= dt; damageFlash.color = new Color(0.65f, 0f, 0f, Mathf.Clamp01(flashT) * 0.45f); } else damageFlash.color = new Color(0.65f, 0f, 0f, 0f);
             if (messageT > 0f) { messageT -= dt; if (messageT <= 0f) message.text = ""; else message.color = new Color(1f, 1f, 1f, Mathf.Clamp01(messageT * 1.5f)); }
-            if (touchRoot != null && InputBridge.Instance != null && touchRoot.activeSelf != InputBridge.Instance.IsTouch) touchRoot.SetActive(InputBridge.Instance.IsTouch);
+            if (InputBridge.Instance != null)
+            {
+                bool touch = InputBridge.Instance.IsTouch, flying = flight != null && flight.Active;
+                if (touchRoot != null && touchRoot.activeSelf != (touch && !flying)) touchRoot.SetActive(touch && !flying);
+                if (flightTouchRoot != null && flightTouchRoot.activeSelf != (touch && flying)) flightTouchRoot.SetActive(touch && flying);
+            }
         }
 
         void OnDestroy() { GameState.Changed -= Refresh; }

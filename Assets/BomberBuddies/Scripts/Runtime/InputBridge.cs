@@ -24,6 +24,10 @@ namespace BomberBuddies
         public bool CrouchPressed { get; private set; }
         public bool ReloadPressed { get; private set; }
         public bool ViewPressed { get; private set; }
+        /// <summary>Flying: throttle change per second (-1..1), E/Q, the pad's dpad, or the on-screen slider.</summary>
+        public float Throttle { get; private set; }
+        /// <summary>Get in / get out of a vehicle: F, the pad's select, or the on-screen button.</summary>
+        public bool InteractPressed { get; private set; }
         public bool IsTouch { get; private set; }
 
         [Header("Sensitivity")]
@@ -31,8 +35,8 @@ namespace BomberBuddies
         public float stickDegPerSecond = 170f;
         public float touchDegPerPixel = 0.16f;
 
-        InputAction move, look, fire, aim, sprint, jump, crouch, reload, view;
-        bool jumpQ, crouchQ, reloadQ, viewQ;
+        InputAction move, look, fire, aim, sprint, jump, crouch, reload, view, throttle, interact;
+        bool jumpQ, crouchQ, reloadQ, viewQ, interactQ;
 
         void Awake()
         {
@@ -59,6 +63,16 @@ namespace BomberBuddies
             sprint = new InputAction("Sprint", InputActionType.Button);
             sprint.AddBinding("<Keyboard>/leftShift");
             sprint.AddBinding("<Gamepad>/leftStickPress");
+            sprint.AddBinding("<Gamepad>/leftShoulder");
+
+            throttle = new InputAction("Throttle", InputActionType.Value);
+            throttle.AddCompositeBinding("1DAxis").With("Positive", "<Keyboard>/e").With("Negative", "<Keyboard>/q");
+            throttle.AddBinding("<Gamepad>/dpad/y");
+
+            interact = new InputAction("Interact", InputActionType.Button);
+            interact.AddBinding("<Keyboard>/f");
+            interact.AddBinding("<Gamepad>/select");
+            interact.performed += _ => interactQ = true;
 
             jump = new InputAction("Jump", InputActionType.Button);
             jump.AddBinding("<Keyboard>/space");
@@ -87,12 +101,12 @@ namespace BomberBuddies
 
         void OnEnable()
         {
-            move.Enable(); look.Enable(); fire.Enable(); aim.Enable(); sprint.Enable(); jump.Enable(); crouch.Enable(); reload.Enable(); view.Enable();
+            move.Enable(); look.Enable(); fire.Enable(); aim.Enable(); sprint.Enable(); jump.Enable(); crouch.Enable(); reload.Enable(); view.Enable(); throttle.Enable(); interact.Enable();
         }
 
         void OnDisable()
         {
-            move.Disable(); look.Disable(); fire.Disable(); aim.Disable(); sprint.Disable(); jump.Disable(); crouch.Disable(); reload.Disable(); view.Disable();
+            move.Disable(); look.Disable(); fire.Disable(); aim.Disable(); sprint.Disable(); jump.Disable(); crouch.Disable(); reload.Disable(); view.Disable(); throttle.Disable(); interact.Disable();
         }
 
         void Update()
@@ -124,6 +138,8 @@ namespace BomberBuddies
             CrouchPressed = crouchQ; crouchQ = false;
             ReloadPressed = reloadQ; reloadQ = false;
             ViewPressed = viewQ; viewQ = false;
+            InteractPressed = interactQ; interactQ = false;
+            Throttle = Mathf.Clamp(throttle.ReadValue<float>(), -1f, 1f);
 
             // desktop: the mouse is captured while playing (Escape frees it)
             if (!Application.isMobilePlatform && Mouse.current != null)

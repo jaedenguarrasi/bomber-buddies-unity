@@ -102,11 +102,11 @@ namespace BomberBuddies
             if (Physics.Raycast(origin, dir, out hit, range, ~(1 << 8), QueryTriggerInteraction.Ignore))
             {
                 end = hit.point;
-                var d = hit.collider.GetComponent<IDamageable>();
+                var d = hit.collider.GetComponent<IDamageable>(); if (d == null) d = hit.collider.GetComponentInParent<IDamageable>();
                 if (d != null)
                 {
                     flesh = true;
-                    d.TakeDamage(new DamageInfo { amount = damage, point = hit.point, direction = dir, source = owner != null ? owner.gameObject : gameObject });
+                    d.TakeDamage(new DamageInfo { amount = damage, point = hit.point, direction = dir, source = owner != null ? owner.gameObject : gameObject, foot = true });
                     if (GameState.Hud != null) GameState.Hud.HitMarker(hit.collider.GetComponent<HitZone>() != null && hit.collider.GetComponent<HitZone>().head);
                 }
                 if (Gunfire.Instance != null) Gunfire.Instance.Impact(hit.point, hit.normal, flesh);
