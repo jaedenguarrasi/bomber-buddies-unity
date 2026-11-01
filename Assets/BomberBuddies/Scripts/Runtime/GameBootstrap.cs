@@ -268,7 +268,7 @@ namespace BomberBuddies
                 SetSky(Mathf.Clamp01((ey - 1500f) / 2300f));
                 RenderSettings.fogStartDistance = (520f + hi * 0.9f) * World3.U * World3.Spread * (Night ? (Moon ? 0.45f : 0.18f) : 1f);
                 RenderSettings.fogEndDistance = (1750f + hi * 3f) * World3.U * World3.Spread * (Night ? (Moon ? 0.7f : 0.3f) : 1f);
-                Shader.SetGlobalVector("_NightLight", Night ? (Moon ? new Vector4(0.34f, 0.38f, 0.55f, 1f) : new Vector4(0.16f, 0.18f, 0.28f, 1f)) : new Vector4(1f, 1f, 1f, 0f));
+                Shader.SetGlobalVector("_NightLight", Night ? (Underground.Instance != null ? new Vector4(0.3f, 0.28f, 0.26f, 1f) : Moon ? new Vector4(0.34f, 0.38f, 0.55f, 1f) : new Vector4(0.16f, 0.18f, 0.28f, 1f)) : new Vector4(1f, 1f, 1f, 0f));
                 // the torch: from the camera, along the look, 60 m, only on foot or in a vehicle at night
                 bool torch = Night && !(PlayerManager.Instance != null && PlayerManager.Instance.plane != null && PlayerManager.Instance.plane.Active);
                 Shader.SetGlobalVector("_TorchPos", cam.transform.position);
