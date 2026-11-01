@@ -41,7 +41,7 @@ namespace BomberBuddies
         void Awake()
         {
             Application.targetFrameRate = Application.isMobilePlatform ? 60 : -1;
-            GameState.Reset();
+            GameState.Reset(); EnemySoldier.Dead = 0; SoldierModel.LiveRagdolls = 0;
             GameState.Library = library;
             gameObject.AddComponent<InputBridge>();
             if (ChosenMode != null) { string m = ChosenMode; ChosenMode = null; Begin(m); return; }
