@@ -24,6 +24,7 @@ namespace BomberBuddies
         public string kind = "inf";
         /// <summary>Creatures (DEF ape/gob/raptor/stalk/trex): melee, fast, built from the soldier body scaled and tinted until they get bodies of their own.</summary>
         public bool melee; public int score = 10;
+        public static int Dead;
         /// <summary>Caught in a saucer's beam: no fighting, just rising.</summary>
         public bool lifted; float staggerT; Vector3 staggerV;
         /// <summary>Knocked off his feet for a moment (the clown's horn, an ape's fist).</summary>
@@ -219,7 +220,7 @@ namespace BomberBuddies
                 if (GameState.Hud != null && Random.value < 0.3f) GameState.Hud.Comms("Medic!");
                 return;
             }
-            state = State.Dead;
+            state = State.Dead; Dead++;
             if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
             if (agent != null && agent.enabled) agent.enabled = false;
             foreach (var c in GetComponentsInChildren<Collider>()) c.enabled = false;
@@ -291,7 +292,8 @@ namespace BomberBuddies
             {
                 deadT += dt;
                 if (model != null) model.Animate(0f, 0f, 0f, false, dt);
-                if (deadT > 12f) { transform.position += Vector3.down * dt * 0.4f; if (deadT > 16f) Destroy(gameObject); }
+                // the bodies stay where they fell (the original's field of them) until there are too many; then the oldest sink
+                if (deadT > 12f && (Dead > 40 || deadT > 240f)) { transform.position += Vector3.down * dt * 0.4f; if (deadT > (Dead > 40 ? 16f : 244f)) { Dead--; Destroy(gameObject); } }
                 return;
             }
             retargetT -= dt;
