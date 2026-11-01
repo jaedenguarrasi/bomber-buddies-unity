@@ -20,7 +20,11 @@ namespace BomberBuddies
         public bool Sprinting { get { return sprinting; } }
         public float MoveSpeed { get { return horizontal.magnitude; } }
         public bool Crouching { get { return crouching; } }
-        public float EyeHeight { get { return Mathf.Lerp(1.64f, 1.12f, crouchK); } }
+        public float EyeHeight { get { return Mathf.Lerp(1.64f, 1.12f, crouchK) + (InCover ? (Peeking ? 0.42f : -0.18f) : 0f); } }
+        /// <summary>Cover (coverNear / coverSnap): crouched against something waist-high you tuck in behind it; aiming peeks over.</summary>
+        public bool InCover { get; private set; }
+        public bool Peeking { get; private set; }
+        float coverT;
         public bool ControlsLocked { get; set; }
         /// <summary>Chute open: falls gently and steers. Jump opens it after a second in the air; landing closes it.</summary>
         public bool parachute;
@@ -120,6 +124,16 @@ namespace BomberBuddies
             cc.height = h; cc.center = new Vector3(0f, h * 0.5f, 0f);
 
             if (knockT > 0f) { knockT -= dt; move = Vector2.zero; sprinting = false; if (knockT <= 0f) crouching = false; }
+            // cover: crouched and nearly touching something solid in front
+            bool wasCover = InCover;
+            if (crouching && grounded)
+            {
+                RaycastHit ch; var fwd = rig.FlatRotation * Vector3.forward;
+                InCover = Physics.Raycast(transform.position + Vector3.up * 0.8f, fwd, out ch, 1.1f, ~((1 << 8) | (1 << 9)), QueryTriggerInteraction.Ignore) && ch.collider.GetComponent<Health>() == null;
+            }
+            else InCover = false;
+            Peeking = InCover && aiming;
+            if (InCover != wasCover && GameState.Hud != null) GameState.Hud.Comms(InCover ? "In cover: aim to peek" : "Out of cover");
             float speed = aiming ? aimSpeed : crouching ? crouchSpeed : sprinting ? sprintSpeed : walkSpeed;
             var wheel = ItemWheel.Instance;
             if (wheel != null && wheel.smokeT > 0f) speed *= 1.3f;
