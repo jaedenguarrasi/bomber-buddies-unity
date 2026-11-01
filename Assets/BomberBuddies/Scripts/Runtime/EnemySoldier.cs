@@ -25,7 +25,9 @@ namespace BomberBuddies
         /// <summary>Creatures (DEF ape/gob/raptor/stalk/trex): melee, fast, built from the soldier body scaled and tinted until they get bodies of their own.</summary>
         public bool melee; public int score = 10;
         /// <summary>Caught in a saucer's beam: no fighting, just rising.</summary>
-        public bool lifted;
+        public bool lifted; float staggerT; Vector3 staggerV;
+        /// <summary>Knocked off his feet for a moment (the clown's horn, an ape's fist).</summary>
+        public void Stagger(float seconds, Vector3 push) { staggerT = seconds; staggerV = push; }
         float meleeDmg, meleeReach = 1.6f, meleeT, creatureSpeed = 4f, leapT;
         /// <summary>The giants (colossus / Beast / kaiju): a creature body blown up, boulders, a beam, and the ground shakes.</summary>
         public bool giant; float giantScale = 1f, throwT = 4f, stompDist, beamT;
@@ -259,6 +261,7 @@ namespace BomberBuddies
         void Update()
         {
             float dt = Time.deltaTime;
+            if (staggerT > 0f && state != State.Dead) { staggerT -= dt; var sp = transform.position + staggerV * dt; staggerV *= 1f - 4f * dt; sp.y = GameState.GroundHeight != null ? GameState.GroundHeight(sp.x, sp.z) : sp.y; if (agent != null && agent.enabled && agent.isOnNavMesh) agent.Warp(sp); else transform.position = sp; if (model != null) model.Animate(0f, 0f, 1f, false, dt); return; }
             if (lifted && state != State.Dead) { if (agent != null && agent.enabled) agent.enabled = false; if (model != null) model.Animate(0f, 0f, 0f, true, dt); transform.Rotate(0f, 90f * dt, 0f); return; }
             if (state == State.Dead)
             {

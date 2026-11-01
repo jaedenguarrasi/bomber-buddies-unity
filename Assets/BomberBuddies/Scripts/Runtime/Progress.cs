@@ -57,7 +57,7 @@ namespace BomberBuddies
         };
 
         /// <summary>The soldier classes' bodies (GV): speed, toughness, jump, and what the class can do.</summary>
-        public class Kit { public string id, gun; public float spd, hpK, jump; public bool rocket, medic, jetpack, scope; }
+        public class Kit { public string id, gun; public float spd, hpK, jump; public bool rocket, medic, jetpack, scope; public string melee, body; public float reach = 2.2f, meleeDmg = 40f, height = 1.8f; }
         public static readonly Kit[] Kits =
         {
             new Kit { id = "soldier", gun = "rifle", spd = 36f, hpK = 0.4f, jump = 92f },
@@ -66,6 +66,11 @@ namespace BomberBuddies
             new Kit { id = "rocketeer", gun = "carbine", spd = 34f, hpK = 0.45f, jump = 90f, rocket = true },
             new Kit { id = "medic", gun = "carbine", spd = 38f, hpK = 0.5f, jump = 92f, medic = true },
             new Kit { id = "jetpack", gun = "rifle", spd = 36f, hpK = 0.35f, jump = 92f, jetpack = true },
+            // the monsters (GV goblin/ape/raptor/clown): no gun, a swing or a bite on Fire, their own bodies
+            new Kit { id = "goblin", gun = "rifle", spd = 58f, hpK = 0.3f, jump = 120f, melee = "club", body = "gob", reach = 2.2f, meleeDmg = 40f, height = 1.3f },
+            new Kit { id = "ape", gun = "rifle", spd = 64f, hpK = 1.4f, jump = 140f, melee = "fist", body = "ape", reach = 3.4f, meleeDmg = 90f, height = 2.6f },
+            new Kit { id = "raptor", gun = "rifle", spd = 120f, hpK = 0.5f, jump = 150f, melee = "bite", body = "raptor", reach = 2.6f, meleeDmg = 55f, height = 1.6f },
+            new Kit { id = "clown", gun = "rifle", spd = 40f, hpK = 0.9f, jump = 100f, melee = "horn", body = null, reach = 2.6f, meleeDmg = 45f, height = 1.9f },
         };
         public static Kit KitOf(string id) { foreach (var k in Kits) if (k.id == id) return k; return null; }
         public static bool IsFoot(string craft) { return KitOf(craft) != null; }
@@ -107,9 +112,9 @@ namespace BomberBuddies
             new CraftDef { id = "tank", name = "Battle tank", desc = "Heavy armor. Gun fires the machine gun, Shell the cannon.", price = 1500, available = true },
             new CraftDef { id = "bike", name = "Dirt bike", desc = "Fast, light and nimble, twin machine guns on the bars.", price = 1500, available = true },
             new CraftDef { id = "arty", name = "Mobile artillery", desc = "Heavy shells, fired from a map.", price = 1800 },
-            new CraftDef { id = "clown", name = "Clown", desc = "A horn, a balloon gun, and B to eat whoever is within reach.", price = 1800 },
-            new CraftDef { id = "goblin", name = "Goblin", desc = "Small, quick and hard to hit, with a club and rocks to throw.", price = 1800 },
-            new CraftDef { id = "raptor", name = "Velociraptor", desc = "A pack hunter: quick as a bike, leaps a long way, and bites.", price = 1800 },
+            new CraftDef { id = "clown", name = "Clown", desc = "A horn that blows everyone near you off their feet (Bomb), and a bite.", price = 1800, available = true },
+            new CraftDef { id = "goblin", name = "Goblin", desc = "Small, quick and hard to hit, with a club and rocks to throw (Bomb).", price = 1800, available = true },
+            new CraftDef { id = "raptor", name = "Velociraptor", desc = "A pack hunter: quick as a bike, leaps a long way, and bites.", price = 1800, available = true },
             new CraftDef { id = "jetpack", name = "Jetpack trooper", desc = "A grey alien on a jetpack. From the air, you fly.", price = 2000, available = true },
             new CraftDef { id = "clowncar", name = "Clown car", desc = "A tiny car; stop and five clowns climb out to fight for you.", price = 2200 },
             new CraftDef { id = "bomber2", name = "Two-seat bomber", desc = "A pilot and a gunner, 8 more bombs and a belly turret.", price = 2500 },
@@ -119,7 +124,7 @@ namespace BomberBuddies
             new CraftDef { id = "gunslinger", name = "Gunslinger", desc = "Twin pistols and a slow-motion dive.", price = 3000 },
             new CraftDef { id = "transport", name = "Transport helicopter", desc = "Three crew: pilot, two door gunners.", price = 3200 },
             new CraftDef { id = "fiend", name = "Skyjack", desc = "A sky pirate on a jet board with razor darts and cluster bombs.", price = 3200 },
-            new CraftDef { id = "ape", name = "Ape", desc = "Picks up people and cars and throws them. Climbs buildings.", price = 4000 },
+            new CraftDef { id = "ape", name = "Ape", desc = "Fists that put a soldier down in one, a ground-shaking stomp from a jump, and a boulder to throw (Bomb).", price = 4000, available = true },
             new CraftDef { id = "ac130", name = "AC-130 gunship", desc = "Circle a target and rain fire on it.", price = 4200, available = true },
             new CraftDef { id = "grey", name = "Alien grey", desc = "A big head and a ray gun. Hard to hit, jumps high.", price = 4500 },
             new CraftDef { id = "trike", name = "Triceratops", desc = "A living tank on four legs.", price = 4500 },

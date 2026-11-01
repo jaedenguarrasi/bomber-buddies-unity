@@ -37,7 +37,7 @@ namespace BomberBuddies
             var go = new GameObject("Player manager");
             go.transform.SetParent(parent, false);
             var pm = go.AddComponent<PlayerManager>();
-            pm.lib = lib; pm.foot = foot; pm.rig = rig; pm.cam = cam;
+            pm.lib = lib; pm.foot = foot; pm.rig = rig; pm.cam = cam; if (foot != null) foot.lib = lib;
             Instance = pm;
             if (foot != null)
             {
