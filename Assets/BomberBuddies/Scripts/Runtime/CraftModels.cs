@@ -68,6 +68,19 @@ namespace BomberBuddies
             return go;
         }
 
+        /// <summary>The flying saucer (saucer3): a wide dark disc, a lit rim, and a dome. "Rim" glows.</summary>
+        public static GameObject Saucer(Transform parent, MaterialLibrary lib, int layer)
+        {
+            var mb = new MeshBuilder();
+            var hull = MeshBuilder.Rgb(88, 92, 104); var rim = MeshBuilder.Emissive(MeshBuilder.Rgb(120, 230, 200)); var dome = MeshBuilder.Rgb(150, 200, 215);
+            mb.Prism(0f, -2.5f, 0f, 0f, 30f, 14f, 12, 0f, hull);     // the underside, wide at the top
+            mb.Prism(0f, 0f, 3.5f, 0f, 30f, 24f, 12, 0f, MeshBuilder.Mul(hull, 1.15f));
+            mb.Prism(0f, 3.5f, 9f, 0f, 12f, 4f, 10, 0f, dome);
+            for (int i = 0; i < 12; i++) { float a = i / 12f * Mathf.PI * 2f; mb.DBox(Mathf.Cos(a) * 26f, 0.5f, Mathf.Sin(a) * 26f, 3f, 1.4f, 3f, rim); }
+            var go = mb.Spawn("Body", parent, Mat(lib), false); go.layer = layer;
+            return go;
+        }
+
         /// <summary>Enemy jeep / tank / AA gun in the original's colours. Returns the body; "Turret" and "Barrel" children aim.</summary>
         public static GameObject Vehicle(Transform parent, MaterialLibrary lib, EnemyVehicle.Kind kind, int team, int layer, out Transform turret, out Transform barrel)
         {

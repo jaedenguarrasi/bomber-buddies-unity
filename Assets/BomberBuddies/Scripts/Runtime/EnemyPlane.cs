@@ -17,26 +17,26 @@ namespace BomberBuddies
         public int Team { get { return health != null ? health.team : 1; } }
 
         /// <summary>An attack helicopter instead of a fighter: closes in, hovers, fires bursts.</summary>
-        public bool heli;
+        public bool heli, saucer;
         float fwdU, vyU;
         Transform rotor, tailRotor;
 
-        public static EnemyPlane Build(Transform parent, MaterialLibrary lib, Vector3 pos, float yawRad, int team = 1, bool heli = false)
+        public static EnemyPlane Build(Transform parent, MaterialLibrary lib, Vector3 pos, float yawRad, int team = 1, bool heli = false, bool saucer = false)
         {
-            var go = new GameObject(heli ? (team == 0 ? "Gunship" : "Enemy gunship") : (team == 0 ? "Wingman" : "Enemy fighter"));
+            var go = new GameObject(saucer ? "Flying saucer" : heli ? (team == 0 ? "Gunship" : "Enemy gunship") : (team == 0 ? "Wingman" : "Enemy fighter"));
             go.transform.SetParent(parent, false);
             go.transform.position = pos;
             go.layer = team == 0 ? 8 : 9;
             var e = go.AddComponent<EnemyPlane>();
-            e.yaw = yawRad; e.heli = heli;
-            e.health = go.AddComponent<Health>(); e.health.max = (heli ? 140f * 1.4f * 1.28f : (team == 0 ? 250f : 161f)) * GalacticMode.K; e.health.current = e.health.max; e.health.team = team; e.health.isAir = true; e.health.aimHeight = 0f;
+            e.yaw = yawRad; e.heli = heli || saucer; e.saucer = saucer;
+            e.health = go.AddComponent<Health>(); e.health.max = (saucer ? 300f * 1.28f : heli ? 140f * 1.4f * 1.28f : (team == 0 ? 250f : 161f)) * GalacticMode.K; e.health.current = e.health.max; e.health.team = team; e.health.isAir = true; e.health.aimHeight = 0f;
             var zone = go.AddComponent<HitZone>(); zone.owner = e.health; zone.multiplier = 0.9f;
-            var col = go.AddComponent<SphereCollider>(); col.radius = 1.4f;
+            var col = go.AddComponent<SphereCollider>(); col.radius = saucer ? 3.4f : 1.4f;
             e.BuildModel(lib);
             e.health.OnDied += info =>
             {
                 if (Projectiles.Instance != null) Projectiles.Instance.Explode(go.transform.position, 1f, 4f, 0f, go, team);
-                if (team != 0) GameState.EnemyKilled(false, 400);
+                if (team != 0) GameState.EnemyKilled(false, saucer ? 600 : 400);
                 Destroy(go);
             };
             return e;
@@ -46,7 +46,8 @@ namespace BomberBuddies
         {
             model = new GameObject("Model").transform; model.SetParent(transform, false);
             int layer = gameObject.layer;
-            if (heli)
+            if (saucer) { CraftModels.Saucer(model, lib, layer); }
+            else if (heli)
             {
                 var body = CraftModels.Heli(model, lib, layer == 8 ? CraftModels.Mate : CraftModels.Foe, layer);
                 rotor = body.transform.Find("Rotor"); tailRotor = body.transform.Find("Tail rotor");
@@ -140,9 +141,17 @@ namespace BomberBuddies
                         var from = transform.position + Forward * 1.2f - Vector3.up * 0.6f;
                         var dir = (target.Value - from).normalized;
                         dir = Quaternion.AngleAxis(Random.Range(0f, 360f), dir) * Quaternion.Euler(Random.Range(0f, 2f), 0f, 0f) * dir;
-                        if (Projectiles.Instance != null) Projectiles.Instance.FireRound(from, dir, 420f * U, 5f * (Team == 0 ? GalacticMode.K : 1f), 500f * U, Team, gameObject, Team == 0 ? new Color(1f, 0.9f, 0.6f) : new Color(1f, 0.45f, 0.3f), 0.04f);
-                        if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(from, dir, 0.8f);
-                        gunT = 0.1f;
+                        if (saucer)
+                        {
+                            if (Projectiles.Instance != null) { Projectiles.Instance.FireBolt(from + transform.right * 1.5f, dir, 900f * U, 9f, 1.2f, Team, gameObject); Projectiles.Instance.FireBolt(from - transform.right * 1.5f, dir, 900f * U, 9f, 1.2f, Team, gameObject); }
+                            Sfx.Play("gun_zap", 0.5f, 0.8f, from); gunT = 0.22f;
+                        }
+                        else
+                        {
+                            if (Projectiles.Instance != null) Projectiles.Instance.FireRound(from, dir, 420f * U, 5f * (Team == 0 ? GalacticMode.K : 1f), 500f * U, Team, gameObject, Team == 0 ? new Color(1f, 0.9f, 0.6f) : new Color(1f, 0.45f, 0.3f), 0.04f);
+                            if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(from, dir, 0.8f);
+                            gunT = 0.1f;
+                        }
                     }
                     else { burst = 0f; gunT = Random.Range(1.2f, 2f); }
                 }

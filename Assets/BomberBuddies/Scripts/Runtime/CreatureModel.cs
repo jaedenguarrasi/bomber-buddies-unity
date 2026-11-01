@@ -60,6 +60,23 @@ namespace BomberBuddies
                         legSwing = 45f; armSwing = 30f; stride = 3.2f;
                     }
                     break;
+                case "grey":
+                    {
+                        var g = Col(lib, new Color(0.62f, 0.64f, 0.66f)); var eye = Col(lib, new Color(0.02f, 0.02f, 0.03f)); var gun = Col(lib, new Color(0.75f, 0.78f, 0.82f));
+                        body = Pivot("Body", transform, new Vector3(0f, 0.85f, 0f));
+                        Part(PrimitiveType.Cube, "Torso", body, new Vector3(0f, 0.1f, 0f), new Vector3(0.26f, 0.5f, 0.2f), g);
+                        head = Pivot("Head", body, new Vector3(0f, 0.42f, 0.02f));
+                        Part(PrimitiveType.Sphere, "Skull", head, new Vector3(0f, 0.18f, 0f), new Vector3(0.44f, 0.42f, 0.4f), g);
+                        Part(PrimitiveType.Sphere, "EyeL", head, new Vector3(-0.1f, 0.14f, 0.16f), new Vector3(0.14f, 0.09f, 0.06f), eye); Part(PrimitiveType.Sphere, "EyeR", head, new Vector3(0.1f, 0.14f, 0.16f), new Vector3(0.14f, 0.09f, 0.06f), eye);
+                        legL = Pivot("LegL", body, new Vector3(-0.08f, -0.15f, 0f)); Part(PrimitiveType.Cube, "ShinL", legL, new Vector3(0f, -0.35f, 0f), new Vector3(0.09f, 0.7f, 0.1f), g);
+                        legR = Pivot("LegR", body, new Vector3(0.08f, -0.15f, 0f)); Part(PrimitiveType.Cube, "ShinR", legR, new Vector3(0f, -0.35f, 0f), new Vector3(0.09f, 0.7f, 0.1f), g);
+                        armL = Pivot("ArmL", body, new Vector3(-0.17f, 0.3f, 0f)); Part(PrimitiveType.Cube, "ForeL", armL, new Vector3(0f, -0.25f, 0f), new Vector3(0.07f, 0.5f, 0.07f), g);
+                        armR = Pivot("ArmR", body, new Vector3(0.17f, 0.3f, 0f)); Part(PrimitiveType.Cube, "ForeR", armR, new Vector3(0f, -0.25f, 0f), new Vector3(0.07f, 0.5f, 0.07f), g);
+                        var rg = Part(PrimitiveType.Cube, "RayGun", armR, new Vector3(0f, -0.5f, 0.2f), new Vector3(0.08f, 0.1f, 0.45f), gun);
+                        muzzle = Pivot("Muzzle", rg.transform, new Vector3(0f, 0f, 0.6f));
+                        legSwing = 50f; armSwing = 15f; stride = 3f;
+                    }
+                    break;
                 case "stalk":
                     {
                         var p = Col(lib, new Color(0.86f, 0.86f, 0.9f)); var eye = Col(lib, new Color(0.05f, 0.05f, 0.06f));
@@ -132,7 +149,7 @@ namespace BomberBuddies
                     }
                     break;
             }
-            muzzle = head;
+            if (muzzle == null) muzzle = head;
         }
 
         public override void SetVisible(bool on) { foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = on; }
@@ -156,7 +173,7 @@ namespace BomberBuddies
             else
             {
                 if (armL != null) armL.localRotation = Quaternion.Euler(-s * armSwing * bobK + (kind == "stalk" ? -40f : 0f), 0f, 0f);
-                if (armR != null) armR.localRotation = Quaternion.Euler(s * armSwing * bobK + (kind == "stalk" ? -40f : 0f), 0f, 0f);
+                if (armR != null) armR.localRotation = Quaternion.Euler(s * armSwing * bobK + (kind == "stalk" ? -40f : kind == "grey" ? -80f : 0f), 0f, 0f);
                 if (body != null) body.localPosition = new Vector3(0f, body.localPosition.y + 0f, 0f) + Vector3.up * 0f;
             }
             if (tail != null) tail.localRotation = Quaternion.Euler(0f, Mathf.Sin(phase * 0.5f + 1f) * 12f * (0.3f + bobK), 0f);

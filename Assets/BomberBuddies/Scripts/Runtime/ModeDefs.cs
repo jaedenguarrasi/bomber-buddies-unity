@@ -44,7 +44,7 @@ namespace BomberBuddies
             { "abduct_att", Set("abduct_att", "Abduction: raid", "Missions", "You fly the saucer. The army is spread out below: hold the beam on a soldier until he is pulled inside. Fifteen taken wins it. Their guns and jeeps will not make it easy.", new Mode { playable = false }) },
             { "nest", Set("nest", "Goblin nest", "Missions", "You have walked into a nest. Goblins only, in packs, more every wave, coming from every side. Keep moving.", new Mode { comp = new[] { "gob", "ape" }, force = (n, c) => { c["gob"] = 6 + 3 * n; c["ape"] = 1; return c; } }) },
             { "shadow", Set("shadow", "Shadow war", "Missions", "Ninjas of both kinds and Grapples, nothing else: fast, close, and hard to keep in front of you. Aim for the ones in mid-leap.", new Mode { playable = false }) },
-            { "invasion", Set("invasion", "Saucer invasion", "Missions", "The greys come in force: saucers overhead, greys and their jetpack troopers on the ground, ray guns that leave skeletons. Daylight. No islanders to save this time, only yourselves.", new Mode { playable = false }) },
+            { "invasion", Set("invasion", "Saucer invasion", "Missions", "The greys come in force: saucers overhead, greys and their jetpack troopers on the ground, ray guns that leave skeletons. Daylight. No islanders to save this time, only yourselves.", new Mode { comp = new[] { "ufo", "grey", "ejet" }, force = (n, c) => { c["ufo"] = 2 + Mathf.Min(4, n); c["grey"] = 4 + 2 * n; c["ejet"] = 1 + n / 2; return c; } }) },
             { "bombers", Set("bombers", "Sewer sliders", "Missions", "They come up out of the manholes: greasy little bomb-machines on skids that slide at you with a charge on the chest and a timer that starts beeping when they get close. Medics keep the rest going. Shoot early, and watch the road.", new Mode { comp = new[] { "vest", "medic", "inf" }, force = (n, c) => { c["vest"] = 4 + 2 * n; c["medic"] = 1 + n / 2; c["inf"] = 2 + n; return c; } }) },
             { "beastside", Set("beastside", "Beast side", "Missions", "You fight for the monsters. Pick a goblin, an ape, a Devourer or a Nephilim (or anyone else), your hired squad comes as greys, and the army comes at you: soldiers, jeeps, tanks, guns and aircraft. The plain army, no monsters against you.", new Mode { playable = false }) },
             { "army", Set("army", "Beasts vs army", "Missions", "The monsters against the army, with you in the middle: apes, goblins and the rest hit the same waves the soldiers do. Whoever is left standing wins your credits.", new Mode { comp = new[] { "inf", "jeep", "tank", "aa", "ape", "gob", "eheli" }, force = (n, c) => { c["ape"] = 1 + n; c["gob"] = 4 + 2 * n; return c; } }) },
@@ -63,7 +63,7 @@ namespace BomberBuddies
             { "hell", Set("hell", "Hell dive", "Underground", "Straight down to the bottom. A red cavern of lava and fire, apes and their monkeys, and a dragon with room to fly. The ladder is where you fell in.", new Mode { playable = false }) },
         };
 
-        static readonly string[] Creatures = { "gob", "ape", "raptor", "stalk", "trex" };
+        static readonly string[] Creatures = { "gob", "ape", "raptor", "stalk", "trex", "grey", "ufo" };
 
         /// <summary>What wave n brings (startWave3 + waveMix), filtered by the mode.</summary>
         public static Dictionary<string, int> WaveCounts(Mode mode, int n)
@@ -82,7 +82,7 @@ namespace BomberBuddies
                 { "ejet", n >= 4 ? Mathf.Min(3, (n - 2) / 2) : 0 },
                 { "sam", n >= 4 ? Mathf.Min(4, (n - 2) / 2) : 0 },
                 { "bunker", n >= 2 ? Mathf.Min(3, 1 + (n - 2) / 3) : 0 },
-                { "gob", 0 }, { "ape", 0 }, { "raptor", 0 }, { "stalk", 0 }, { "trex", 0 },
+                { "gob", 0 }, { "ape", 0 }, { "raptor", 0 }, { "stalk", 0 }, { "trex", 0 }, { "grey", 0 }, { "ufo", 0 },
             };
             if (mode != null)
             {

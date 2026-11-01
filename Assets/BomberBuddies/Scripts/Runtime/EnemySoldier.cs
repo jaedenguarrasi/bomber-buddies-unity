@@ -59,6 +59,18 @@ namespace BomberBuddies
             if (agent != null) { agent.speed = creatureSpeed; agent.radius = k == "trex" ? 1.4f : k == "ape" ? 0.7f : 0.35f; agent.height = bodyH; agent.acceleration = 30f; agent.stoppingDistance = meleeReach * 0.6f; }
         }
 
+        /// <summary>A grey: a small alien with a ray gun that fires dead-straight bolts of light (ray). Jumps about, hard to hit.</summary>
+        public bool grey;
+        public void MakeGrey(MaterialLibrary lib)
+        {
+            kind = "grey"; grey = true; score = 60;
+            health.max = 30f * GalacticMode.K; health.current = health.max; health.aimHeight = 0.9f;
+            damage = 17f; burstGap = 0.28f; pauseBetweenBursts = 0.9f; spreadDeg = 2f; attackRange = 60f;
+            if (lib != null && model != null) { Destroy(model.gameObject); model = CreatureModel.Create(transform, lib, "grey", gameObject.layer); }
+            var hz = transform.Find("HeadZone"); if (hz != null) hz.localPosition = new Vector3(0f, 1.25f, 0f);
+            if (agent != null) { agent.speed = 5.5f; agent.height = 1.4f; }
+        }
+
         /// <summary>A creature: run straight at the nearest thing on the ground and hit it; apes and raptors leap the last stretch.</summary>
         void Creature(float dt)
         {
@@ -373,7 +385,7 @@ namespace BomberBuddies
             if (burstLeft <= 0) { pauseT = pauseBetweenBursts * Random.Range(0.7f, 1.4f); return; }
             burstLeft--;
             burstT = burstGap;
-            Sfx.Play(kind == "egun" ? "gun_lmg" : "gun_rifle", 0.42f, 1.05f, transform.position);
+            Sfx.Play(grey ? "gun_zap" : kind == "egun" ? "gun_lmg" : "gun_rifle", 0.42f, 1.05f, transform.position);
             var from = model != null && model.muzzle != null ? model.muzzle.position : transform.TransformPoint(muzzleFallback);
             float spread = spreadDeg * (moveSpeed > 0.5f ? 1.6f : 1f) * Mathf.Lerp(0.6f, 1.4f, Mathf.InverseLerp(5f, attackRange, Vector3.Distance(from, at)));
             var dir = (at - from).normalized;
@@ -390,7 +402,7 @@ namespace BomberBuddies
             }
             if (Gunfire.Instance != null)
             {
-                Gunfire.Instance.TracerLine(from, end, Team == 0 ? new Color(1f, 0.9f, 0.6f) : new Color(1f, 0.55f, 0.3f), 0.025f, 0.07f);
+                Gunfire.Instance.TracerLine(from, end, grey ? new Color(0.5f, 1f, 0.6f) : Team == 0 ? new Color(1f, 0.9f, 0.6f) : new Color(1f, 0.55f, 0.3f), grey ? 0.06f : 0.025f, grey ? 0.12f : 0.07f);
                 Gunfire.Instance.MuzzleFlash(from, dir, 0.8f);
             }
         }

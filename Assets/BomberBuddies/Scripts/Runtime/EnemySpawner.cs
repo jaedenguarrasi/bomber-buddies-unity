@@ -58,7 +58,7 @@ namespace BomberBuddies
             for (int i = 0; i < nCamps; i++) camps.Add(LandSpot(GameState.Wave <= 1 ? 90f : 60f, 180f));
             queue.Clear();
             // emplacements first, then the heavy stuff, then the men; aircraft arrive on their own from the edge
-            foreach (var t in new[] { "bunker", "aa", "sam", "tank", "jeep", "inf", "egun", "medic", "vest", "ejet", "trex", "ape", "stalk", "raptor", "gob", "eplane", "eheli" })
+            foreach (var t in new[] { "bunker", "aa", "sam", "tank", "jeep", "inf", "egun", "medic", "vest", "ejet", "grey", "trex", "ape", "stalk", "raptor", "gob", "eplane", "eheli", "ufo" })
             {
                 int k; if (!counts.TryGetValue(t, out k)) continue;
                 for (int i = 0; i < k; i++) queue.Add(t);
@@ -87,13 +87,13 @@ namespace BomberBuddies
         bool SpawnNext()
         {
             string type = queue[0];
-            if (type == "eplane" || type == "eheli")
+            if (type == "eplane" || type == "eheli" || type == "ufo")
             {
                 // in from the edge of the island, high up
                 float a = Random.Range(0f, Mathf.PI * 2f);
                 var centre = player != null ? player.transform.position : villageCenter;
                 var at = centre + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 420f; at.y = 320f * GalacticMode.U + Mathf.Max(0f, GameState.GroundHeight != null ? GameState.GroundHeight(at.x, at.z) : 0f);
-                var e = EnemyPlane.Build(transform, library, at, Mathf.Atan2(centre.x - at.x, centre.z - at.z), 1, type == "eheli");
+                var e = EnemyPlane.Build(transform, library, at, Mathf.Atan2(centre.x - at.x, centre.z - at.z), 1, type == "eheli", type == "ufo");
                 alive.Add(e.health);
                 return true;
             }
@@ -115,7 +115,7 @@ namespace BomberBuddies
                     e.MakeCreature(type, library);
                     alive.Add(e.health);
                 }
-                else if (type == "inf" || type == "medic" || type == "egun" || type == "vest" || type == "ejet")
+                else if (type == "inf" || type == "medic" || type == "egun" || type == "vest" || type == "ejet" || type == "grey")
                 {
                     NavMeshHit hit = default(NavMeshHit);
                     bool onMesh = type != "ejet" && NavMesh.SamplePosition(p, out hit, 10f, NavMesh.AllAreas);
@@ -124,6 +124,7 @@ namespace BomberBuddies
                     if (type == "vest") { e.health.max = 60f; e.health.current = 60f; }
                     if (type == "ejet") { e.health.max = 80f; e.health.current = 80f; e.health.isAir = true; }
                     if (type == "egun") { e.damage = 6f; e.burstGap = 0.07f; e.spreadDeg = 8f; }
+                    if (type == "grey") { e.MakeGrey(library); }
                     alive.Add(e.health);
                 }
                 else
