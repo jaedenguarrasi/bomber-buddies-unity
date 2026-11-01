@@ -10,6 +10,10 @@ namespace BomberBuddies
     public class PlaneController : MonoBehaviour
     {
         const float U = GalacticMode.U;
+        public enum Craft { Plane, Heli }
+        public Craft craft = Craft.Plane;
+        public bool IsHeli { get { return craft == Craft.Heli; } }
+        public string CraftName { get { return IsHeli ? "attack helicopter" : "fighter-bomber"; } }
         public Health health;
         public Camera cam;
         public MaterialLibrary lib;
@@ -22,24 +26,27 @@ namespace BomberBuddies
         public Vector3 Velocity { get; private set; }
         public float AltitudeU { get { return transform.position.y / U; } }
 
-        Transform model, muzzleL, muzzleR, propT;
+        Transform model, muzzleL, muzzleR, propT, rotor, tailRotor;
+        float fwdU, vyU;            // the helicopter's forward and vertical speeds (original units)
+        public bool Landed { get; private set; }
         float fireT, bombCd, hurtTick, boostLock, camShakeT;
         bool boostOut, lastFire;
         Vector3 lastOk, camVel;
         Transform[] wingTips = new Transform[2];
         float[] wingDamage = new float[2];
 
-        public static PlaneController Build(Transform parent, MaterialLibrary lib, Camera cam)
+        public static PlaneController Build(Transform parent, MaterialLibrary lib, Camera cam, Craft craft = Craft.Plane)
         {
-            var go = new GameObject("Plane");
+            var go = new GameObject(craft == Craft.Heli ? "Helicopter" : "Plane");
             go.transform.SetParent(parent, false);
             go.layer = 8;
             var p = go.AddComponent<PlaneController>();
-            p.lib = lib; p.cam = cam;
+            p.lib = lib; p.cam = cam; p.craft = craft;
+            if (craft == Craft.Heli) p.thr = 0.5f;
             p.health = go.AddComponent<Health>(); p.health.max = 100f; p.health.current = 100f; p.health.team = 0; p.health.aimHeight = 0f; p.health.isAir = true;
             var zone = go.AddComponent<HitZone>(); zone.owner = p.health; zone.multiplier = 1f;
             var col = go.AddComponent<SphereCollider>(); col.radius = 1.3f;
-            p.BuildModel();
+            if (craft == Craft.Heli) p.BuildHeliModel(); else p.BuildModel();
             p.health.OnDamaged += info => { if (GameState.Hud != null && p.Active) GameState.Hud.Damaged(info.amount); };
             go.SetActive(false);
             return p;
@@ -77,18 +84,55 @@ namespace BomberBuddies
             wingTips[1] = new GameObject("TipR").transform; wingTips[1].SetParent(model, false); wingTips[1].localPosition = new Vector3(2.4f, -0.1f, 0.1f);
         }
 
+        void BuildHeliModel()
+        {
+            model = new GameObject("Model").transform;
+            model.SetParent(transform, false);
+            var body = lib != null ? lib.Instance("gunmetal") : null; if (body != null) { body.SetColor("_BaseColor", new Color(0.3f, 0.34f, 0.3f)); body.SetFloat("_Metallic", 0.3f); body.SetFloat("_Smoothness", 0.5f); }
+            var dark = lib != null ? lib.Get("dark") : null;
+            var glass = lib != null ? lib.Instance("water") : null; if (glass != null) glass.SetColor("_BaseColor", new Color(0.4f, 0.6f, 0.8f, 0.55f));
+            GameObject P(PrimitiveType t, string n, Vector3 pos, Vector3 scale, Material m, Vector3? rot = null, Transform parent = null)
+            {
+                var g = GameObject.CreatePrimitive(t); g.name = n; g.layer = 8; Destroy(g.GetComponent<Collider>());
+                g.transform.SetParent(parent != null ? parent : model, false); g.transform.localPosition = pos; g.transform.localScale = scale; if (rot.HasValue) g.transform.localRotation = Quaternion.Euler(rot.Value);
+                if (m != null) g.GetComponent<Renderer>().sharedMaterial = m; return g;
+            }
+            P(PrimitiveType.Capsule, "Fuselage", new Vector3(0f, 0f, 0.3f), new Vector3(1.1f, 1.1f, 4.4f), body, new Vector3(90f, 0f, 0f));
+            P(PrimitiveType.Sphere, "Canopy", new Vector3(0f, 0.25f, 1.6f), new Vector3(0.9f, 0.8f, 1.4f), glass);
+            P(PrimitiveType.Cube, "Tail boom", new Vector3(0f, 0.15f, -3.2f), new Vector3(0.3f, 0.3f, 3.2f), body);
+            P(PrimitiveType.Cube, "Fin", new Vector3(0f, 0.7f, -4.6f), new Vector3(0.08f, 1f, 0.6f), body);
+            P(PrimitiveType.Cube, "Stub L", new Vector3(-1.1f, -0.2f, 0.2f), new Vector3(1.4f, 0.1f, 0.6f), body);
+            P(PrimitiveType.Cube, "Stub R", new Vector3(1.1f, -0.2f, 0.2f), new Vector3(1.4f, 0.1f, 0.6f), body);
+            P(PrimitiveType.Cube, "Skid L", new Vector3(-0.6f, -0.85f, 0.2f), new Vector3(0.08f, 0.08f, 2.6f), dark);
+            P(PrimitiveType.Cube, "Skid R", new Vector3(0.6f, -0.85f, 0.2f), new Vector3(0.08f, 0.08f, 2.6f), dark);
+            P(PrimitiveType.Cylinder, "Mast", new Vector3(0f, 0.75f, 0.2f), new Vector3(0.15f, 0.3f, 0.15f), dark);
+            rotor = new GameObject("Rotor").transform; rotor.SetParent(model, false); rotor.localPosition = new Vector3(0f, 1.05f, 0.2f);
+            P(PrimitiveType.Cube, "Blade", Vector3.zero, new Vector3(6.4f, 0.04f, 0.26f), dark, null, rotor);
+            P(PrimitiveType.Cube, "Blade", Vector3.zero, new Vector3(0.26f, 0.04f, 6.4f), dark, null, rotor);
+            tailRotor = new GameObject("Tail rotor").transform; tailRotor.SetParent(model, false); tailRotor.localPosition = new Vector3(0.2f, 0.7f, -4.7f);
+            P(PrimitiveType.Cube, "Blade", Vector3.zero, new Vector3(0.04f, 1.1f, 0.14f), dark, null, tailRotor);
+            P(PrimitiveType.Cylinder, "Gun", new Vector3(0f, -0.45f, 1.9f), new Vector3(0.14f, 0.5f, 0.14f), dark, new Vector3(90f, 0f, 0f));
+            muzzleL = new GameObject("MuzzleL").transform; muzzleL.SetParent(model, false); muzzleL.localPosition = new Vector3(-0.1f, -0.45f, 2.4f);
+            muzzleR = new GameObject("MuzzleR").transform; muzzleR.SetParent(model, false); muzzleR.localPosition = new Vector3(0.1f, -0.45f, 2.4f);
+            wingTips[0] = new GameObject("TipL").transform; wingTips[0].SetParent(model, false); wingTips[0].localPosition = new Vector3(-1.8f, -0.2f, 0.2f);
+            wingTips[1] = new GameObject("TipR").transform; wingTips[1].SetParent(model, false); wingTips[1].localPosition = new Vector3(1.8f, -0.2f, 0.2f);
+        }
+
         /// <summary>Put the plane somewhere and hand the controls over.</summary>
-        public void Place(Vector3 pos, float yawDeg, Carrier dockedIn, float speed)
+        public void Place(Vector3 pos, float yawDeg, Carrier dockedIn, float speed, bool takeControl = true)
         {
             transform.position = pos; lastOk = pos;
             yaw = yawDeg * Mathf.Deg2Rad; pitch = 0f; bank = 0f;
-            docked = dockedIn; speedU = speed; launchT = 0f; thr = 0.73f; heat = 0f; Overheated = false; boost = 1f; boostOut = false;
+            docked = dockedIn; speedU = speed; launchT = 0f; thr = IsHeli ? 0.5f : 0.73f; heat = 0f; Overheated = false; boost = 1f; boostOut = false;
+            fwdU = IsHeli ? speed : 0f; vyU = 0f; Landed = false;
             bombs = maxBombs; wingDamage[0] = wingDamage[1] = 0f;
             health.ResetFull();
             Velocity = Vector3.zero;
             ApplyPose();
             gameObject.SetActive(true);
-            Active = true;
+            health.isAir = dockedIn == null;
+            Active = takeControl;
+            if (!takeControl) return;
             // start the camera behind the plane rather than sliding in from wherever it was
             if (cam != null) { cam.transform.position = transform.position - Forward * 12f + Vector3.up * 3.8f; cam.transform.LookAt(transform.position + Forward * 10f); }
         }
@@ -98,6 +142,7 @@ namespace BomberBuddies
         {
             Active = false;
             Velocity = Vector3.zero;
+            health.isAir = false;
         }
 
         public Vector3 Forward { get { return Quaternion.Euler(-pitch * Mathf.Rad2Deg, yaw * Mathf.Rad2Deg, 0f) * Vector3.forward; } }
@@ -129,20 +174,22 @@ namespace BomberBuddies
             Carrier hs = null;
             if (launchT <= 0f && gm != null) hs = gm.HangarAt(transform.position);
             if (hs != null || docked != null) { DockStep(hs != null ? hs : docked, sx, boosting, dt); }
+            else if (IsHeli) FlyHeli(sx, sy, boosting, dt);
             else Fly(sx, sy, boosting, dt);
+            if (rotor != null) { rotor.Rotate(0f, (Landed && thr < 0.2f ? 200f : 1800f) * dt, 0f); if (tailRotor != null) tailRotor.Rotate(2600f * dt, 0f, 0f); }
 
             // guns and bombs
             heat = Mathf.Max(0f, heat - dt * 0.28f);
             if (Overheated && heat < 0.35f) Overheated = false;
             fireT -= dt;
-            if (input.Fire && !Overheated && fireT <= 0f && docked == null) Shoot();
+            if (input.Fire && !Overheated && fireT <= 0f && docked == null && !Landed) Shoot();
             bombCd -= dt;
             if (input.JumpPressed && docked == null && bombs > 0 && bombCd <= 0f) DropBomb();
             if (input.InteractPressed)
             {
-                if (docked != null) { if (gm != null) gm.ExitToFoot(); return; }
+                if (docked != null || (IsHeli && Landed)) { if (gm != null) gm.ExitToFoot(); return; }
                 else if (gm != null && transform.position.y > gm.ObstacleHeight(transform.position.x, transform.position.z) + 18f * U) { gm.BailOut(); return; }
-                else if (GameState.Hud != null) GameState.Hud.Announce("Land in a hangar to get out");
+                else if (GameState.Hud != null) GameState.Hud.Announce(IsHeli ? "Land first to get out" : "Land in a hangar to get out");
             }
             ApplyPose();
             ChaseCamera(dt);
@@ -211,6 +258,51 @@ namespace BomberBuddies
             }
         }
 
+        /// <summary>The helicopter: yaw with the stick, push forward to fly forward, the throttle slider is the collective
+        /// (half way hovers), boost doubles the engine. It lands on anything flat and can be left there.</summary>
+        void FlyHeli(float sx, float sy, bool boosting, float dt)
+        {
+            float power = boosting ? 2.6f : 1f;
+            yaw += sx * 1.7f * dt;
+            float fwdTarget = -sy * 205f * power;
+            fwdU += (fwdTarget - fwdU) * Mathf.Min(1f, 2.7f * dt);
+            float vyTarget = (thr - 0.5f) * 2f * 150f * power;
+            if (Mathf.Abs(thr - 0.5f) < 0.06f) vyTarget = 0f;   // the hover notch
+            vyU = Mathf.MoveTowards(vyU, vyTarget, 4.6f * 150f * dt);
+            if (AltitudeU > 4700f && vyU > 0f) vyU = 0f;
+            pitch = Mathf.Lerp(pitch, -fwdU / 205f * 0.35f, Mathf.Min(1f, 3f * dt));
+            bank += (Mathf.Clamp(sx, -1f, 1f) * 0.5f - bank) * Mathf.Min(1f, 2.6f * dt);
+            var flatFwd = Quaternion.Euler(0f, yaw * Mathf.Rad2Deg, 0f) * Vector3.forward;
+            var v = flatFwd * fwdU * U + Vector3.up * vyU * U;
+            speedU = Mathf.Abs(fwdU);
+            Velocity = v;
+            var from = transform.position; var to = from + v * dt;
+            var gm = GalacticMode.Instance;
+            float ground = GameState.GroundHeight != null ? GameState.GroundHeight(to.x, to.z) : 0f;
+            if (gm != null) { float f = gm.HangarFloorOrNaN(to); if (!float.IsNaN(f)) ground = Mathf.Max(ground, f); }
+            // the skids
+            if (to.y <= ground + 0.9f && vyU <= 0f)
+            {
+                if (vyU < -120f) { Crash(to); return; }
+                to.y = ground + 0.9f; vyU = 0f; Landed = true;
+                if (fwdU != 0f) fwdU = Mathf.MoveTowards(fwdU, 0f, 300f * dt);
+                to = from + (flatFwd * fwdU * U) * dt; to.y = ground + 0.9f;
+                pitch = Mathf.Lerp(pitch, 0f, Mathf.Min(1f, 4f * dt)); bank *= Mathf.Max(0f, 1f - 4f * dt);
+            }
+            else Landed = false;
+            // walls, trees, the carriers
+            RaycastHit hit; var seg = to - from; float len = seg.magnitude;
+            if (len > 0.0001f && Physics.SphereCast(from, 0.9f, seg / len, out hit, len + 0.3f, ~((1 << 8) | (1 << 9)), QueryTriggerInteraction.Ignore))
+            {
+                var ship = hit.collider.GetComponentInParent<Carrier>();
+                if (ship != null && ship.IsShield(hit.collider)) { health.TakeDamage(new DamageInfo { amount = 22f, point = hit.point, direction = seg, source = ship.gameObject }); fwdU *= -0.5f; to = lastOk; if (GameState.Hud != null) GameState.Hud.Announce("Their hangar is shielded: destroy the shield generator on the ground first"); }
+                else if (Vector3.Dot(hit.normal, Vector3.up) > 0.7f && vyU <= 0f) { to.y = hit.point.y + 0.9f; vyU = 0f; Landed = true; }
+                else { to = lastOk; fwdU *= -0.3f; hurtTick -= dt; if (hurtTick <= 0f) { hurtTick = 0.5f; health.TakeDamage(new DamageInfo { amount = 4f, point = hit.point, direction = seg, source = gameObject }); } }
+            }
+            else lastOk = from;
+            transform.position = to;
+        }
+
         void DockStep(Carrier S, float sx, bool boosting, float dt)
         {
             if (docked == null)
@@ -221,7 +313,8 @@ namespace BomberBuddies
             speedU *= Mathf.Max(0f, 1f - 2.5f * dt);
             float floor = S.L2W(0f, S.FloorY, 0f).y;
             var p = transform.position;
-            p.y = Mathf.Lerp(p.y, floor + 4f * U, Mathf.Min(1f, 3f * dt));
+            p.y = Mathf.Lerp(p.y, floor + (IsHeli ? 6f : 4f) * U, Mathf.Min(1f, 3f * dt));
+            fwdU *= Mathf.Max(0f, 1f - 2.5f * dt); vyU = 0f;
             pitch *= Mathf.Max(0f, 1f - 6f * dt); bank *= Mathf.Max(0f, 1f - 6f * dt);
             yaw += sx * 1.4f * dt;
             p += Forward * speedU * U * dt * 0.3f;
@@ -237,7 +330,8 @@ namespace BomberBuddies
                 var outDir = S.MouthDirection;
                 yaw = Mathf.Atan2(outDir.x, outDir.z);
                 pitch = 0.05f; bank = 0f;
-                docked = null; launchT = 1.6f; speedU = 230f;
+                docked = null; launchT = 1.6f; speedU = IsHeli ? 0f : 230f;
+                if (IsHeli) { fwdU = 90f; thr = 0.6f; }
                 Velocity = Forward * speedU * U;
                 if (GameState.Hud != null) GameState.Hud.Announce("Launch!");
             }
@@ -252,6 +346,7 @@ namespace BomberBuddies
             var m = lastFire ? muzzleL : muzzleR;
             var dir = Forward;
             dir = Quaternion.AngleAxis(Random.Range(0f, 360f), dir) * Quaternion.Euler(Random.Range(0f, 0.6f), 0f, 0f) * dir;
+            if (IsHeli) dir = Quaternion.Euler(8f, 0f, 0f) * Quaternion.Euler(0f, yaw * Mathf.Rad2Deg, 0f) * Vector3.forward;
             if (Projectiles.Instance != null) Projectiles.Instance.FireRound(m.position, dir, 640f * U, 10f * GalacticMode.K, 640f * U, 0, gameObject, new Color(1f, 0.9f, 0.6f), 0.04f);
             if (Gunfire.Instance != null) Gunfire.Instance.MuzzleFlash(m.position, dir, 1.2f);
             if (GameState.Hud != null) GameState.Hud.OnShot();

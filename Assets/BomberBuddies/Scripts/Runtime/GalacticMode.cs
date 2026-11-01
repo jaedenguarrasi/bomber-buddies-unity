@@ -24,7 +24,9 @@ namespace BomberBuddies
         public CameraRig rig;
         public Camera cam;
         public EnemySpawner spawner;
-        public PlaneController plane;
+        public PlaneController plane;            // the craft the player is in (or last left)
+        public readonly List<PlaneController> craft = new List<PlaneController>();   // every player-side craft, parked or flown
+        float parkT = 25f;
         public Carrier friendly, enemy;
         public ShipPart generator;
         public readonly List<PlaneController> allyPlanes = new List<PlaneController>();
@@ -103,8 +105,11 @@ namespace BomberBuddies
             ArmEnemyShip();
             BuildGenerator();
             BuildGround();
-            plane = PlaneController.Build(transform, lib, cam);
-            plane.health.OnDied += info => { if (!respawning && !over) StartCoroutine(Respawn("Shot down")); };
+            // three parked craft in your hangar, like the original: plane, helicopter, plane
+            NewCraft(PlaneController.Craft.Plane, friendly.L2W(-10f, friendly.FloorY + 1f, 12f));
+            NewCraft(PlaneController.Craft.Heli, friendly.L2W(45f, friendly.FloorY + 0f, 12f));
+            NewCraft(PlaneController.Craft.Plane, friendly.L2W(95f, friendly.FloorY + 1f, 12f));
+            plane = NewCraft(PlaneController.Craft.Plane, friendly.L2W(0f, friendly.FloorY + 4f, -20f));
             if (foot != null)
             {
                 foot.groundHeight = GroundHeight;
@@ -401,6 +406,31 @@ namespace BomberBuddies
             wingmen.Add(w);
         }
 
+        PlaneController NewCraft(PlaneController.Craft kind, Vector3 at)
+        {
+            var c = PlaneController.Build(transform, lib, cam, kind);
+            var dir = friendly.MouthDirection;
+            c.Place(at, Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg, friendly, 0f, false);
+            c.health.OnDied += info => { if (c == plane && c.Active && !respawning && !over) StartCoroutine(Respawn("Shot down")); else if (!c.Active) { craft.Remove(c); Destroy(c.gameObject, 3f); } };
+            craft.Add(c);
+            return c;
+        }
+
+        /// <summary>A deck floor under a point when it is inside one of the ships, else NaN.</summary>
+        public float HangarFloorOrNaN(Vector3 w)
+        {
+            float best = float.NaN;
+            foreach (var s in new[] { friendly, enemy }) { if (s == null) continue; float f = s.FloorAt(w); if (!float.IsNaN(f) && (float.IsNaN(best) || f > best)) best = f; }
+            return best;
+        }
+
+        int ParkedInHangar(Carrier S)
+        {
+            int n = 0;
+            foreach (var c in craft) if (c != null && !c.Active && c.health.alive && S.HangarAt(c.transform.position)) n++;
+            return n;
+        }
+
         /// <summary>Out of the plane in mid-air: the soldier falls with a chute, the plane is lost.</summary>
         public void BailOut()
         {
@@ -419,9 +449,13 @@ namespace BomberBuddies
         void PlaceInHangar()
         {
             var F = friendly;
-            var pos = F.L2W(20f + Random.Range(-25f, 25f), F.FloorY + 4f, -20f);
+            // a parked plane in your hangar if there is one, else a fresh one
+            PlaneController use = null;
+            foreach (var c in craft) if (c != null && !c.Active && c.health.alive && !c.IsHeli && F.HangarAt(c.transform.position)) { use = c; break; }
+            if (use == null) use = NewCraft(PlaneController.Craft.Plane, F.L2W(20f + Random.Range(-25f, 25f), F.FloorY + 4f, -20f));
+            plane = use;
             var dir = F.MouthDirection;
-            plane.Place(pos, Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg, F, 0f);
+            plane.Place(plane.transform.position, Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg, F, 0f);
             SetOnFoot(false);
         }
 
@@ -437,12 +471,12 @@ namespace BomberBuddies
         /// <summary>Out of the docked plane onto the hangar deck.</summary>
         public void ExitToFoot()
         {
-            if (plane == null || plane.docked == null || foot == null) return;
+            if (plane == null || (plane.docked == null && !plane.Landed) || foot == null) return;
             var S = plane.docked;
             plane.Park();
             var right = Quaternion.Euler(0f, 90f, 0f) * plane.Forward; right.y = 0f;
             var pos = plane.transform.position + right.normalized * 14f * U;
-            pos.y = S.L2W(0f, S.FloorY, 0f).y + 0.1f;
+            pos.y = S != null ? S.L2W(0f, S.FloorY, 0f).y + 0.1f : GroundHeight(pos.x, pos.z) + 0.1f;
             SetOnFoot(true);
             foot.Teleport(pos, plane.yaw * Mathf.Rad2Deg);
             foot.ControlsLocked = false;
@@ -452,13 +486,21 @@ namespace BomberBuddies
         /// <summary>Back into the parked plane when standing beside it.</summary>
         public bool TryGetIn()
         {
-            if (plane == null || foot == null || plane.Active) return false;
-            if (Vector3.Distance(foot.transform.position, plane.transform.position) > 18f * U) { if (GameState.Hud != null) GameState.Hud.Announce("No vehicle close enough to get in"); return false; }
+            if (foot == null) return false;
+            PlaneController near = null; float best = 18f * U;
+            foreach (var c in craft)
+            {
+                if (c == null || c.Active || !c.health.alive) continue;
+                float d = Vector3.Distance(foot.transform.position, c.transform.position);
+                if (d < best && Mathf.Abs(foot.transform.position.y - c.transform.position.y) < 20f * U) { best = d; near = c; }
+            }
+            if (near == null) { if (GameState.Hud != null) GameState.Hud.Announce("No vehicle close enough to get in"); return false; }
+            plane = near;
             float hpK = plane.health.Fraction;
-            plane.Place(plane.transform.position, plane.yaw * Mathf.Rad2Deg, plane.docked, 0f);
+            plane.Place(plane.transform.position, plane.yaw * Mathf.Rad2Deg, HangarAt(plane.transform.position), 0f);
             plane.health.current = plane.health.max * Mathf.Clamp(hpK, 0.05f, 1f);
             SetOnFoot(false);
-            if (GameState.Hud != null) GameState.Hud.Announce("In the fighter-bomber");
+            if (GameState.Hud != null) GameState.Hud.Announce("In the " + plane.CraftName);
             return true;
         }
 
@@ -483,7 +525,8 @@ namespace BomberBuddies
             else
             {
                 // no carrier to come back to: straight into the air over the island
-                plane.Place(new Vector3(Random.Range(-60f, 60f), 320f * U + 60f, -300f), 0f, null, 180f);
+                plane = NewCraft(PlaneController.Craft.Plane, new Vector3(Random.Range(-60f, 60f), 320f * U + 60f, -300f));
+                plane.Place(plane.transform.position, 0f, null, 180f);
                 SetOnFoot(false);
             }
             respawning = false;
@@ -550,6 +593,8 @@ namespace BomberBuddies
             bombT -= dt; if (bombT <= 0f) { bombT = Random.Range(10f, 14f); if (enemyUp && PostsHeld > 0) Bombard(); }
             allyT -= dt; if (allyT <= 0f) { allyT = Random.Range(12f, 16f); if (shipUp && wingmen.Count < 4) Wingman(); }
             pdT -= dt; if (pdT <= 0f) { pdT = 1.1f; PointDefence(); }
+            parkT -= dt; if (parkT <= 0f) { parkT = 25f; if (shipUp && ParkedInHangar(friendly) < 2) NewCraft(PlaneController.Craft.Plane, friendly.L2W(-10f + Random.Range(0f, 100f), friendly.FloorY + 1f, 12f)); }
+            craft.RemoveAll(c => c == null);
             fbT -= dt; if (fbT <= 0f) { fbT = Random.Range(2.2f, 3.4f); Broadside(); }
             TickStrikes(dt);
             // the posts
