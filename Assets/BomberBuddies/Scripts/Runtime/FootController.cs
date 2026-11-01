@@ -121,6 +121,8 @@ namespace BomberBuddies
 
             if (knockT > 0f) { knockT -= dt; move = Vector2.zero; sprinting = false; if (knockT <= 0f) crouching = false; }
             float speed = aiming ? aimSpeed : crouching ? crouchSpeed : sprinting ? sprintSpeed : walkSpeed;
+            var wheel = ItemWheel.Instance;
+            if (wheel != null && wheel.smokeT > 0f) speed *= 1.3f;
             var flat = rig.FlatRotation;
             var want = (flat * Vector3.forward * move.y + flat * Vector3.right * move.x) * speed;
             float accel = grounded ? 34f : 9f;
@@ -128,9 +130,9 @@ namespace BomberBuddies
 
             if (grounded)
             {
-                if (vy < -20f && health != null) health.TakeDamage(new DamageInfo { amount = (-vy - 20f) * 5f, point = transform.position, direction = Vector3.down, source = gameObject });
+                if (vy < -20f && health != null && !(wheel != null && wheel.drinkT > 0f)) health.TakeDamage(new DamageInfo { amount = (-vy - 20f) * 5f, point = transform.position, direction = Vector3.down, source = gameObject });
                 vy = -2.5f; airT = 0f; parachute = false;
-                if (input.JumpPressed) { vy = jumpSpeed; crouching = false; Sfx.Play("jump", 0.4f); }
+                if (input.JumpPressed) { vy = jumpSpeed * (wheel != null && wheel.drinkT > 0f ? 1.9f : 1f); crouching = false; Sfx.Play("jump", 0.4f); }
                 if (!wasGrounded) Sfx.Play("land", 0.45f);
                 stepT += horizontal.magnitude * dt; if (stepT > 2.2f) { stepT = 0f; Sfx.Play("footstep", crouching ? 0.12f : 0.25f, sprinting ? 1.15f : 1f); }
             }

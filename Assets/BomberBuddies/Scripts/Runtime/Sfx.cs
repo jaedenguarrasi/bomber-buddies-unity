@@ -15,6 +15,7 @@ namespace BomberBuddies
         public static bool Muted { get { return PlayerPrefs.GetInt("bb_mute", 0) == 1; } set { PlayerPrefs.SetInt("bb_mute", value ? 1 : 0); } }
         public static bool MusicOn { get { return PlayerPrefs.GetInt("bb_music", 1) == 1; } set { PlayerPrefs.SetInt("bb_music", value ? 1 : 0); } }
         public static bool Boosting;   // set by whatever is boosting this frame
+        public static float MusicRate = 1f;   // the cigarette runs the music fast
 
         readonly Dictionary<string, List<AudioClip>> bank = new Dictionary<string, List<AudioClip>>();
         readonly Dictionary<string, int> last = new Dictionary<string, int>();
@@ -147,6 +148,7 @@ namespace BomberBuddies
                 float want = (MusicOn && !Muted) ? 0.5f + 0.22f * boostK : 0f;
                 music.volume = Mathf.Lerp(music.volume, want * 0.55f, Mathf.Min(1f, Time.unscaledDeltaTime * 6f));
                 musicLp.cutoffFrequency = Mathf.Lerp(22000f, 2600f, boostK);
+                music.pitch = Mathf.Lerp(music.pitch, MusicRate, Mathf.Min(1f, Time.unscaledDeltaTime * 4f));
                 music.ignoreListenerPause = true;
             }
             Boosting = false;
