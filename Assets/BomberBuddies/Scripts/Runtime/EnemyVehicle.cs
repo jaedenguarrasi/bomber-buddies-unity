@@ -63,6 +63,7 @@ namespace BomberBuddies
                 foreach (var c in go.GetComponentsInChildren<Collider>()) c.enabled = false;
                 foreach (var r in go.GetComponentsInChildren<Renderer>()) { var m = r.material; if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", new Color(0.12f, 0.1f, 0.09f)); }
                 if (team != 0) GameState.EnemyKilled(false, kind == Kind.Jeep ? 40 : kind == Kind.Tank ? 120 : 80);
+                if (Projectiles.Instance != null) Projectiles.Instance.Burn(go.transform.position + Vector3.up * 1.2f, Random.Range(10f, 18f), false, 2f);
                 Destroy(go, 20f);
             };
             v.cd = Random.Range(1f, 3f);

@@ -71,7 +71,7 @@ namespace BomberBuddies
         }
 
         // ---------- napalm (the hangar's Napalm upgrade: every bomb bursts into a river of fire that keeps burning) ----------
-        class Fire { public Vector3 at; public float t; public Transform fx; }
+        class Fire { public Vector3 at; public float t; public Transform fx; public bool hurts = true; public float smokeT; }
         readonly List<Fire> fires = new List<Fire>();
         Material napalmMat;
         void Napalm(Vector3 at, Vector3 vel, GameObject source)
@@ -87,6 +87,28 @@ namespace BomberBuddies
             Sfx.Play("fire_loop", 0.7f, 1f, at);
             if (World3.Instance != null) World3.Instance.Blast(at, 6f, 40f);
         }
+        /// <summary>A fire where something was hit (a building, a wreck): it burns and smokes for a while, and only napalm hurts.</summary>
+        public void Burn(Vector3 at, float seconds, bool hurts = false, float size = 3f)
+        {
+            if (fires.Count > 40) return;
+            if (napalmMat == null) { napalmMat = new Material(Shader.Find("Universal Render Pipeline/Unlit")); napalmMat.SetColor("_BaseColor", new Color(1f, 0.45f, 0.1f, 0.85f)); napalmMat.SetFloat("_Surface", 1f); napalmMat.renderQueue = 3000; napalmMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha); napalmMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.One); napalmMat.SetInt("_ZWrite", 0); napalmMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); }
+            var go = GameObject.CreatePrimitive(PrimitiveType.Sphere); Destroy(go.GetComponent<Collider>()); go.name = "Fire"; go.transform.SetParent(transform, false); go.transform.position = at; go.transform.localScale = new Vector3(size, size * 0.5f, size); go.GetComponent<Renderer>().sharedMaterial = napalmMat;
+            fires.Add(new Fire { at = at, t = seconds, fx = go.transform, hurts = hurts });
+        }
+        Material smokeMat;
+        void Smoke(Vector3 at)
+        {
+            if (smokeMat == null) { smokeMat = new Material(Shader.Find("Universal Render Pipeline/Unlit")); smokeMat.SetColor("_BaseColor", new Color(0.15f, 0.14f, 0.13f, 0.55f)); smokeMat.SetFloat("_Surface", 1f); smokeMat.renderQueue = 3000; smokeMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha); smokeMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha); smokeMat.SetInt("_ZWrite", 0); smokeMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); }
+            var go = GameObject.CreatePrimitive(PrimitiveType.Sphere); Destroy(go.GetComponent<Collider>()); go.name = "Smoke"; go.transform.SetParent(transform, false); go.transform.position = at + Random.insideUnitSphere * 0.8f; go.GetComponent<Renderer>().sharedMaterial = smokeMat;
+            StartCoroutine(SmokeRise(go.transform));
+        }
+        System.Collections.IEnumerator SmokeRise(Transform t)
+        {
+            float a = 0f; var drift = new Vector3(Random.Range(-0.5f, 0.5f), 0f, Random.Range(-0.5f, 0.5f));
+            while (a < 4f && t != null) { a += Time.deltaTime; t.position += (Vector3.up * 2.5f + drift) * Time.deltaTime; t.localScale = Vector3.one * (1.5f + a * 1.6f); yield return null; }
+            if (t != null) Destroy(t.gameObject);
+        }
+
         void UpdateFires(float dt)
         {
             for (int i = fires.Count - 1; i >= 0; i--)
@@ -94,7 +116,8 @@ namespace BomberBuddies
                 var f = fires[i]; f.t -= dt;
                 if (f.fx != null) { float k = Mathf.Clamp01(f.t / 2f); f.fx.localScale = new Vector3(5f * (0.8f + 0.2f * Mathf.Sin(Time.time * 9f + i)), 2.2f * k * (1f + 0.3f * Mathf.Sin(Time.time * 13f + i)), 5f * (0.8f + 0.2f * Mathf.Cos(Time.time * 7f + i))); }
                 if (f.t <= 0f) { if (f.fx != null) Destroy(f.fx.gameObject); fires.RemoveAt(i); continue; }
-                if (Mathf.Repeat(Time.time + i * 0.1f, 0.5f) < dt)
+                f.smokeT -= dt; if (f.smokeT <= 0f) { f.smokeT = 0.5f; var cam = Camera.main; if (cam == null || Vector3.Distance(cam.transform.position, f.at) < 400f) Smoke(f.at + Vector3.up * 1f); }
+                if (f.hurts && Mathf.Repeat(Time.time + i * 0.1f, 0.5f) < dt)
                     foreach (var h in Health.All) if (h != null && h.alive && !h.isAir && Vector3.Distance(h.transform.position, f.at) < 3.5f) h.TakeDamage(new DamageInfo { amount = 9f * GalacticMode.K * (h.team == 0 ? 0.3f : 1f), point = h.transform.position, direction = Vector3.up, source = gameObject, explosive = true });
             }
         }

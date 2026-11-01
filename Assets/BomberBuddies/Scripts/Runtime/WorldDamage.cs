@@ -115,6 +115,7 @@ namespace BomberBuddies
             var col = TOWER_COL[(house3[k] - 20) % 4];
             var p = ToWorld(x, h + hitFloor * FLOOR_H + FLOOR_H * 0.5f, z);
             var dir = (at - p); dir.y = 0f; dir = dir.sqrMagnitude > 0.01f ? dir.normalized : Vector3.forward;
+            if (dmg > 60f && Projectiles.Instance != null && Random.value < 0.6f) Projectiles.Instance.Burn(p + dir * hw * U * Spread * 0.95f + Vector3.up * Random.Range(0f, 2f), Random.Range(12f, 25f), false, 2.5f);
             for (int i = 0; i < Mathf.Clamp(Mathf.RoundToInt(dmg / 25f), 2, 8); i++) Shed(p + dir * hw * U * Spread + Vector3.up * Random.Range(-1f, 2f), dir * Random.Range(2f, 6f) + Vector3.up * Random.Range(1f, 5f) + Random.insideUnitSphere * 2f, col, Random.Range(0.4f, 1.1f));
             // every 20 % lost sheds a floor from the top (the top floor is gone); the first time it hurts, say so
             int stepsBefore = Mathf.FloorToInt((255f - before) / 51f), stepsAfter = Mathf.FloorToInt((255f - php[k]) / 51f);
