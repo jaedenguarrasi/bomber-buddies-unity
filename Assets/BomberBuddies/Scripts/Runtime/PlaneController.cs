@@ -277,6 +277,9 @@ namespace BomberBuddies
             var back = Forward; back.y *= 0.6f;
             var want = transform.position - back.normalized * (12f + 5f * k) + Vector3.up * (3.8f - 1.2f * pitch);
             var lookAt = transform.position + Forward * 30f;
+            // never through a wall: pull in when the hangar is in the way
+            RaycastHit hit; var dir = want - transform.position; float len = dir.magnitude;
+            if (len > 0.01f && Physics.SphereCast(transform.position, 0.4f, dir / len, out hit, len, ~((1 << 8) | (1 << 9)), QueryTriggerInteraction.Ignore)) want = transform.position + dir / len * Mathf.Max(2.5f, hit.distance - 0.3f);
             cam.transform.position = Vector3.SmoothDamp(cam.transform.position, want, ref camVel, 0.12f);
             var rot = Quaternion.LookRotation(lookAt - cam.transform.position, Quaternion.AngleAxis(-bank * 30f, Forward) * Vector3.up);
             cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, rot, Mathf.Min(1f, 8f * dt));
