@@ -34,15 +34,29 @@ namespace BomberBuddies
         float spawnYaw;
         bool respawning;
 
+        /// <summary>The mode chosen in the menu survives the scene reload that starts a game.</summary>
+        public static string ChosenMode;
+        public bool showMenu = true;
+
         void Awake()
         {
             Application.targetFrameRate = Application.isMobilePlatform ? 60 : -1;
             GameState.Reset();
             GameState.Library = library;
+            gameObject.AddComponent<InputBridge>();
+            if (ChosenMode != null) { string m = ChosenMode; ChosenMode = null; Begin(m); return; }
+            if (showMenu) { MainMenu.Create(transform, library, Begin); return; }
+            Begin(mode == Mode.Galactic ? "galactic" : battleMode);
+        }
+
+        /// <summary>Builds the world and starts the chosen mode (a key of ModeDefs.All).</summary>
+        public void Begin(string modeId)
+        {
+            mode = modeId == "galactic" ? Mode.Galactic : Mode.Island;
+            battleMode = modeId;
             Random.InitState(seed);
             if (Application.isMobilePlatform) { treeCount = Mathf.Min(treeCount, 180); rockCount = Mathf.Min(rockCount, 50); IslandBuilder.mobile = true; ProceduralTextures.mobile = true; }
 
-            gameObject.AddComponent<InputBridge>();
             Gunfire.Create(transform, library);
             Projectiles.Create(transform, library);
             BuildLighting();
@@ -67,7 +81,7 @@ namespace BomberBuddies
                 return;
             }
             GameState.Spawner = spawner;
-            GameState.Hud.Announce("Hold the village");
+            GameState.Hud.Announce(spawner.Mode.name + ": hold the village");
             GameState.Touch();
         }
 
