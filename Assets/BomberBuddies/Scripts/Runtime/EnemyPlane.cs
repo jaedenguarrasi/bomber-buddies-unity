@@ -49,7 +49,7 @@ namespace BomberBuddies
                 g.transform.SetParent(model, false); g.transform.localPosition = pos; g.transform.localScale = scale; if (rot.HasValue) g.transform.localRotation = Quaternion.Euler(rot.Value);
                 if (m != null) g.GetComponent<Renderer>().sharedMaterial = m; return g;
             }
-            P(PrimitiveType.Capsule, "Fuselage", Vector3.zero, new Vector3(0.8f, 0.8f, 5f), body, new Vector3(90f, 0f, 0f));
+            P(PrimitiveType.Capsule, "Fuselage", Vector3.zero, new Vector3(0.8f, 2.5f, 0.8f), body, new Vector3(90f, 0f, 0f));
             P(PrimitiveType.Cube, "Wing", new Vector3(0f, 0f, -0.4f), new Vector3(5f, 0.08f, 1.6f), body, new Vector3(0f, 0f, 0f));
             P(PrimitiveType.Cube, "Fin L", new Vector3(-0.7f, 0.5f, -2f), new Vector3(0.06f, 0.9f, 0.8f), body, new Vector3(0f, 0f, -25f));
             P(PrimitiveType.Cube, "Fin R", new Vector3(0.7f, 0.5f, -2f), new Vector3(0.06f, 0.9f, 0.8f), body, new Vector3(0f, 0f, 25f));

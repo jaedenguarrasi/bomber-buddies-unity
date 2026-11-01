@@ -67,7 +67,7 @@ namespace BomberBuddies
                 if (m != null) g.GetComponent<Renderer>().sharedMaterial = m; return g;
             }
             // sizes in metres: a 4.8 m span, 6 m long fighter-bomber (the original's 20-unit half span)
-            P(PrimitiveType.Capsule, "Fuselage", new Vector3(0f, 0f, 0f), new Vector3(0.9f, 0.9f, 5.6f), body, new Vector3(90f, 0f, 0f));
+            P(PrimitiveType.Capsule, "Fuselage", new Vector3(0f, 0f, 0f), new Vector3(0.9f, 2.8f, 0.9f), body, new Vector3(90f, 0f, 0f));
             P(PrimitiveType.Sphere, "Nose", new Vector3(0f, 0f, 2.9f), new Vector3(0.7f, 0.7f, 0.9f), dark);
             P(PrimitiveType.Sphere, "Canopy", new Vector3(0f, 0.42f, 0.9f), new Vector3(0.62f, 0.5f, 1.5f), glass);
             P(PrimitiveType.Cube, "Wing", new Vector3(0f, -0.1f, 0.1f), new Vector3(4.8f, 0.08f, 1.5f), body);
@@ -97,7 +97,7 @@ namespace BomberBuddies
                 g.transform.SetParent(parent != null ? parent : model, false); g.transform.localPosition = pos; g.transform.localScale = scale; if (rot.HasValue) g.transform.localRotation = Quaternion.Euler(rot.Value);
                 if (m != null) g.GetComponent<Renderer>().sharedMaterial = m; return g;
             }
-            P(PrimitiveType.Capsule, "Fuselage", new Vector3(0f, 0f, 0.3f), new Vector3(1.1f, 1.1f, 4.4f), body, new Vector3(90f, 0f, 0f));
+            P(PrimitiveType.Capsule, "Fuselage", new Vector3(0f, 0f, 0.3f), new Vector3(1.1f, 2.2f, 1.1f), body, new Vector3(90f, 0f, 0f));
             P(PrimitiveType.Sphere, "Canopy", new Vector3(0f, 0.25f, 1.6f), new Vector3(0.9f, 0.8f, 1.4f), glass);
             P(PrimitiveType.Cube, "Tail boom", new Vector3(0f, 0.15f, -3.2f), new Vector3(0.3f, 0.3f, 3.2f), body);
             P(PrimitiveType.Cube, "Fin", new Vector3(0f, 0.7f, -4.6f), new Vector3(0.08f, 1f, 0.6f), body);
