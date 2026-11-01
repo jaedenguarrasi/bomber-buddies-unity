@@ -60,6 +60,18 @@ namespace BomberBuddies
             return im;
         }
 
+        static Sprite whiteSprite;
+        /// <summary>A plain white sprite: a Filled image needs a sprite or it ignores fillAmount.</summary>
+        static Sprite White()
+        {
+            if (whiteSprite != null) return whiteSprite;
+            var tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
+            var px = new Color32[16]; for (int i = 0; i < 16; i++) px[i] = new Color32(255, 255, 255, 255);
+            tex.SetPixels32(px); tex.Apply();
+            whiteSprite = Sprite.Create(tex, new Rect(0, 0, 4, 4), new Vector2(0.5f, 0.5f));
+            return whiteSprite;
+        }
+
         static Sprite circleSprite;
         static Sprite Circle()
         {
@@ -169,7 +181,7 @@ namespace BomberBuddies
                 Txt(rows[i], panel.transform, mid, new Vector2(-95f, y), new Vector2(70f, 20f), 15, TextAnchor.MiddleLeft, new Color(0.85f, 0.88f, 0.92f), true).text = rows[i];
                 Img(rows[i] + "Back", panel.transform, mid, new Vector2(-10f, y), new Vector2(105f, 9f), barBack);
                 var f = Img(rows[i] + "Fill", panel.transform, mid, new Vector2(-10f, y), new Vector2(105f, 9f), fills[i]);
-                f.type = Image.Type.Filled; f.fillMethod = Image.FillMethod.Horizontal; f.fillOrigin = 0;
+                f.sprite = White(); f.type = Image.Type.Filled; f.fillMethod = Image.FillMethod.Horizontal; f.fillOrigin = 0;
                 if (i == 0) hullFill = f; else if (i == 1) gunFill = f; else boostFill = f;
             }
             livesText = Txt("Lives", panel.transform, mid, new Vector2(88f, 22f), new Vector2(90f, 20f), 15, TextAnchor.MiddleLeft, new Color(0.6f, 0.68f, 0.72f));

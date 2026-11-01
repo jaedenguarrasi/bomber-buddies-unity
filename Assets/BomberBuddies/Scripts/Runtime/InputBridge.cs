@@ -59,7 +59,6 @@ namespace BomberBuddies
             fire = new InputAction("Fire", InputActionType.Button);
             fire.AddBinding("<Mouse>/leftButton");
             fire.AddBinding("<Gamepad>/rightTrigger");
-            fire.AddBinding("<Gamepad>/rightShoulder");
 
             aim = new InputAction("Aim", InputActionType.Button);
             aim.AddBinding("<Mouse>/rightButton");
