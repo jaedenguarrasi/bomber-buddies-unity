@@ -61,6 +61,7 @@ namespace BomberBuddies
             Random.InitState(seed);
             bool mobile = Application.isMobilePlatform;
 
+            Physics.IgnoreLayerCollision(10, 8, true); Physics.IgnoreLayerCollision(10, 9, true);   // ragdoll limbs do not trip the living
             Gunfire.Create(transform, library);
             Gore.Create(transform, library);
             Projectiles.Create(transform, library);

@@ -191,7 +191,7 @@ namespace BomberBuddies
         {
             // after the animation has posed the body: bend the spine and head to the aim pitch
             if (animator == null) return;
-            if (dead) { PlaceRifle(); return; }
+            if (dead) { if (!ragdolled) PlaceRifle(); return; }
             float p = Mathf.Clamp(aimPitchSmooth, -60f, 60f);
             if (spine != null) spine.localRotation = spine.localRotation * Quaternion.AngleAxis(-p * 0.35f, Vector3.right);
             if (chest != null) chest.localRotation = chest.localRotation * Quaternion.AngleAxis(-p * 0.35f, Vector3.right);
@@ -212,11 +212,57 @@ namespace BomberBuddies
             rifleT.rotation = rot;
         }
 
+        /// <summary>A ragdoll on the humanoid bones: hips, spine, head, arms and legs on character joints, shoved the way the
+        /// hit came from, frozen after a few seconds so a field of bodies costs nothing. Only near the camera; further off the
+        /// death animation does.</summary>
+        bool ragdolled;
+        public static int LiveRagdolls;
+        void Ragdoll(Vector3 fromDirection)
+        {
+            if (animator == null || !animator.isHuman || ragdolled) return;
+            var cam = Camera.main; if (cam != null && Vector3.Distance(cam.transform.position, transform.position) > 70f) return;
+            if (LiveRagdolls >= 12) return;
+            ragdolled = true; LiveRagdolls++;
+            if (graph.IsValid()) graph.Stop();
+            animator.enabled = false;
+            var bones = new[] { HumanBodyBones.Hips, HumanBodyBones.Spine, HumanBodyBones.Head, HumanBodyBones.LeftUpperArm, HumanBodyBones.LeftLowerArm, HumanBodyBones.RightUpperArm, HumanBodyBones.RightLowerArm, HumanBodyBones.LeftUpperLeg, HumanBodyBones.LeftLowerLeg, HumanBodyBones.RightUpperLeg, HumanBodyBones.RightLowerLeg };
+            var parents = new[] { HumanBodyBones.Hips, HumanBodyBones.Hips, HumanBodyBones.Spine, HumanBodyBones.Spine, HumanBodyBones.LeftUpperArm, HumanBodyBones.Spine, HumanBodyBones.RightUpperArm, HumanBodyBones.Hips, HumanBodyBones.LeftUpperLeg, HumanBodyBones.Hips, HumanBodyBones.RightUpperLeg };
+            var rbs = new System.Collections.Generic.Dictionary<HumanBodyBones, Rigidbody>();
+            for (int i = 0; i < bones.Length; i++)
+            {
+                var t = animator.GetBoneTransform(bones[i]); if (t == null) continue;
+                var rb = t.gameObject.AddComponent<Rigidbody>(); rb.mass = bones[i] == HumanBodyBones.Hips || bones[i] == HumanBodyBones.Spine ? 8f : 2f; rb.linearDamping = 0.5f; rb.angularDamping = 1f; rb.interpolation = RigidbodyInterpolation.None;
+                float len = 0.3f; var child = t.childCount > 0 ? t.GetChild(0) : null; if (child != null) len = Mathf.Max(0.15f, child.localPosition.magnitude);
+                if (bones[i] == HumanBodyBones.Head) { var sc = t.gameObject.AddComponent<SphereCollider>(); sc.radius = 0.12f; sc.center = Vector3.up * 0.08f; }
+                else { var cc = t.gameObject.AddComponent<CapsuleCollider>(); cc.radius = bones[i] == HumanBodyBones.Hips ? 0.16f : 0.07f; cc.height = len + cc.radius; cc.direction = 1; cc.center = Vector3.up * len * 0.5f; }
+                t.gameObject.layer = 10;
+                rbs[bones[i]] = rb;
+            }
+            for (int i = 0; i < bones.Length; i++)
+            {
+                Rigidbody rb, prb; if (!rbs.TryGetValue(bones[i], out rb) || bones[i] == HumanBodyBones.Hips || !rbs.TryGetValue(parents[i], out prb)) continue;
+                var j = rb.gameObject.AddComponent<CharacterJoint>(); j.connectedBody = prb; j.enableProjection = true;
+                var lim = j.swing1Limit; lim.limit = 40f; j.swing1Limit = lim; var l2 = j.swing2Limit; l2.limit = 40f; j.swing2Limit = l2;
+                var lo = j.lowTwistLimit; lo.limit = -30f; j.lowTwistLimit = lo; var hi = j.highTwistLimit; hi.limit = 30f; j.highTwistLimit = hi;
+            }
+            Rigidbody hips; if (rbs.TryGetValue(HumanBodyBones.Hips, out hips)) { var shove = fromDirection; shove.y = 0f; shove = (shove.sqrMagnitude > 0.01f ? shove.normalized : Random.insideUnitSphere) * 4f + Vector3.up * 1.5f; foreach (var rb in rbs.Values) rb.AddForce(shove * rb.mass, ForceMode.Impulse); hips.AddTorque(Random.insideUnitSphere * 20f, ForceMode.Impulse); }
+            StartCoroutine(FreezeLater(rbs));
+        }
+        System.Collections.IEnumerator FreezeLater(System.Collections.Generic.Dictionary<HumanBodyBones, Rigidbody> rbs)
+        {
+            yield return new WaitForSeconds(4f);
+            foreach (var rb in rbs.Values) if (rb != null) { rb.isKinematic = true; }
+            LiveRagdolls = Mathf.Max(0, LiveRagdolls - 1);
+        }
+        void OnDisable() { if (ragdolled) { LiveRagdolls = Mathf.Max(0, LiveRagdolls - 1); ragdolled = false; } }
+
         public override void Die(Vector3 fromDirection)
         {
             if (dead) return;
             dead = true;
             deathT = 0f;
+            Ragdoll(fromDirection);
+            if (ragdolled) return;
             if (mixer.IsValid())
             {
                 var d = mixer.GetInput(DEATH);
