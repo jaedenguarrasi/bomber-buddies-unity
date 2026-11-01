@@ -31,7 +31,31 @@ namespace BomberBuddies
         public class Marker { public System.Func<Vector3> at; public System.Func<string> label; public System.Func<Color> color; public System.Func<bool> alive; }
         public readonly List<Marker> markers = new List<Marker>();
         readonly List<Transform> markerUi = new List<Transform>();
+        RectTransform ccip;
         public void AddMarker(System.Func<Vector3> at, System.Func<string> label, System.Func<Color> color, System.Func<bool> alive = null) { markers.Add(new Marker { at = at, label = label, color = color, alive = alive }); }
+
+        void UpdateCcip()
+        {
+            var cam = Camera.main;
+            if (ccip == null)
+            {
+                ccip = Rect("CCIP", transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(34f, 34f));
+                var im = ccip.gameObject.AddComponent<Image>(); im.sprite = Circle(); im.color = new Color(1f, 0.8f, 0.3f, 0f); im.raycastTarget = false;
+                var inner = Rect("Dot", ccip, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(8f, 8f)); var di = inner.gameObject.AddComponent<Image>(); di.sprite = Circle(); di.color = new Color(1f, 0.8f, 0.3f, 0.9f); di.raycastTarget = false;
+                var ring = Rect("Ring", ccip, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(34f, 34f)); var ri = ring.gameObject.AddComponent<Image>(); ri.sprite = Circle(); ri.color = new Color(1f, 0.8f, 0.3f, 0.35f); ri.raycastTarget = false;
+            }
+            bool show = flight != null && flight.Active && !flight.Gunner && cam != null && flight.bombs > 0;
+            Vector3? hit = show ? flight.BombImpact() : null;
+            if (!hit.HasValue) { ccip.gameObject.SetActive(false); return; }
+            var sp = cam.WorldToScreenPoint(hit.Value);
+            if (sp.z < 0f) { ccip.gameObject.SetActive(false); return; }
+            float k = canvas.scaleFactor;
+            var p = new Vector2((sp.x - Screen.width * 0.5f) / k, (sp.y - Screen.height * 0.5f) / k);
+            if (Mathf.Abs(p.x) > Screen.width * 0.5f / k || Mathf.Abs(p.y) > Screen.height * 0.5f / k) { ccip.gameObject.SetActive(false); return; }
+            ccip.gameObject.SetActive(true); ccip.anchoredPosition = p;
+            float dist = Vector3.Distance(hit.Value, cam.transform.position);
+            ccip.localScale = Vector3.one * Mathf.Clamp(60f / Mathf.Max(10f, dist), 0.5f, 2.2f);
+        }
 
         void UpdateMarkers()
         {
@@ -455,6 +479,7 @@ namespace BomberBuddies
             if (canopy != null) canopy.enabled = fly && flight.cockpit;
             UpdateRadar();
             UpdateMarkers();
+            UpdateCcip();
             if (hitT > 0f) { hitT -= dt; if (hitT <= 0f) foreach (var im in hitMarkerRoot.GetComponentsInChildren<Image>()) im.color = new Color(1f, 1f, 1f, 0f); }
             if (flashT > 0f) { flashT -= dt; damageFlash.color = new Color(0.65f, 0f, 0f, Mathf.Clamp01(flashT) * 0.45f); } else damageFlash.color = new Color(0.65f, 0f, 0f, 0f);
             if (messageT > 0f) { messageT -= dt; if (messageT <= 0f) message.text = ""; else message.color = new Color(1f, 1f, 1f, Mathf.Clamp01(messageT * 1.5f)); }

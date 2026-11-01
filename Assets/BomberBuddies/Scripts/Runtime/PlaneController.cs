@@ -140,6 +140,21 @@ namespace BomberBuddies
         public Vector3 Forward { get { return Quaternion.Euler(-pitch * Mathf.Rad2Deg, yaw * Mathf.Rad2Deg, 0f) * Vector3.forward; } }
         /// <summary>Free look (L1 / C held): the guns swivel a little so the reticle walks across the screen (gunAim). x yaw, y pitch, degrees.</summary>
         public Vector2 AimOffset;
+        /// <summary>CCIP: where a bomb let go now would land (the same drop as DropBomb, stepped forward until it meets the ground).</summary>
+        public Vector3? BombImpact()
+        {
+            if (docked != null || Landed) return null;
+            var p = transform.position - Vector3.up * 0.9f; var v = Velocity; v.y = Mathf.Min(v.y, 0f) - 25f * U;
+            for (int i = 0; i < 400; i++)
+            {
+                v.y -= GalacticMode.BombG * 0.05f; p += v * 0.05f;
+                float g = GameState.GroundHeight != null ? GameState.GroundHeight(p.x, p.z) : 0f;
+                if (World3.Instance != null) g = Mathf.Max(g, World3.Instance.ObstacleMetres(p.x, p.z));
+                if (p.y <= g) { p.y = g; return p; }
+            }
+            return null;
+        }
+
         public Vector3 AimDir { get { return Quaternion.Euler(-pitch * Mathf.Rad2Deg - AimOffset.y, yaw * Mathf.Rad2Deg + AimOffset.x, 0f) * Vector3.forward; } }
 
         void ApplyPose()
