@@ -385,7 +385,15 @@ namespace BomberBuddies
             {
                 if (vy < -20f && health != null && !(wheel != null && wheel.drinkT > 0f) && !(kit != null && kit.id == "slinger")) health.TakeDamage(new DamageInfo { amount = (-vy - 20f) * 5f, point = transform.position, direction = Vector3.down, source = gameObject });
                 if (!Swinging && zipT <= 0f) vy = -2.5f; airT = 0f; parachute = false;
-                if (input.JumpPressed) { vy = jumpSpeed * (wheel != null && wheel.drinkT > 0f ? 1.9f : 1f); crouching = false; Sfx.Play("jump", 0.4f); }
+                if (input.JumpPressed)
+                {
+                    vy = jumpSpeed * (wheel != null && wheel.drinkT > 0f ? 1.9f : 1f); crouching = false; Sfx.Play("jump", 0.4f);
+                    // mantling: a waist-high thing in front with nothing above it, and you go up and over it
+                    var fwd = rig.FlatRotation * Vector3.forward; RaycastHit low;
+                    int mask = ~((1 << 8) | (1 << 9) | (1 << 10));
+                    if (Physics.Raycast(transform.position + Vector3.up * 0.6f, fwd, out low, 1.3f, mask, QueryTriggerInteraction.Ignore) && low.collider.GetComponent<Health>() == null && !Physics.Raycast(transform.position + Vector3.up * (standHeight + 0.3f), fwd, 1.6f, mask, QueryTriggerInteraction.Ignore))
+                    { vy = Mathf.Max(vy, jumpSpeed * 1.25f); horizontal += fwd * 2.5f; if (GameState.Hud != null) GameState.Hud.Comms("Over"); }
+                }
                 if (!wasGrounded) { justLanded = true; Sfx.Play("land", 0.45f); }
                 stepT += horizontal.magnitude * dt; if (stepT > 2.2f) { stepT = 0f; Sfx.Play("footstep", crouching ? 0.12f : 0.25f, sprinting ? 1.15f : 1f); }
             }
