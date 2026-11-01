@@ -160,12 +160,22 @@ namespace BomberBuddies
 
             EnhancedTouchSupport.Enable();
             // saved remaps (the Controls screen): overrides by action name, keyboard/mouse and pad kept apart
-            foreach (var a in Rebindable) { string ov = PlayerPrefs.GetString("bb_bind_" + a.name, ""); if (!string.IsNullOrEmpty(ov)) a.LoadBindingOverridesFromJson(ov); }
+            foreach (var a in Rebindable)
+            {
+                string ov = PlayerPrefs.GetString("bb_bind_" + a.name, ""); if (string.IsNullOrEmpty(ov)) continue;
+                foreach (var part in ov.Split(';')) { int eq = part.IndexOf('='); if (eq <= 0) continue; int idx; if (int.TryParse(part.Substring(0, eq), out idx) && idx < a.bindings.Count) a.ApplyBindingOverride(idx, part.Substring(eq + 1)); }
+            }
         }
 
         /// <summary>The button actions the Controls screen can remap (sticks and the mouse look stay as they are).</summary>
         public InputAction[] Rebindable { get { return new[] { fire, aim, sprint, jump, crouch, reload, view, interact, bomb, kick, pause, freeLook, support, seatAct, itemsAct, mapAct }; } }
-        public void SaveBinding(InputAction a) { PlayerPrefs.SetString("bb_bind_" + a.name, a.SaveBindingOverridesAsJson()); PlayerPrefs.Save(); }
+        /// <summary>Overrides saved by binding index (the actions are built in code, so their ids change every run).</summary>
+        public void SaveBinding(InputAction a)
+        {
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < a.bindings.Count; i++) if (!string.IsNullOrEmpty(a.bindings[i].overridePath)) { if (sb.Length > 0) sb.Append(';'); sb.Append(i).Append('=').Append(a.bindings[i].overridePath); }
+            PlayerPrefs.SetString("bb_bind_" + a.name, sb.ToString()); PlayerPrefs.Save();
+        }
         public void ResetBindings() { foreach (var a in Rebindable) { a.RemoveAllBindingOverrides(); PlayerPrefs.DeleteKey("bb_bind_" + a.name); } PlayerPrefs.Save(); }
 
         void OnEnable()
