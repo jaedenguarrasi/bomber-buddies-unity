@@ -45,34 +45,34 @@ namespace BomberBuddies
             // tiles, grouped like the original's tabs
             var groups = new List<string>();
             foreach (var kv in ModeDefs.All) if (!groups.Contains(kv.Value.group)) groups.Add(kv.Value.group);
-            float y = -200f;
+            float y = -165f;
             foreach (var g in groups)
             {
-                Txt("Group " + g, transform, new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(1300f, 36f), 26, TextAnchor.MiddleLeft, new Color(0.85f, 0.9f, 1f)).text = g.ToUpper();
-                y -= 40f;
-                float x = -650f + 160f;
+                Txt("Group " + g, transform, new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(1300f, 30f), 22, TextAnchor.MiddleLeft, new Color(0.85f, 0.9f, 1f)).text = g.ToUpper();
+                y -= 28f;
+                float x = -480f; int col = 0;
                 foreach (var kv in ModeDefs.All)
                 {
                     var mode = kv.Value; if (mode.group != g) continue;
-                    Tile(mode, new Vector2(x, y - 70f));
-                    x += 330f;
-                    if (x > 650f) { x = -650f + 160f; y -= 160f; }
+                    Tile(mode, new Vector2(x, y - 60f));
+                    x += 320f; col++;
+                    if (col == 4) { col = 0; x = -480f; y -= 132f; }
                 }
-                y -= 190f;
+                y -= (col == 0 ? 0f : 132f) + 40f;
             }
             Txt("Hint", transform, new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(1400f, 30f), 18, TextAnchor.MiddleCenter, new Color(0.6f, 0.65f, 0.75f)).text = "Keyboard: WASD move · mouse look · Shift sprint/boost · Space jump/bomb · F get in/out · E/Q throttle · V view";
         }
 
         void Tile(ModeDefs.Mode mode, Vector2 pos)
         {
-            var rt = Rect("Tile " + mode.id, transform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), pos, new Vector2(310f, 140f));
+            var rt = Rect("Tile " + mode.id, transform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), pos, new Vector2(300f, 120f));
             var im = rt.gameObject.AddComponent<Image>(); im.color = new Color(0.14f, 0.18f, 0.26f, 0.95f);
             var btn = rt.gameObject.AddComponent<Button>();
             var colors = btn.colors; colors.highlightedColor = new Color(0.22f, 0.3f, 0.42f); colors.pressedColor = new Color(0.35f, 0.5f, 0.7f); btn.colors = colors;
             string id = mode.id;
             btn.onClick.AddListener(() => Pick(id));
-            Txt("Name", rt, new Vector2(0.5f, 1f), new Vector2(0f, -24f), new Vector2(290f, 34f), 26, TextAnchor.MiddleLeft, Color.white).text = mode.name;
-            var d = Txt("Desc", rt, new Vector2(0.5f, 1f), new Vector2(0f, -84f), new Vector2(290f, 90f), 15, TextAnchor.UpperLeft, new Color(0.8f, 0.85f, 0.92f));
+            Txt("Name", rt, new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(280f, 30f), 23, TextAnchor.MiddleLeft, Color.white).text = mode.name;
+            var d = Txt("Desc", rt, new Vector2(0.5f, 1f), new Vector2(0f, -72f), new Vector2(280f, 76f), 14, TextAnchor.UpperLeft, new Color(0.8f, 0.85f, 0.92f));
             d.text = mode.desc; d.horizontalOverflow = HorizontalWrapMode.Wrap;
         }
 
