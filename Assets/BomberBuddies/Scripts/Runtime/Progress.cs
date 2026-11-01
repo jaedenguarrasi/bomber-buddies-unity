@@ -87,7 +87,7 @@ namespace BomberBuddies
         };
         public static Kit KitOf(string id) { foreach (var k in Kits) if (k.id == id) return k; return null; }
         public static bool IsFoot(string craft) { return KitOf(craft) != null; }
-        public static bool IsRide(string craft) { return craft == "tank" || craft == "scout" || craft == "bike"; }
+        public static bool IsRide(string craft) { return craft == "tank" || craft == "scout" || craft == "bike" || craft == "clowncar" || craft == "trike" || craft == "arty"; }
         public static Gun FootGunDef(string id) { foreach (var g in FootGuns) if (g.id == id) return g; return FootGuns[0]; }
         /// <summary>Which guns a class may carry: its own, plus the general foot guns (gunFits).</summary>
         public static bool GunFits(string craft, Gun g)
@@ -124,12 +124,12 @@ namespace BomberBuddies
             new CraftDef { id = "rocketeer", name = "Soldier: rocket trooper", desc = "An anti-tank rocket, and a carbine for everything else.", price = 1500, available = true },
             new CraftDef { id = "tank", name = "Battle tank", desc = "Heavy armor. Gun fires the machine gun, Shell the cannon.", price = 1500, available = true },
             new CraftDef { id = "bike", name = "Dirt bike", desc = "Fast, light and nimble, twin machine guns on the bars.", price = 1500, available = true },
-            new CraftDef { id = "arty", name = "Mobile artillery", desc = "Heavy shells, fired from a map.", price = 1800 },
+            new CraftDef { id = "arty", name = "Mobile artillery", desc = "Heavy shells lobbed where you are looking, far over the hills. Slow, and a long reload.", price = 1800, available = true },
             new CraftDef { id = "clown", name = "Clown", desc = "A horn that blows everyone near you off their feet (Bomb), and a bite.", price = 1800, available = true },
             new CraftDef { id = "goblin", name = "Goblin", desc = "Small, quick and hard to hit, with a club and rocks to throw (Bomb).", price = 1800, available = true },
             new CraftDef { id = "raptor", name = "Velociraptor", desc = "A pack hunter: quick as a bike, leaps a long way, and bites.", price = 1800, available = true },
             new CraftDef { id = "jetpack", name = "Jetpack trooper", desc = "A grey alien on a jetpack. From the air, you fly.", price = 2000, available = true },
-            new CraftDef { id = "clowncar", name = "Clown car", desc = "A tiny car; stop and five clowns climb out to fight for you.", price = 2200 },
+            new CraftDef { id = "clowncar", name = "Clown car", desc = "A tiny car, much faster than it looks. Stop dead and press Bomb: five clowns climb out to fight for you.", price = 2200, available = true },
             new CraftDef { id = "bomber2", name = "Two-seat bomber", desc = "A pilot and a gunner, 8 more bombs and a belly turret.", price = 2500, available = true },
             new CraftDef { id = "heli2", name = "Two-seat gunship", desc = "A pilot and a gunner on the chin gun.", price = 2500, available = true },
             new CraftDef { id = "ptero", name = "Pterodactyl", desc = "Flies like a slow plane and flaps. Snaps at what is in front of it.", price = 2600, available = true },
@@ -140,7 +140,7 @@ namespace BomberBuddies
             new CraftDef { id = "ape", name = "Ape", desc = "Fists that put a soldier down in one, a ground-shaking stomp from a jump, and a boulder to throw (Bomb).", price = 4000, available = true },
             new CraftDef { id = "ac130", name = "AC-130 gunship", desc = "Circle a target and rain fire on it.", price = 4200, available = true },
             new CraftDef { id = "grey", name = "Alien grey", desc = "A big head and a rifle. Hard to hit, jumps high.", price = 4500, available = true },
-            new CraftDef { id = "trike", name = "Triceratops", desc = "A living tank on four legs.", price = 4500 },
+            new CraftDef { id = "trike", name = "Triceratops", desc = "A living tank on four legs with three horns and a frill. Slow to turn, very hard to kill, and anything you run into goes over. Fire gores.", price = 4500, available = true },
             new CraftDef { id = "ninjaL", name = "Mind ninja: Sage", desc = "Mind ninja: Sage. A glowing blade (Fire), and Bomb heals you from the mind.", price = 5000, available = true },
             new CraftDef { id = "ninjaD", name = "Mind ninja: Shade", desc = "Mind ninja: Shade. A red blade (Fire), and lightning from the hands (Bomb).", price = 5000, available = true },
             new CraftDef { id = "slinger", name = "Grapple", desc = "A grapnel launcher on each wrist: hold L1 / C for the left line, R1 / G for the right. Aim high, hold to swing, tap to zip; Jump lets go. Fists up close.", price = 6000, available = true },
@@ -240,7 +240,7 @@ namespace BomberBuddies
             var s = new Stats { gun = g };
             s.napalm = L("napalm") > 0;
             var kit = KitOf(craft);
-            s.maxHp = Mathf.Round(((heli ? 125f : 100f) + 25f * L("armor")) * (kit != null ? kit.hpK * 2f : craft == "ac130" ? 3.2f : craft == "dragon" ? 5f : craft == "ptero" ? 0.8f : craft == "fiend" ? 0.6f : craft == "b52" ? 3.6f : craft == "transport" ? 2.4f : craft == "bomber2" ? 1.3f : craft == "drone" ? 0.2f : craft == "heli2" ? 1.4f : craft == "tank" ? 3.2f : craft == "scout" ? 1.15f : craft == "bike" ? 0.32f : 1f));   /* a soldier on foot has twice the toughness he used to */
+            s.maxHp = Mathf.Round(((heli ? 125f : 100f) + 25f * L("armor")) * (kit != null ? kit.hpK * 2f : craft == "ac130" ? 3.2f : craft == "dragon" ? 5f : craft == "ptero" ? 0.8f : craft == "fiend" ? 0.6f : craft == "b52" ? 3.6f : craft == "transport" ? 2.4f : craft == "bomber2" ? 1.3f : craft == "drone" ? 0.2f : craft == "heli2" ? 1.4f : craft == "tank" ? 3.2f : craft == "trike" ? 4.2f : craft == "arty" ? 1.7f : craft == "clowncar" ? 0.95f : craft == "scout" ? 1.15f : craft == "bike" ? 0.32f : 1f));   /* a soldier on foot has twice the toughness he used to */
             s.thrustK = (1f + 0.08f * L("engine")) * (craft == "ac130" ? 0.9f : craft == "dragon" ? 0.7f : craft == "ptero" ? 0.6f : craft == "fiend" ? 1.3f : craft == "b52" ? 0.85f : craft == "drone" ? 1.3f : 1f); s.turnK = (1f + 0.04f * L("engine")) * (craft == "ac130" ? 0.8f : craft == "b52" ? 0.55f : craft == "transport" ? 0.8f : craft == "drone" ? 1.6f : 1f);
             s.boostSec = 2.4f * (1f + 0.3f * L("tank")); s.boostRegenK = 1f + 0.2f * Mathf.Min(L("tank"), 6f);
             s.regen = 1.5f * L("repair"); s.lives = BattleSetup.Lives + Mathf.RoundToInt(L("life"));

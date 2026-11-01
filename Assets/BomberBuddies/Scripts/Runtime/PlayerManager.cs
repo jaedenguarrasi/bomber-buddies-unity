@@ -200,7 +200,7 @@ namespace BomberBuddies
             var at = near; at.y = GameState.GroundHeight != null ? GameState.GroundHeight(near.x, near.z) : near.y;
             var toCentre = -new Vector3(at.x, 0f, at.z);
             float yaw = toCentre.sqrMagnitude > 1f ? Mathf.Atan2(toCentre.x, toCentre.z) * Mathf.Rad2Deg : 0f;
-            var kind = Progress.Craft == "tank" ? GroundVehicle.Kind.Tank : Progress.Craft == "scout" ? GroundVehicle.Kind.Scout : GroundVehicle.Kind.Bike;
+            var kind = Progress.Craft == "tank" ? GroundVehicle.Kind.Tank : Progress.Craft == "scout" ? GroundVehicle.Kind.Scout : Progress.Craft == "clowncar" ? GroundVehicle.Kind.ClownCar : Progress.Craft == "trike" ? GroundVehicle.Kind.Trike : Progress.Craft == "arty" ? GroundVehicle.Kind.Arty : GroundVehicle.Kind.Bike;
             var v = GroundVehicle.Build(transform, lib, cam, kind, at, yaw);
             rides.Add(v);
             if (foot != null) { foot.health.ResetFull(); foot.ApplyKit(); foot.Teleport(at, yaw); }
