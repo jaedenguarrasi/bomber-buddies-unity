@@ -21,12 +21,19 @@ namespace BomberBuddies
         {
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); root = gameObject;
             var rt = GetComponent<RectTransform>(); rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
-            var bg = gameObject.AddComponent<Image>(); bg.color = new Color(0.03f, 0.05f, 0.09f, 0.94f); bg.raycastTarget = true;
+            var bg = gameObject.AddComponent<Image>(); bg.color = new Color(0.03f, 0.05f, 0.09f, 1f); bg.raycastTarget = true;
             Txt("Title", transform, new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(900f, 50f), 34, "CONTROLS", TextAnchor.MiddleCenter, true);
             hint = Txt("Hint", transform, new Vector2(0.5f, 1f), new Vector2(0f, -82f), new Vector2(1000f, 30f), 18, "Tap a binding, then press the key or pad button you want. Sticks, the mouse and the touch layout stay as they are.", TextAnchor.MiddleCenter);
-            var panel = new GameObject("Panel", typeof(RectTransform)); panel.transform.SetParent(transform, false);
-            var pr = panel.GetComponent<RectTransform>(); pr.anchorMin = new Vector2(0.5f, 0.5f); pr.anchorMax = new Vector2(0.5f, 0.5f); pr.sizeDelta = new Vector2(1000f, 480f); pr.anchoredPosition = new Vector2(0f, -10f);
+            // the scrolling list
+            var view = new GameObject("View", typeof(RectTransform)); view.transform.SetParent(transform, false);
+            var vr = view.GetComponent<RectTransform>(); vr.anchorMin = new Vector2(0.5f, 0f); vr.anchorMax = new Vector2(0.5f, 1f); vr.sizeDelta = new Vector2(1000f, 0f); vr.offsetMin = new Vector2(-500f, 100f); vr.offsetMax = new Vector2(500f, -105f);
+            view.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.001f); view.AddComponent<RectMask2D>();
+            var scroll = view.AddComponent<ScrollRect>();
+            var panel = new GameObject("Panel", typeof(RectTransform)); panel.transform.SetParent(view.transform, false);
+            var pr = panel.GetComponent<RectTransform>(); pr.anchorMin = new Vector2(0f, 1f); pr.anchorMax = new Vector2(1f, 1f); pr.pivot = new Vector2(0.5f, 1f); pr.sizeDelta = Vector2.zero; pr.anchoredPosition = Vector2.zero;
             var grid = panel.AddComponent<GridLayoutGroup>(); grid.cellSize = new Vector2(490f, 48f); grid.spacing = new Vector2(10f, 8f); grid.childAlignment = TextAnchor.UpperCenter;
+            var fit = panel.AddComponent<ContentSizeFitter>(); fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            scroll.content = pr; scroll.viewport = vr; scroll.horizontal = false; scroll.movementType = ScrollRect.MovementType.Clamped; scroll.scrollSensitivity = 30f;
             list = panel.transform;
             Btn("Reset", transform, new Vector2(0.5f, 0f), new Vector2(-170f, 50f), new Vector2(240f, 56f), "Reset to original", () => { if (InputBridge.Instance != null) InputBridge.Instance.ResetBindings(); Render(); });
             Btn("Back", transform, new Vector2(0.5f, 0f), new Vector2(170f, 50f), new Vector2(240f, 56f), "Back", () => Close());
