@@ -354,6 +354,8 @@ namespace BomberBuddies
             if (slideT > 0f) { slideT -= dt; if (slideT <= 0f) crouching = false; }
 
             bool aiming = rifle != null && rifle.Aiming;
+            // time slows while you aim (the original's slowAim), unless something else owns the clock
+            if (Settings.SlowAim && !(PauseMenu.Instance != null && PauseMenu.Instance.IsOpen) && !Commander.On) { float wantTs = aiming ? 0.6f : 1f; if (Mathf.Abs(Time.timeScale - wantTs) > 0.01f && (Time.timeScale == 1f || Time.timeScale == 0.6f)) Time.timeScale = wantTs; }
             var move = input.Move;
             sprinting = input.Sprint && move.y > 0.35f && !crouching && !aiming && !input.Fire;
             if (sprinting) crouching = false;
