@@ -277,6 +277,8 @@ namespace BomberBuddies
             else { float k = Mathf.Min(1f, 6f * dt); AimOffset *= 1f - k; }
             float sx = Mathf.Clamp(input.Move.x + lx * 0.02f, -1f, 1f);
             float sy = Mathf.Clamp(input.Move.y - ly * 0.02f, -1f, 1f);
+            if (Settings.PadPitch == "push") sy = -sy;   // push forward to climb
+            if (Settings.Steer == "tilt" && Settings.TiltRole == "aim" && input.IsTouch) { sx = input.Move.x; sy = input.Move.y; }   // tilt aims, so the stick flies as usual
             if (Mathf.Abs(sx) < 0.12f) sx = 0f; if (Mathf.Abs(sy) < 0.12f) sy = 0f;
             thr = Mathf.Clamp01(thr + input.Throttle * 0.9f * dt);
             bool boosting = input.Sprint && !boostOut && boost > 0f && docked == null; Boosting = boosting;
@@ -307,7 +309,7 @@ namespace BomberBuddies
             if (Overheated && heat < 0.35f) Overheated = false;
             fireT -= dt;
             if (input.Fire && !Overheated && fireT <= 0f && docked == null && !Landed) Shoot();
-            if (Seats == 2 && docked == null && !Landed) AiGunner(dt);
+            if ((Seats == 2 && Settings.CrewAI != "solo" || (IsHeli && Seats == 1 && Settings.Turret == "auto")) && docked == null && !Landed) AiGunner(dt);
             bombCd -= dt;
             if (IsSaucer) Beam(dt); else if (input.BombPressed && docked == null && bombs > 0 && bombCd <= 0f) DropBomb();
             if (input.InteractPressed)
@@ -359,10 +361,14 @@ namespace BomberBuddies
             float k = Mathf.Clamp(speedU / 150f, 0.45f, 1.1f);
             float tk = st != null ? st.turnK : 1f, thk = (st != null ? st.thrustK : 1f) * (engineHit ? 0.5f : 1f);
             if (tailHit) yaw += spinDir * 0.35f * dt + Mathf.Sin(Time.time * 3f) * 0.3f * dt;   // she will not hold a line
+            bool aero = Settings.FlightModel == "aero";
+            if (aero) { k = Mathf.Clamp(speedU / 220f, 0.3f, 1.4f); stalled = speedU < 95f; }
             yaw += sx * 1.35f * k * tk * dt;
             pitch += -sy * 1.5f * k * tk * (stalled ? 0.35f : 1f) * dt;
-            if (sy == 0f) pitch -= pitch * 0.55f * dt;      // auto-level
-            if (stalled) pitch -= 1.4f * dt;
+            if (sy == 0f && !aero) pitch -= pitch * 0.55f * dt;      // auto-level (arcade only: aero holds what you set)
+            if (aero && sy == 0f) pitch -= pitch * 0.12f * dt;
+            if (stalled) pitch -= (aero ? 2.2f : 1.4f) * dt;
+            if (aero) pitch -= Mathf.Clamp01(1f - speedU / 300f) * 0.35f * dt;   // speed is lift: slow and the nose sinks
             if (AltitudeU > 4700f && pitch > -0.2f) pitch -= 1.8f * dt;
             pitch = Mathf.Clamp(pitch, -1.3f, 1.3f);
             bank += (Mathf.Clamp(sx, -1.15f, 1.15f) * 0.95f - bank) * Mathf.Min(1f, 2.6f * dt);
@@ -427,9 +433,10 @@ namespace BomberBuddies
             yaw += sx * 1.7f * (st != null ? st.turnK : 1f) * dt;
             if (tailHit) yaw += spinDir * 1.6f * dt;   // the tail rotor is gone: round and round
             float fwdTarget = -sy * 205f * power;
-            fwdU += (fwdTarget - fwdU) * Mathf.Min(1f, 2.7f * dt);
             float vyTarget = (thr - 0.5f) * 2f * 150f * power;
             if (Mathf.Abs(thr - 0.5f) < 0.06f) vyTarget = 0f;   // the hover notch
+            if (Settings.HeliScheme == "b" && craft != Craft.Drone) { fwdTarget = (thr - 0.5f) * 2f * 205f * power; vyTarget = sy * 150f * power; if (Mathf.Abs(sy) < 0.1f) vyTarget = 0f; }
+            fwdU += (fwdTarget - fwdU) * Mathf.Min(1f, 2.7f * dt);
             vyU = Mathf.MoveTowards(vyU, vyTarget, 4.6f * 150f * dt);
             if (AltitudeU > 4700f && vyU > 0f) vyU = 0f;
             pitch = Mathf.Lerp(pitch, -fwdU / 205f * 0.35f, Mathf.Min(1f, 3f * dt));
@@ -726,7 +733,7 @@ namespace BomberBuddies
             RaycastHit hit; var dir = want - transform.position; float len = dir.magnitude;
             if (len > 0.01f && Physics.SphereCast(transform.position, 0.4f, dir / len, out hit, len, ~((1 << 8) | (1 << 9)), QueryTriggerInteraction.Ignore)) want = transform.position + dir / len * Mathf.Max(2.5f, hit.distance - 0.3f);
             cam.transform.position = Vector3.SmoothDamp(cam.transform.position, want, ref camVel, 0.12f);
-            var rot = Quaternion.LookRotation(lookAt - cam.transform.position, Quaternion.AngleAxis(-bank * 30f, Forward) * Vector3.up);
+            var rot = Quaternion.LookRotation(lookAt - cam.transform.position, Quaternion.AngleAxis(Settings.CamBank ? -bank * 30f : 0f, Forward) * Vector3.up);
             cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, rot, Mathf.Min(1f, 8f * dt));
             var gm = GalacticMode.Instance;
             if (gm != null && gm.shake > 0f) cam.transform.position += Random.insideUnitSphere * gm.shake * 0.4f;

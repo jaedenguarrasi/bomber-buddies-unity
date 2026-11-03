@@ -476,7 +476,7 @@ namespace BomberBuddies
             burstT = burstGap;
             Sfx.Play(grey ? "gun_zap" : kind == "egun" ? "gun_lmg" : "gun_rifle", 0.42f, 1.05f, transform.position);
             var from = model != null && model.muzzle != null ? model.muzzle.position : transform.TransformPoint(muzzleFallback);
-            float spread = spreadDeg * (moveSpeed > 0.5f ? 1.6f : 1f) * Mathf.Lerp(0.6f, 1.4f, Mathf.InverseLerp(5f, attackRange, Vector3.Distance(from, at)));
+            float spread = spreadDeg / Mathf.Max(0.2f, Settings.EnemyAcc) * (moveSpeed > 0.5f ? 1.6f : 1f) * Mathf.Lerp(0.6f, 1.4f, Mathf.InverseLerp(5f, attackRange, Vector3.Distance(from, at)));
             var dir = (at - from).normalized;
             dir = Quaternion.AngleAxis(Random.Range(0f, 360f), dir) * Quaternion.Euler(Random.Range(0f, spread), 0f, 0f) * dir;
             var end = from + dir * 200f;

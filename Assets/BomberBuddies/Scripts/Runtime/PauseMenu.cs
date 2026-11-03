@@ -37,35 +37,23 @@ namespace BomberBuddies
         void Build()
         {
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            Sensitivity = PlayerPrefs.GetFloat("bb_sens", 1f); InvertY = PlayerPrefs.GetInt("bb_inv", 0) == 1; BigButtons = PlayerPrefs.GetInt("bb_big", 0) == 1; Lefty = PlayerPrefs.GetInt("bb_lefty", 0) == 1; Tilt = PlayerPrefs.GetInt("bb_tilt", 0) == 1; Detail = PlayerPrefs.GetInt("bb_detail", 1); ApplyDetail();
+            Settings.Load();
             var rt = GetComponent<RectTransform>(); rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
             root = gameObject;
             var bg = gameObject.AddComponent<Image>(); bg.color = new Color(0.03f, 0.05f, 0.09f, 0.82f); bg.raycastTarget = true;
-            Txt("Title", new Vector2(0f, 335f), new Vector2(800f, 60f), 40, "Paused");
-            Button("Resume", new Vector2(-180f, 255f), () => Close());
-            Button("Hangar", new Vector2(-180f, -290f), () => { root.SetActive(false); Hangar.Open(transform.parent.parent, () => { root.SetActive(true); if (PlayerManager.Instance != null) PlayerManager.Instance.ApplyLoadout(); }); });
-            Button("Quit to title", new Vector2(180f, -290f), () => { Time.timeScale = 1f; GameBootstrap.ChosenMode = null; UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex); });
-            Button("Detail", new Vector2(0f, 145f), () => { Detail = (Detail + 1) % 3; ApplyDetail(); Save(); });
-            Button("Controls", new Vector2(180f, 255f), () => { root.SetActive(false); ControlsScreen.Open(transform.parent, () => root.SetActive(true)); ControlsScreen.Instance.transform.SetAsLastSibling(); });
-            sensText = Txt("SensLabel", new Vector2(0f, 195f), new Vector2(1000f, 30f), 17, "");
-            Button("Look slower", new Vector2(-180f, 60f), () => { Sensitivity = Mathf.Max(0.3f, Sensitivity - 0.15f); Save(); });
-            Button("Look faster", new Vector2(180f, 60f), () => { Sensitivity = Mathf.Min(3f, Sensitivity + 0.15f); Save(); });
-            Button("Invert look", new Vector2(-180f, -25f), () => { InvertY = !InvertY; Save(); });
-            Button("Big buttons", new Vector2(180f, -25f), () => { BigButtons = !BigButtons; Save(); });
-            Button("Left-handed", new Vector2(-180f, -110f), () => { Lefty = !Lefty; Save(); });
-            Button("Tilt steering", new Vector2(-180f, -195f), () => { Tilt = !Tilt; if (Tilt) InputBridge.LevelTilt(); Save(); });
-            Button("Level tilt", new Vector2(180f, -195f), () => { InputBridge.LevelTilt(); if (GameState.Hud != null) GameState.Hud.Comms("Tilt levelled: hold the phone like this to fly straight"); });
-            Button("Commander view", new Vector2(180f, -110f), () => { if (Commander.Instance == null) return; Close(); if (Commander.On) Commander.Instance.Leave(); else Commander.Instance.Enter(); });
+            Txt("Title", new Vector2(0f, 250f), new Vector2(800f, 60f), 40, "Paused");
+            Button("Resume", new Vector2(0f, 150f), () => Close());
+            Button("Options", new Vector2(-180f, 60f), () => { root.SetActive(false); OptionsScreen.Open(transform.parent, () => root.SetActive(true)); });
+            Button("Controls", new Vector2(180f, 60f), () => { root.SetActive(false); ControlsScreen.Open(transform.parent, () => root.SetActive(true)); ControlsScreen.Instance.transform.SetAsLastSibling(); });
+            Button("Commander view", new Vector2(-180f, -30f), () => { if (Commander.Instance == null) return; Close(); if (Commander.On) Commander.Instance.Leave(); else Commander.Instance.Enter(); });
+            Button("Hangar", new Vector2(180f, -30f), () => { root.SetActive(false); Hangar.Open(transform.parent.parent, () => { root.SetActive(true); if (PlayerManager.Instance != null) PlayerManager.Instance.ApplyLoadout(); }); });
+            Button("Quit to title", new Vector2(0f, -140f), () => { Time.timeScale = 1f; GameBootstrap.ChosenMode = null; UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex); });
+            sensText = Txt("SensLabel", new Vector2(0f, -210f), new Vector2(1000f, 30f), 15, "");
             Refresh();
             root.SetActive(false);
         }
 
-        void Save()
-        {
-            PlayerPrefs.SetFloat("bb_sens", Sensitivity); PlayerPrefs.SetInt("bb_inv", InvertY ? 1 : 0); PlayerPrefs.SetInt("bb_big", BigButtons ? 1 : 0); PlayerPrefs.SetInt("bb_lefty", Lefty ? 1 : 0); PlayerPrefs.SetInt("bb_tilt", Tilt ? 1 : 0); PlayerPrefs.SetInt("bb_detail", Detail); PlayerPrefs.Save();
-            Refresh();
-            if (GameState.Hud != null) GameState.Hud.ApplyLayoutOptions();
-        }
+        void Save() { Settings.LookSens = Sensitivity; Settings.InvertY = InvertY; Settings.BigButtons = BigButtons; Settings.Lefty = Lefty; Settings.Steer = Tilt ? "tilt" : "stick"; Settings.Detail = Detail; Settings.Save(); Refresh(); }
 
         void Refresh()
         {

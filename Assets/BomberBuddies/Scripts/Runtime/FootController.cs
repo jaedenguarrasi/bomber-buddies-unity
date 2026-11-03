@@ -270,7 +270,7 @@ namespace BomberBuddies
             kit = Progress.KitOf(craft); st = Progress.StatsFor(craft);
             float spdK = kit.spd / 36f * st.thrustK;
             walkSpeed = 4.3f * spdK; sprintSpeed = 7.6f * spdK; crouchSpeed = 2.3f * spdK; aimSpeed = 2.9f * spdK; jumpSpeed = 6.6f * kit.jump / 92f;
-            if (health != null) { float f = health.alive ? health.Fraction : 1f; health.max = st.maxHp * 1.25f; health.current = health.max * f; }   // the rifleman's 80 comes out at the 100 it had
+            if (health != null) { float f = health.alive ? health.Fraction : 1f; health.max = st.maxHp * 1.25f * Settings.YouHp; health.current = health.max * f; }   // the rifleman's 80 comes out at the 100 it had
             if (rifle != null) { rifle.Fit(Progress.GunDef(Progress.GunOf(craft)), st); rifle.enabled = kit.melee == null; if (rifle.viewModel != null) rifle.viewModel.gameObject.SetActive(kit.melee == null); }
             if (rig != null) rig.aimFov = kit.scope ? 18f : 48f;
             standHeight = kit.height; if (cc != null) { cc.height = standHeight; cc.center = new Vector3(0f, standHeight * 0.5f, 0f); }

@@ -386,11 +386,12 @@ namespace BomberBuddies
             var r = touchRoot.GetComponent<RectTransform>(); r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = Vector2.zero; r.offsetMax = Vector2.zero;
             // the stick: home at (2r + 44, h - 2r - 10) in the original
             var bl = new Vector2(0f, 0f);
-            var stickBack = Disc("StickBack", touchRoot.transform, bl, new Vector2(2f * R + 44f, 2f * R + 10f), 2.2f * R, new Color(1f, 1f, 1f, 0.12f), true);
-            var knob = Disc("Stick", stickBack.transform, new Vector2(0.5f, 0.5f), Vector2.zero, R * 0.9f, new Color(1f, 1f, 1f, 0.35f), true);
-            var stick = knob.gameObject.AddComponent<OnScreenStick>();
-            stick.movementRange = R * 0.8f;
-            stick.controlPath = "<Gamepad>/leftStick";
+            // the stick pad: the whole move half of the screen; the stick appears under the thumb (or sits in the corner if fixed)
+            var pad = Img("StickPad", touchRoot.transform, new Vector2(0f, 0f), Vector2.zero, Vector2.zero, new Color(1f, 1f, 1f, 0.004f), true);
+            pad.rectTransform.anchorMin = new Vector2(0f, 0f); pad.rectTransform.anchorMax = new Vector2(0.5f, 0.82f); pad.rectTransform.offsetMin = Vector2.zero; pad.rectTransform.offsetMax = Vector2.zero;
+            var stickBack = Disc("StickBack", touchRoot.transform, bl, new Vector2(2f * R + 44f, 2f * R + 10f), 2.2f * R, new Color(1f, 1f, 1f, 0.12f), false);
+            var knob = Disc("Stick", stickBack.transform, new Vector2(0.5f, 0.5f), Vector2.zero, R * 0.9f, new Color(1f, 1f, 1f, 0.35f), false);
+            var fs = pad.gameObject.AddComponent<FloatingStick>(); fs.back = stickBack.rectTransform; fs.knob = knob.rectTransform; fs.home = new Vector2(2f * R + 44f, 2f * R + 10f); fs.range = R * 0.8f; fs.safe = safe;
             // the throttle slider's touch area (dpad y)
             var thrArea = Img("ThrottleTouch", touchRoot.transform, new Vector2(1f, 0.5f), new Vector2(-187f, 30f), new Vector2(110f, 220f), new Color(1f, 1f, 1f, 0.01f), true);
             thrArea.gameObject.AddComponent<ThrottleDrag>();   // drag up/down anywhere on the slider
@@ -405,6 +406,7 @@ namespace BomberBuddies
             Vector2 pn = alt + new Vector2(-1.4f * R, -0.2f * R);
             Vector2 gb = alt + new Vector2(-0.3f * R, 1.4f * R);
             TouchButton("gun", "Gun", touchRoot.transform, br, gun, 2f * R, "<Gamepad>/rightTrigger", new Color(0.86f, 0.7f, 0.25f, 0.5f), 22);
+            buttons["gun"].gameObject.AddComponent<GunToggle>();
             TouchButton("bomb", "Bomb", touchRoot.transform, br, bomb, 2f * 0.86f * R, "<Gamepad>/rightShoulder", new Color(0.75f, 0.75f, 0.75f, 0.45f), 19);
             TouchButton("boost", "Boost", touchRoot.transform, br, boost, 2f * 0.8f * R, "<Gamepad>/leftStickPress", new Color(0.35f, 0.65f, 0.7f, 0.5f), 18);
             TouchButton("aim", "Aim", touchRoot.transform, br, aim, 2f * 0.52f * R, "<Gamepad>/leftTrigger", new Color(0.6f, 0.65f, 0.75f, 0.45f), 14);
@@ -501,6 +503,14 @@ namespace BomberBuddies
         {
             float dt = Time.deltaTime;
             ApplySafeArea();
+            // the toggled gun: the on-screen button stops driving the trigger and just flips auto-fire; idle buttons fade
+            if (touchGroup != null && InputBridge.Instance != null && InputBridge.Instance.IsTouch)
+            {
+                Image gunImg; if (buttons.TryGetValue("gun", out gunImg)) { var osb = gunImg.GetComponent<OnScreenButton>(); if (osb != null) osb.enabled = Settings.FireMode != "toggle"; gunImg.color = Settings.FireMode == "toggle" && InputBridge.AutoFire ? new Color(1f, 0.45f, 0.2f, 0.75f) : new Color(0.86f, 0.7f, 0.25f, 0.5f); }
+                float idle = Time.unscaledTime - InputBridge.LastTouchTime;
+                float want = Settings.AutoHide && idle > 4f ? 0.35f : 1f;
+                touchGroup.alpha = Mathf.MoveTowards(touchGroup.alpha, want, dt * 2f);
+            }
             var p = GameState.Player;
             bool fly = flight != null && flight.Active;
             if (fly)
@@ -622,6 +632,43 @@ namespace BomberBuddies
     }
 
     /// <summary>The throttle slider's touch handling: drag up to open the throttle, down to close it. Feeds InputBridge.TouchThrottle.</summary>
+    /// <summary>The move stick that appears under your thumb anywhere on the move half (the original's floating stick), or
+    /// stays in its corner when the Options say fixed. Drives InputBridge.TouchMove; the real pad is never touched.</summary>
+    public class FloatingStick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
+    {
+        public RectTransform back, knob, safe; public Vector2 home; public float range = 40f;
+        Vector2 origin; int pointer = -1; Canvas canvas; CanvasGroup cg;
+        void Start() { canvas = GetComponentInParent<Canvas>(); cg = back.gameObject.AddComponent<CanvasGroup>(); Rest(); }
+        // the touch root is mirrored for a lefty, so what the back is told is the mirror of where the finger is
+        float W { get { return safe.rect.width; } }
+        void Show(Vector2 at, float alpha) { back.anchorMin = back.anchorMax = Vector2.zero; back.anchoredPosition = new Vector2(Settings.Lefty ? W - at.x : at.x, at.y); knob.anchoredPosition = Vector2.zero; cg.alpha = alpha; }
+        void Rest() { Show(Settings.Lefty ? new Vector2(W - home.x, home.y) : home, Settings.FixedStick ? 1f : 0.4f); }
+        Vector2 Local(Vector2 screen) { Vector2 l; RectTransformUtility.ScreenPointToLocalPointInRectangle(safe, screen, canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null, out l); return l + new Vector2(safe.rect.width * safe.pivot.x, safe.rect.height * safe.pivot.y); }
+        public void OnPointerDown(PointerEventData e)
+        {
+            if (pointer != -1) return; pointer = e.pointerId;
+            var l = Local(e.position);
+            origin = Settings.FixedStick ? (Settings.Lefty ? new Vector2(W - home.x, home.y) : home) : l;
+            Show(origin, 1f);
+            Drag(l);
+        }
+        public void OnDrag(PointerEventData e) { if (e.pointerId != pointer) return; Drag(Local(e.position)); }
+        void Drag(Vector2 l)
+        {
+            var d = l - origin; var off = Vector2.ClampMagnitude(d, range);
+            knob.anchoredPosition = new Vector2(Settings.Lefty ? -off.x : off.x, off.y);
+            var v = d / range; if (v.sqrMagnitude > 1f) v.Normalize();
+            InputBridge.TouchMove = v; InputBridge.LastTouchTime = Time.unscaledTime;
+        }
+        public void OnPointerUp(PointerEventData e) { if (e.pointerId != pointer) return; pointer = -1; InputBridge.TouchMove = Vector2.zero; Rest(); }
+    }
+
+    /// <summary>In toggle fire mode a tap on the gun button starts or stops the gun.</summary>
+    public class GunToggle : MonoBehaviour, IPointerDownHandler
+    {
+        public void OnPointerDown(PointerEventData e) { if (Settings.FireMode == "toggle") { InputBridge.AutoFire = !InputBridge.AutoFire; Sfx.Play("ui_click", 0.4f, InputBridge.AutoFire ? 1.3f : 0.8f); } }
+    }
+
     public class ThrottleDrag : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
     {
         Vector2 start;

@@ -54,6 +54,9 @@ namespace BomberBuddies
         public bool IsTouch { get; private set; }
         /// <summary>The HUD's throttle slider while a finger drags it (-1..1), else 0.</summary>
         public static float TouchThrottle;
+        /// <summary>The floating stick (the original's stick under your thumb), two-finger aim, drag-to-fire and the toggled gun.</summary>
+        public static Vector2 TouchMove; public static bool TouchAim, AutoFire; public static float LastTouchTime;
+        bool touchFire;
 
         [Header("Sensitivity")]
         public float mouseDegPerPixel = 0.09f;
@@ -191,6 +194,7 @@ namespace BomberBuddies
         void Update()
         {
             Move = Vector2.ClampMagnitude(move.ReadValue<Vector2>(), 1f);
+            if (TouchMove.sqrMagnitude > 0.0001f && Move.sqrMagnitude < 0.01f) Move = Vector2.ClampMagnitude(TouchMove, 1f);
             // tilt steering (the original's steer: 'tilt'): in the air on a phone, the phone's lean is the stick
             if (PauseMenu.Tilt && IsTouch && Accelerometer.current != null && PlayerManager.Instance != null && !PlayerManager.Instance.OnFoot && PlayerManager.Instance.drive == null)
             {
@@ -205,31 +209,42 @@ namespace BomberBuddies
             bool fromMouse = look.activeControl != null && look.activeControl.device is Mouse;
             Vector2 deg = fromMouse ? l * mouseDegPerPixel : l * stickDegPerSecond * Time.deltaTime;
 
-            // touch look: any finger that is not on a UI control and started on the right half of the screen
+            // touch look: any finger that is not on a UI control and started on the look half (the right, or the left for a lefty);
+            // two of them together aim; one held fires in drag mode
+            int lookFingers = 0; touchFire = false;
             if (Touchscreen.current != null)
             {
                 foreach (var t in Touch.activeTouches)
                 {
-                    if (t.startScreenPosition.x < Screen.width * 0.42f) continue;
+                    bool lookSide = Settings.Lefty ? t.startScreenPosition.x < Screen.width * 0.58f : t.startScreenPosition.x > Screen.width * 0.42f;
+                    if (!lookSide) continue;
                     if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(t.touchId)) continue;
-                    if (t.phase == UnityEngine.InputSystem.TouchPhase.Moved) deg += t.delta * touchDegPerPixel;
+                    if (t.phase == UnityEngine.InputSystem.TouchPhase.Ended || t.phase == UnityEngine.InputSystem.TouchPhase.Canceled) continue;
+                    lookFingers++;
+                    if (Settings.LookPad && t.phase == UnityEngine.InputSystem.TouchPhase.Moved) deg += t.delta * touchDegPerPixel;
                 }
-                if (Touch.activeTouches.Count > 0) IsTouch = true;
+                if (Touch.activeTouches.Count > 0) { IsTouch = true; LastTouchTime = Time.unscaledTime; }
             }
+            TouchAim = Settings.TwoFingerAim && lookFingers >= 2;
+            if (Settings.FireMode == "drag" && lookFingers >= 1) touchFire = true;
+            if (Settings.FireMode == "toggle" && AutoFire) touchFire = true;
+            if (!IsTouch) { TouchAim = false; AutoFire = false; touchFire = false; }
             // a real controller hides the touch controls; the on-screen stick and buttons drive a virtual gamepad, which must not
             if (Gamepad.current != null && Gamepad.current.wasUpdatedThisFrame && !Application.isMobilePlatform && !string.IsNullOrEmpty(Gamepad.current.description.interfaceName)) IsTouch = false;
 #if UNITY_EDITOR
             if (Keyboard.current != null && Keyboard.current.tKey.wasPressedThisFrame) { IsTouch = !IsTouch; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }   // editor: T shows the touch layer for testing with the mouse
 #endif
             deg *= PauseMenu.Sensitivity;
-            if (PauseMenu.InvertY) deg.y = -deg.y;
+            bool aimingNow = aim.IsPressed() || TouchAim;
+            if (aimingNow) deg *= Settings.AimSens;
+            if (PauseMenu.InvertY != (aimingNow && Settings.AimInvert)) deg.y = -deg.y;
             RawLook = deg; Look = Hijacked ? Vector2.zero : deg;
             RawMove = Move; if (Hijacked) Move = Vector2.zero;
 
             LookHeld = freeLook.IsPressed();
-            RawFire = fire.IsPressed(); Fire = !Hijacked && RawFire;
+            RawFire = fire.IsPressed() || touchFire; Fire = !Hijacked && RawFire;
             SupportPressed = supportQ; supportQ = false; SeatPressed = seatQ; seatQ = false; ItemsPressed = itemsQ; itemsQ = false; MapPressed = mapQ; mapQ = false;
-            Aim = aim.IsPressed();
+            Aim = aim.IsPressed() || TouchAim;
             Sprint = sprint.IsPressed();
             JumpPressed = jumpQ; jumpQ = false; JumpHeld = jump.IsPressed() && !Hijacked;
             CrouchPressed = crouchQ; crouchQ = false; CrouchHeld = crouch.IsPressed() && !Hijacked;

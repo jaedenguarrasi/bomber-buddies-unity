@@ -81,7 +81,11 @@ namespace BomberBuddies
         public void TakeDamage(DamageInfo info)
         {
             if (!alive || invulnerable) return;
-            current -= info.explosive ? info.amount * bombMult : info.amount * armor;
+            // difficulty: what the enemy does to your side scales with Enemy damage, what you do to them with their toughness
+            float diff = 1f;
+            if (team == 0 && info.source != null && info.source.layer != 8) diff = Settings.EnemyDmg;
+            else if (team != 0 && team != 3 && info.source != null && info.source.layer == 8) diff = 1f / Mathf.Max(0.1f, Settings.EnemyHp);
+            current -= (info.explosive ? info.amount * bombMult : info.amount * armor) * diff;
             if (OnDamaged != null) OnDamaged(info);
             if (current <= 0f)
             {
