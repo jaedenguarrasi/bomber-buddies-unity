@@ -270,7 +270,7 @@ namespace BomberBuddies
             }
             else { Showroom.BuildCraftModel(body, c, lib, 8); var bc = gameObject.AddComponent<BoxCollider>(); bc.center = new Vector3(0f, 0.8f, 0f); bc.size = new Vector3(2.2f, 1.6f, 4f); health.isAir = false; }
             foreach (var r in body.GetComponentsInChildren<Renderer>()) foreach (var m in r.materials) if (m.HasProperty("_Tint")) m.SetVector("_Tint", new Vector4(0.6f, 0.75f, 1f, 1f));   // buddies are blue, as the original coloured them
-            if (label == null) label = Text3.Create(transform, NetSession.Instance != null ? NetSession.Instance.NameOf(owner) : "Buddy", 2.3f);
+            if (label == null) { try { label = Text3.Create(transform, NetSession.Instance != null ? NetSession.Instance.NameOf(owner) : "Buddy", 2.3f); } catch (System.Exception) { label = null; } }   // headless builds have no font material
         }
 
         public void Apply(string c, byte flags, Vector3 pos, Quaternion rot, float spd, float pch, float hp)
