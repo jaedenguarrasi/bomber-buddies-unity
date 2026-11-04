@@ -221,9 +221,10 @@ namespace BomberBuddies
         void SendHello() { var w = new FastBufferWriter(128, Unity.Collections.Allocator.Temp); w.WriteValueSafe((byte)1); w.WriteValueSafe(callSign); w.WriteValueSafe(Progress.Craft); nm.CustomMessagingManager.SendNamedMessage(Msg, NetworkManager.ServerClientId, w, NetworkDelivery.ReliableSequenced); }
 
         /// <summary>Everyone loads the host's battle (the scene reloads; this object survives it).</summary>
+        bool loading;
         void LoadBattle(string mode)
         {
-            Debug.Log("LoadBattle " + mode);
+            if (loading) return; loading = true;
             Time.timeScale = 1f;
             GameBootstrap.ChosenMode = mode;
             UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
@@ -254,7 +255,7 @@ namespace BomberBuddies
                         for (int i = 0; i < n; i++) { ulong id; string nm2, c; int k, d; r.ReadValueSafe(out id); r.ReadValueSafe(out nm2); r.ReadValueSafe(out c); r.ReadValueSafe(out k); r.ReadValueSafe(out d); peers[id] = new Peer { id = id, name = nm2, craft = c, kills = k, deaths = d }; }
                         Fire(); break;
                     }
-                case 3: { string m; r.ReadValueSafe(out m); lobbyMode = m; started = true; Fire(); if (Started != null) Started(m); if (GameBootstrap.LastMode != m || NetSync.Instance == null) LoadBattle(m); break; }
+                case 3: { string m; r.ReadValueSafe(out m); if (role == Role.Host) break; lobbyMode = m; started = true; Fire(); if (Started != null) Started(m); if (GameBootstrap.LastMode != m || NetSync.Instance == null) LoadBattle(m); break; }
                 case 5: { float t; r.ReadValueSafe(out t); var w = new FastBufferWriter(16, Unity.Collections.Allocator.Temp); w.WriteValueSafe((byte)6); w.WriteValueSafe(t); nm.CustomMessagingManager.SendNamedMessage(Msg, from, w, NetworkDelivery.Unreliable); break; }
                 case 6: { float t; r.ReadValueSafe(out t); rtt = (Time.realtimeSinceStartup - t) * 1000f; break; }
             }
@@ -274,6 +275,7 @@ namespace BomberBuddies
         float pingT;
         void Update()
         {
+            if (loading && GameBootstrap.ChosenMode == null) loading = false;
             if (role == Role.Join && Active) { pingT -= Time.unscaledDeltaTime; if (pingT <= 0f) { pingT = 2f; var w = new FastBufferWriter(16, Unity.Collections.Allocator.Temp); w.WriteValueSafe((byte)5); w.WriteValueSafe(Time.realtimeSinceStartup); SendToHost(w, false); } }
             if (beacon != null && role == Role.Host) { beaconT -= Time.unscaledDeltaTime; if (beaconT <= 0f) { beaconT = 1f; Shout(); } }
             if (listening) PollBeacons();

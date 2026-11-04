@@ -56,7 +56,6 @@ namespace BomberBuddies
 
         public void Begin(string modeId)
         {
-            Debug.Log("Begin " + modeId + (NetSession.Instance != null && NetSession.Instance.Active ? " linked as " + NetSession.Instance.role : ""));
             mode = modeId == "galactic" ? Mode.Galactic : Mode.Island;
             battleMode = modeId; LastMode = modeId;
             { ModeDefs.Mode md; Night = ModeDefs.All.TryGetValue(battleMode, out md) && md.night; Moon = md != null && md.moon; Progress.Forced = md != null ? md.craft : null; }
