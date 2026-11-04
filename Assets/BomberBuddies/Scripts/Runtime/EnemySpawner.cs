@@ -51,6 +51,15 @@ namespace BomberBuddies
         }
 
         /// <summary>The n-th wave: counts from the mode table, gathered round a few rally camps so there is something to attack.</summary>
+        /// <summary>The original's reinforce(type, n) behind the pause menu's Add enemies: they join the current wave straight away.</summary>
+        public int Reinforce(string type, int n)
+        {
+            int made = 0;
+            for (int i = 0; i < n; i++) { if (alive.Count + queue.Count > 150) break; queue.Add(type); made++; }
+            if (made > 0) { waitT = 0f; GameState.Touch(); }
+            return made;
+        }
+
         public void StartWave(int n)
         {
             GameState.Wave = n;

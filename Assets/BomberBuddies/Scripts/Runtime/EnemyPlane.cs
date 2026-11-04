@@ -41,7 +41,7 @@ namespace BomberBuddies
             e.health.OnDied += info =>
             {
                 if (Projectiles.Instance != null) Projectiles.Instance.Explode(go.transform.position, 1f, 4f, 0f, go, team);
-                if (team != 0) GameState.EnemyKilled(false, saucer ? 600 : 400);
+                if (team != 0) { GameState.Vehicles++; GameState.EnemyKilled(false, saucer ? 600 : 400); }
                 Destroy(go);
             };
             return e;

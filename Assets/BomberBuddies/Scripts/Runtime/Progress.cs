@@ -184,6 +184,14 @@ namespace BomberBuddies
         public static int Bank { get { return PlayerPrefs.GetInt("bb_bank", 0); } set { PlayerPrefs.SetInt("bb_bank", Mathf.Max(0, value)); } }
         public static int Campaign { get { return PlayerPrefs.GetInt("bb_campaign", 0); } set { PlayerPrefs.SetInt("bb_campaign", value); } }
         public static int Best { get { return PlayerPrefs.GetInt("bb_best", 0); } set { PlayerPrefs.SetInt("bb_best", value); } }
+        /// <summary>The original's save.life: career totals added at the end of every battle (lifeAdd).</summary>
+        public static int Life(string k) { return PlayerPrefs.GetInt("bb_life_" + k, 0); }
+        public static void LifeAdd(int kills, int deaths, int heads, int limbs, int bld, int best)
+        {
+            PlayerPrefs.SetInt("bb_life_k", Life("k") + kills); PlayerPrefs.SetInt("bb_life_d", Life("d") + deaths); PlayerPrefs.SetInt("bb_life_hs", Life("hs") + heads);
+            PlayerPrefs.SetInt("bb_life_lb", Life("lb") + limbs); PlayerPrefs.SetInt("bb_life_bld", Life("bld") + bld); PlayerPrefs.SetInt("bb_life_games", Life("games") + 1);
+            PlayerPrefs.SetInt("bb_life_best", Mathf.Max(Life("best"), best));
+        }
         /// <summary>A mode that decides what you fly (Abduction: raid): overrides the chosen craft for the match.</summary>
         public static string Forced;
         public static string Craft { get { return Forced ?? PlayerPrefs.GetString("bb_craft", "plane"); } set { PlayerPrefs.SetString("bb_craft", value); } }

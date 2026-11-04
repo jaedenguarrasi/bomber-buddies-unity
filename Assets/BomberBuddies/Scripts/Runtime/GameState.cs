@@ -14,6 +14,8 @@ namespace BomberBuddies
         /// <summary>The walkable ground height at (x, z), for anything that moves without a navmesh.</summary>
         public static Func<float, float, float> GroundHeight;
         public static int Kills, Headshots, Wave, Deaths, Credits, Grenades = 8;
+        /// <summary>The original's STATS.lb / veh+air / bld for the scoreboard.</summary>
+        public static int Limbs, Vehicles, Buildings;
         /// <summary>Lives this flight: the original's 3 plus spare aircraft from the hangar.</summary>
         public static int Lives = 3;
         public static event Action Changed;

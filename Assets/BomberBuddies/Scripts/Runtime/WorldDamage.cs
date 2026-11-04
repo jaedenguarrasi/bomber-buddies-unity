@@ -134,6 +134,7 @@ namespace BomberBuddies
         /// <summary>The tower gives way at the hit floor: everything above tips over about its base edge and comes down.</summary>
         void Topple(int k, int atFloor, Vector3 dir)
         {
+            GameState.Buildings++;
             int ix = k % N3, iz = k / N3; float x = ix * BS, z = iz * BS, h = hm[k]; float hw = bhw[k] - 1f; int floors = bfl[k];
             var col = TOWER_COL[(house3[k] - 20) % 4];
             int keep = Mathf.Clamp(atFloor, 0, floors - 1); int gone = floors - keep;
