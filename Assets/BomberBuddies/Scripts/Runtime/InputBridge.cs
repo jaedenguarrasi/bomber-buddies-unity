@@ -237,7 +237,7 @@ namespace BomberBuddies
 #endif
             deg *= PauseMenu.Sensitivity;
             // aimToggle: the Aim button flips aiming instead of holding it
-            if (Settings.AimToggle) { if (aim.wasPressedThisFrame) aimLatched = !aimLatched; } else aimLatched = false;
+            if (Settings.AimToggle) { if (aim.WasPressedThisFrame()) aimLatched = !aimLatched; } else aimLatched = false;
             bool aimingNow = aim.IsPressed() || TouchAim || aimLatched;
             if (aimingNow) deg *= Settings.AimSens;
             if (aimingNow && IsTouch) deg *= Settings.LookZoom;   // thumb look while zoomed
