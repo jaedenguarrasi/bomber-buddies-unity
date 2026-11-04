@@ -507,8 +507,8 @@ namespace BomberBuddies
             if (touchGroup != null && InputBridge.Instance != null && InputBridge.Instance.IsTouch)
             {
                 Image gunImg; if (buttons.TryGetValue("gun", out gunImg)) { var osb = gunImg.GetComponent<OnScreenButton>(); if (osb != null) osb.enabled = Settings.FireMode != "toggle"; gunImg.color = Settings.FireMode == "toggle" && InputBridge.AutoFire ? new Color(1f, 0.45f, 0.2f, 0.75f) : new Color(0.86f, 0.7f, 0.25f, 0.5f); }
-                float idle = Time.unscaledTime - InputBridge.LastTouchTime;
-                float want = Settings.AutoHide && idle > 4f ? 0.35f : 1f;
+                // the original's ctlAlpha: faint, normal or bold on-screen controls (it never fades them out)
+                float want = Mathf.Clamp(Settings.CtlAlpha, 0.5f, 1f);
                 touchGroup.alpha = Mathf.MoveTowards(touchGroup.alpha, want, dt * 2f);
             }
             var p = GameState.Player;
