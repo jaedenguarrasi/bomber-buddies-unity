@@ -52,6 +52,7 @@ namespace BomberBuddies
         public void FireRound(Vector3 from, Vector3 dir, float speed, float damage, float range, int team, GameObject source, Color color, float width = 0.03f, bool foot = false)
         {
             shots.Add(new Shot { pos = from, vel = dir.normalized * speed, life = range / Mathf.Max(1f, speed), damage = damage, width = width, team = team, source = source, color = color, gravity = 4f, foot = foot });
+            if (team == 0 && NetSync.Instance != null) NetSync.Instance.Tracer(from, dir.normalized, speed, color);
         }
 
         /// <summary>A cannon bolt: slow, glowing, no drop.</summary>
@@ -255,11 +256,13 @@ namespace BomberBuddies
         }
 
         /// <summary>Blast damage: full inside coreR, falling to nothing at dmgR. Ship parts use their bomb multiplier.</summary>
-        public void Explode(Vector3 at, float coreR, float dmgR, float dmg, GameObject source, int team)
+        public void Explode(Vector3 at, float coreR, float dmgR, float dmg, GameObject source, int team, bool fromNet = false)
         {
             Flash(at, Mathf.Max(1f, dmgR * 0.45f));
-            if (World3.Instance != null && team != 2) World3.Instance.Blast(at, dmgR, dmg);
+            if (World3.Instance != null && (team != 2 || fromNet)) World3.Instance.Blast(at, dmgR, dmg);
             Sfx.Play(dmgR > 20f ? "expl_huge" : dmgR > 6f ? "expl_big" : "expl_small", dmgR > 6f ? 0.9f : 0.7f, 1f, at);
+            if (fromNet) { Shake(at, dmgR); return; }   // another phone's blast: the look and the crater, the damage was done there
+            if (NetSync.Instance != null) NetSync.Instance.Explosion(at, coreR, dmgR, dmg);
             var seen = new HashSet<Object>();
             foreach (var c in Physics.OverlapSphere(at, dmgR, ~0, QueryTriggerInteraction.Ignore))
             {
@@ -278,6 +281,10 @@ namespace BomberBuddies
                 if (th != null && th.team == team && source != null && source != th.gameObject && team != 2 && !BattleSetup.FriendlyFire) ff = 0.15f;
                 target.TakeDamage(new DamageInfo { amount = dmg * k * ff, point = c.ClosestPoint(at), direction = (c.transform.position - at).normalized, source = source, explosive = true });
             }
+            Shake(at, dmgR);
+        }
+        static void Shake(Vector3 at, float dmgR)
+        {
             if (GameState.Rig != null && GameState.Rig.cam != null)
             {
                 float shake = Mathf.Clamp01(1f - Vector3.Distance(at, GameState.Rig.cam.transform.position) / (dmgR * 3f));

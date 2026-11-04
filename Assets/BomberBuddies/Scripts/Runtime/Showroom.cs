@@ -34,8 +34,18 @@ namespace BomberBuddies
             var lib = GameState.Library; float U = GalacticMode.U;
             dist = 12f; ty = 1f;
             if (id.StartsWith("gun:")) { BuildGun(id.Substring(4), lib); dist = 2.6f; ty = 0f; }
-            else
-            {
+            else BuildCraftModel(model, id, lib, Layer, out dist, out ty);
+            SetLayer(model);
+            foreach (var r in model.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+
+        /// <summary>The model for a craft or class by its id, as the showroom draws it (also used for buddies' puppets).</summary>
+        public static void BuildCraftModel(Transform model, string id, MaterialLibrary lib, int layer) { float a, b; BuildCraftModel(model, id, lib, layer, out a, out b); }
+        public static void BuildCraftModel(Transform model, string id, MaterialLibrary lib, int Layer, out float dist, out float ty)
+        {
+            dist = 12f; ty = 1f;
+
                 var d = Progress.Def(id);
                 if (d == null) { }
                 else if (!d.ground)
@@ -58,13 +68,10 @@ namespace BomberBuddies
                     var body = CraftModels.Vehicle(model, lib, kind, 0, Layer, out tt, out bb);
                     if (id == "bike") body.transform.localScale = new Vector3(0.45f, 0.7f, 0.75f);
                     if (id == "clowncar") body.transform.localScale = new Vector3(0.7f, 0.8f, 0.6f);
-                    if (id == "trike" || id == "trexMount" || id == "trikeMount" || id == "raptorMount") { Destroy(body); CreatureModel.Create(model, lib, id == "raptorMount" ? "raptor" : "trex", Layer); dist = id == "raptorMount" ? 5f : 12f; ty = 2f; }
+                    if (id == "trike" || id == "trexMount" || id == "trikeMount" || id == "raptorMount") { GameObject.Destroy(body); CreatureModel.Create(model, lib, id == "raptorMount" ? "raptor" : "trex", Layer); dist = id == "raptorMount" ? 5f : 12f; ty = 2f; }
                     else dist = 8f;
                 }
-            }
-            SetLayer(model);
-            foreach (var r in model.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        }
+                    }
 
         void BuildGun(string gun, MaterialLibrary lib)
         {

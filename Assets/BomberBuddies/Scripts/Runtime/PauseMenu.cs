@@ -59,7 +59,7 @@ namespace BomberBuddies
             info = Txt("Info", col, 15, "", false, Sub, TextAnchor.MiddleLeft);
             var row = Row("Row", col);
             Go(row, "Resume", () => Close());
-            Ghost(row, "Invite friends", () => { info.text = "Online play is not in this build yet: the room code lobby from the original is next on the list."; });
+            Ghost(row, "Invite friends", () => { var ns = NetSession.Get(); if (!ns.Active) { ns.lobbyMode = GameBootstrap.LastMode ?? "battle"; ns.started = true; } root.SetActive(false); NetScreen.Open(transform.parent, true, () => { root.SetActive(true); Refresh(); }); NetScreen.Instance.transform.SetAsLastSibling(); });
             Ghost(row, "Controls for this", () => { root.SetActive(false); ControlsScreen.Open(transform.parent, () => root.SetActive(true)); ControlsScreen.Instance.transform.SetAsLastSibling(); });
             Ghost(row, "Hangar", () => { root.SetActive(false); Hangar.Open(transform.parent.parent, () => { root.SetActive(true); if (PlayerManager.Instance != null) PlayerManager.Instance.ApplyLoadout(); Refresh(); }); });
             Ghost(row, "Settings", () => { root.SetActive(false); OptionsScreen.Open(transform.parent, () => { root.SetActive(true); Refresh(); }); });

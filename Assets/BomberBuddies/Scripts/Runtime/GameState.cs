@@ -29,8 +29,11 @@ namespace BomberBuddies
 
         public static void Earn(int credits) { Credits += credits; Progress.Bank += credits; Touch(); }
 
+        /// <summary>Linked game: a kill that belongs to another phone is not counted here.</summary>
+        public static bool SuppressScore;
         public static void EnemyKilled(bool headshot, int score = 10)
         {
+            if (SuppressScore) return;
             Kills++; Credits += score; Progress.Bank += score;
             if (headshot) Headshots++;
             if (Killed != null) Killed(headshot);

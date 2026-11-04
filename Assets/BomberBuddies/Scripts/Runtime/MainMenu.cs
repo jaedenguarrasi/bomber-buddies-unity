@@ -82,6 +82,10 @@ namespace BomberBuddies
         GameObject net;
         void ShowNet()
         {
+            titlePage.SetActive(false);
+            NetScreen.Open(transform, false, () => { titlePage.SetActive(true); });
+            return;
+#pragma warning disable CS0162
             if (net != null) { net.SetActive(true); return; }
             net = new GameObject("Net", typeof(RectTransform)); net.transform.SetParent(transform, false);
             var rt = net.GetComponent<RectTransform>(); rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
@@ -91,6 +95,7 @@ namespace BomberBuddies
             var p = Txt("P", net.transform, new Vector2(0.5f, 0.5f), new Vector2(0f, 40f), new Vector2(820f, 300f), 20, TextAnchor.MiddleCenter, Cream); p.horizontalOverflow = HorizontalWrapMode.Wrap;
             p.text = "One of you hosts and reads out the room code. The others type it in and join, from anywhere.\n\nOnline play is the one part of the original not in this version yet: the room-code host/join is being rebuilt on Unity's networking and will arrive in a later build. Everyone must be on the same game version.";
             Btn("Back", net.transform, new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(200f, 54f), "Back", 20, () => net.SetActive(false));
+#pragma warning restore CS0162
         }
 
         string cat;

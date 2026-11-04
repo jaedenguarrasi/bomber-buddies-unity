@@ -32,6 +32,8 @@ namespace BomberBuddies
         public bool stationary;              // a gun emplacement: does not count for capturing posts
         public float aimHeight = 1.2f;       // where others aim, above the feet
         public float armor = 1f, bombMult = 1f;   // bullets do amount × armor, blasts amount × bombMult
+        /// <summary>In a linked game: the host's id for this thing (0 = not tracked).</summary>
+        public int netId;
 
         /// <summary>Everyone alive in the fight, so AI can pick targets by side without knowing what they are.</summary>
         public static readonly List<Health> All = new List<Health>();
@@ -81,6 +83,7 @@ namespace BomberBuddies
         public void TakeDamage(DamageInfo info)
         {
             if (!alive || invulnerable) return;
+            if (NetSync.Instance != null && NetSync.Instance.Intercept(this, info)) return;   // a puppet: the real one is on another phone
             // difficulty: what the enemy does to your side scales with Enemy damage, what you do to them with their toughness
             float diff = 1f;
             if (team == 0 && info.source != null && info.source.layer != 8) diff = Settings.EnemyDmg;

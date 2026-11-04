@@ -5,7 +5,12 @@
         "Unity.InputSystem",
         "Unity.RenderPipelines.Universal.Runtime",
         "Unity.RenderPipelines.Core.Runtime",
-        "Unity.AI.Navigation"
+        "Unity.AI.Navigation",
+        "Unity.Netcode.Runtime",
+        "Unity.Networking.Transport",
+        "Unity.Services.Relay",
+        "Unity.Services.Authentication",
+        "Unity.Services.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

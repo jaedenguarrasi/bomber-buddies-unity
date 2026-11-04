@@ -19,7 +19,7 @@ namespace BomberBuddies
         Image hullFill, gunFill, boostFill, damageFlash, crossA, crossB, crossC, crossD, throttleKnob, radarBack;
         RectTransform hitMarkerRoot, radar, throttleTrack;
         Text throttleText, livesText, bombsText, speedText, heightText, altText, message, modeText, waveText, creditsText, throttleChip, commsText;
-        float hitT, flashT, messageT, crossSpread = 12f, commsT;
+        float hitT, flashT, messageT, crossSpread = 12f, commsT, linkT;
         Font font;
         GameObject touchRoot;
         CanvasGroup touchGroup;   // shown/hidden with a CanvasGroup: toggling the objects off and on breaks the on-screen controls' virtual gamepad
@@ -516,7 +516,7 @@ namespace BomberBuddies
             if (waveText == null) return;
             if (GalacticMode.Instance != null) waveText.text = "Galactic Assault";
             else if (IslandMode.Instance != null && IslandMode.Instance.ModeDrivesSpawns) waveText.text = ModeDefs.All.ContainsKey(IslandMode.Instance.modeId) ? ModeDefs.All[IslandMode.Instance.modeId].name : "";
-            else waveText.text = GameState.Wave > 0 ? "Wave " + GameState.Wave + (GameState.Spawner != null ? " · " + GameState.Spawner.Remaining + " left" : "") : "Get ready";
+            else waveText.text = GameState.Wave > 0 ? "Wave " + GameState.Wave + " · " + (NetSync.Instance != null && !NetSync.Instance.IsHost ? NetSync.Instance.Remaining : GameState.Spawner != null ? GameState.Spawner.Remaining : 0) + " left" : "Get ready";
             if (creditsText != null) creditsText.text = "● " + GameState.Credits;
         }
 
@@ -588,6 +588,7 @@ namespace BomberBuddies
             if (flashT > 0f) { flashT -= dt; damageFlash.color = new Color(0.65f, 0f, 0f, Mathf.Clamp01(flashT) * 0.45f); } else damageFlash.color = new Color(0.65f, 0f, 0f, 0f);
             if (messageT > 0f) { messageT -= dt; if (messageT <= 0f) message.text = ""; else message.color = new Color(1f, 1f, 1f, Mathf.Clamp01(messageT * 1.5f)); }
             if (commsT > 0f) { commsT -= dt; if (commsT <= 0f) commsText.text = ""; }
+            linkT -= dt; if (linkT <= 0f) { linkT = 0.5f;if (NetSession.Instance != null && NetSession.Instance.Active && commsText != null && commsT <= 0f) { var ns = NetSession.Instance; commsText.text = (ns.rtt >= 0f ? "Link " + Mathf.RoundToInt(ns.rtt) + " ms" : "Linked") + (ns.peers.Count > 1 ? " · " + (ns.peers.Count - 1) + (ns.peers.Count == 2 ? " buddy" : " buddies") : ", waiting for buddy"); } }
             if (touchGroup != null && InputBridge.Instance != null && (touchGroup.alpha > 0.5f) != InputBridge.Instance.IsTouch) ShowTouch(InputBridge.Instance.IsTouch);
             if (InputBridge.Instance != null && InputBridge.Instance.PausePressed && PauseMenu.Instance != null) PauseMenu.Instance.Toggle();
         }

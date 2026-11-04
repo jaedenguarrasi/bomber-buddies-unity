@@ -105,7 +105,14 @@ namespace BomberBuddies
             if (battleMode == "tutorial" || battleMode == "tutflight" || battleMode == "tutspecial" || battleMode == "ch1") Tutorial.Create(transform, library, world, spawner, battleMode);
             // like the original: you start in your plane over the island, and come back the same way
             var team = Teammates.Create(transform, library, spawner, seaLevel);
-            System.Action<Vector3> spawn = at => { if (Progress.IsFoot(Progress.Craft)) pm.SpawnOnFoot(at); else if (Progress.IsRide(Progress.Craft)) pm.SpawnDriving(at); else pm.SpawnInAir(at); team.Deploy(at); };
+            bool linked = NetSession.Instance != null && NetSession.Instance.Active, client = linked && !NetSession.Instance.IsHost;
+            System.Action<Vector3> spawn = at => { if (Progress.IsFoot(Progress.Craft)) pm.SpawnOnFoot(at); else if (Progress.IsRide(Progress.Craft)) pm.SpawnDriving(at); else pm.SpawnInAir(at); if (!client) team.Deploy(at); };
+            if (linked)
+            {
+                // the shared battle: the host runs the enemies, everyone else sees puppets of them
+                NetSync.Create(transform, library);
+                if (client) { spawner.enabled = false; if (IslandMode.Instance != null) IslandMode.Instance.enabled = false; if (Tutorial.Instance != null) Tutorial.Instance.enabled = false; }
+            }
             var deploy = DeployScreen.Create(GameState.Hud.transform);
             // the deploy screen before every spawn: pick what you come back as, then Deploy (the original's oDeploy)
             pm.placeOnRespawn = () => { deploy.Open(world.spawn, at => spawn(at ?? (Underground.Instance != null ? world.spawn : world.spawn + new Vector3(Random.Range(-40f, 40f), 0f, Random.Range(-40f, 40f))))); return true; };
