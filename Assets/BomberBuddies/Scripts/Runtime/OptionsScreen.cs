@@ -26,12 +26,12 @@ namespace BomberBuddies
         {
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); root = gameObject;
             var rt = GetComponent<RectTransform>(); rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
-            var bg = gameObject.AddComponent<Image>(); bg.color = new Color(0.16f, 0.22f, 0.27f, 1f); bg.raycastTarget = true;
+            var bg = gameObject.AddComponent<Image>(); bg.color = new Color(0.05f, 0.08f, 0.11f, 0.55f); bg.raycastTarget = true;
             // the panel: back chevron, big title at the right, the tab row, then the list
             var head = Rect("Head", transform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -40f), new Vector2(0f, 60f)); head.offsetMin = new Vector2(90f, -70f); head.offsetMax = new Vector2(-90f, -10f);
             head.gameObject.AddComponent<Image>().color = new Color(0.1f, 0.14f, 0.18f, 0.9f);
             var chev = Btn("Back", head, new Vector2(0f, 0.5f), new Vector2(22f, 0f), new Vector2(44f, 44f), "‹", 28, () => Close());
-            var title = Txt("Title", head, new Vector2(1f, 0.5f), new Vector2(-14f, 0f), new Vector2(600f, 56f), 44, "Controls", TextAnchor.MiddleRight, Ink, true);
+            var title = Txt("Title", head, new Vector2(1f, 0.5f), new Vector2(-314f, 0f), new Vector2(600f, 56f), 44, "Controls", TextAnchor.MiddleRight, Ink, true);
             Btn("Arrow", transform, new Vector2(0f, 1f), new Vector2(30f, -30f), new Vector2(44f, 44f), "←", 24, () => Close());
             tabsRow = Rect("Tabs", transform, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, Vector2.zero); var tr = (RectTransform)tabsRow; tr.offsetMin = new Vector2(90f, -138f); tr.offsetMax = new Vector2(-90f, -96f);
             var hl = tabsRow.gameObject.AddComponent<HorizontalLayoutGroup>(); hl.spacing = 8f; hl.childForceExpandWidth = false; hl.childForceExpandHeight = true; hl.childControlWidth = true; hl.childControlHeight = true;

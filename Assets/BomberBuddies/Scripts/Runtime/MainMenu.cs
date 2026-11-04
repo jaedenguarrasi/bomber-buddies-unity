@@ -54,7 +54,16 @@ namespace BomberBuddies
         {
             var rt = Rect("B " + label, parent, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + w * 0.5f, -(y + h * 0.5f)), new Vector2(w, h));
             var im = rt.gameObject.AddComponent<Image>(); im.color = bg.a > 0f ? bg : new Color(0f, 0f, 0f, 0.001f);
-            if (border.HasValue) { var o = rt.gameObject.AddComponent<Outline>(); o.effectColor = new Color(border.Value.r, border.Value.g, border.Value.b, 0.45f); o.effectDistance = new Vector2(2f, 2f); }
+            if (border.HasValue)
+            {
+                var bc = new Color(border.Value.r, border.Value.g, border.Value.b, 0.45f);
+                foreach (var e in new[] { new[] { 0f, 1f, 1f, 1f, 0f, -2f }, new[] { 0f, 0f, 1f, 0f, 0f, 2f }, new[] { 0f, 0f, 0f, 1f, 2f, 0f }, new[] { 1f, 0f, 1f, 1f, -2f, 0f } })
+                {
+                    var eg = Rect("Edge", rt, new Vector2(e[0], e[1]), new Vector2(e[2], e[3]), Vector2.zero, Vector2.zero); var er = eg; er.offsetMin = Vector2.zero; er.offsetMax = Vector2.zero;
+                    if (e[5] != 0f) { er.offsetMin = new Vector2(0f, e[5] < 0f ? e[5] : 0f); er.offsetMax = new Vector2(0f, e[5] > 0f ? e[5] : 0f); } else { er.offsetMin = new Vector2(e[4] < 0f ? e[4] : 0f, 0f); er.offsetMax = new Vector2(e[4] > 0f ? e[4] : 0f, 0f); }
+                    var ei = eg.gameObject.AddComponent<Image>(); ei.color = bc; ei.raycastTarget = false;
+                }
+            }
             var b = rt.gameObject.AddComponent<Button>(); if (onClick != null) b.onClick.AddListener(onClick);
             var cols = b.colors; cols.highlightedColor = new Color(1f, 1f, 1f, 0.85f); cols.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f); b.colors = cols;
             var t = Txt("Label", rt, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(w, h), fs, TextAnchor.MiddleCenter, ink, true); t.text = label;
