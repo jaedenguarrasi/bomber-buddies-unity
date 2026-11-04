@@ -223,6 +223,7 @@ namespace BomberBuddies
         /// <summary>Everyone loads the host's battle (the scene reloads; this object survives it).</summary>
         void LoadBattle(string mode)
         {
+            Debug.Log("LoadBattle " + mode);
             Time.timeScale = 1f;
             GameBootstrap.ChosenMode = mode;
             UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
