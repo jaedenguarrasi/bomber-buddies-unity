@@ -16,6 +16,74 @@ namespace BomberBuddies
 
         Font font;
         Action<string> onPick;
+        GameObject modePage, titlePage; Text modeBtnLabel;
+        /// <summary>The mode the title's Play 3D starts (the original's save.gm, shown on the "Mode: …" button).</summary>
+        public static string Chosen = "battle";
+
+        static readonly Color Cream = new Color(239f / 255f, 233f / 255f, 214f / 255f), Gold = new Color(226f / 255f, 179f / 255f, 60f / 255f), Sky = new Color(127f / 255f, 196f / 255f, 216f / 255f), InkDark = new Color(29f / 255f, 42f / 255f, 46f / 255f);
+
+        /// <summary>The title as the original drew it (oTitle): the tilted logo, "Fly low. Break ground.", Play 3D / Play 2D /
+        /// Play together, then Hangar · Mode · Settings · Credits, the version line, and the sound and pause buttons top right.</summary>
+        void BuildTitle()
+        {
+            Chosen = PlayerPrefs.GetString("bb_mode", "battle"); ModeDefs.Mode md0; if (!ModeDefs.All.TryGetValue(Chosen, out md0) || !md0.playable) Chosen = "battle";
+            titlePage = Rect("Title page", transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero).gameObject; var tr = titlePage.GetComponent<RectTransform>(); tr.offsetMin = Vector2.zero; tr.offsetMax = Vector2.zero;
+            var T = titlePage.transform;
+            // positions are the original's at 1280×720, measured from the top-left
+            Func<float, float, Vector2> at = (x, y) => new Vector2(x, -y);
+            var logoTex = Resources.Load<Texture2D>("Art/title_logo");
+            var logo = Rect("Logo", T, new Vector2(0f, 1f), new Vector2(0f, 1f), at(405f + 227f, 71f + 106f), new Vector2(453f, 212f));
+            var li = logo.gameObject.AddComponent<Image>(); li.raycastTarget = false;
+            if (logoTex != null) li.sprite = Sprite.Create(logoTex, new UnityEngine.Rect(0, 0, logoTex.width, logoTex.height), new Vector2(0.5f, 0.5f)); else { li.enabled = false; var lt = Txt("LogoText", logo, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(453f, 212f), 96, TextAnchor.MiddleLeft, Cream, true); lt.text = "Bomber\nBuddies"; lt.transform.localRotation = Quaternion.Euler(0f, 0f, 5f); }
+            Txt("Lede", T, new Vector2(0f, 1f), at(420f + 150f, 300f + 12f), new Vector2(300f, 26f), 19, TextAnchor.MiddleLeft, Cream).text = "Fly low. Break ground.";
+            TitleBtn(T, "Play 3D", 420f, 336f, 162f, 58f, 26, Gold, InkDark, null, () => { Sfx.Play("ui_click", 0.6f); Pick(Chosen); });
+            TitleBtn(T, "Play 2D", 592f, 340f, 131f, 50f, 22, Gold, InkDark, null, () => { Sfx.Play("ui_click", 0.6f); Toast("The 2D game is not in this version yet."); });
+            TitleBtn(T, "Play together", 420f, 404f, 191f, 50f, 22, Sky, new Color(16f / 255f, 32f / 255f, 42f / 255f), null, () => { Sfx.Play("ui_click", 0.6f); ShowNet(); });
+            TitleBtn(T, "Hangar", 420f, 464f, 120f, 55f, 22, Color.clear, Cream, Cream, () => { Sfx.Play("ui_click", 0.5f); gameObject.SetActive(false); Hangar.Open(transform.parent, () => { gameObject.SetActive(true); RefreshBank(); RefreshModeButton(); }); });
+            modeBtnLabel = TitleBtn(T, "Mode: Battle", 550f, 464f, 176f, 55f, 22, Color.clear, Cream, Cream, () => { Sfx.Play("ui_click", 0.5f); ShowModes(); });
+            TitleBtn(T, "Settings", 420f, 529f, 131f, 55f, 22, Color.clear, Cream, Cream, () => { Sfx.Play("ui_click", 0.5f); OptionsScreen.Open(transform, null); });
+            TitleBtn(T, "Credits", 561f, 529f, 120f, 55f, 22, Color.clear, Cream, Cream, () => ShowCredits());
+            Txt("Ver", T, new Vector2(0f, 1f), at(420f + 100f, 597f + 8f), new Vector2(200f, 18f), 12, TextAnchor.MiddleLeft, new Color(0.7f, 0.72f, 0.7f)).text = "Game version " + Application.version;
+            // sound and pause, top right (the original's round buttons)
+            var snd = TitleBtn(T, Sfx.Muted ? "✕" : "♪", 1187f, 7f, 40f, 40f, 18, new Color(0.08f, 0.1f, 0.12f, 0.9f), Cream, null, null); var sb = snd.transform.parent.GetComponent<Button>();
+            sb.onClick.AddListener(() => { Sfx.Muted = !Sfx.Muted; snd.text = Sfx.Muted ? "✕" : "♪"; Sfx.Play("ui_click", 0.5f); });
+            TitleBtn(T, "❚❚", 1237f, 7f, 40f, 40f, 14, new Color(0.08f, 0.1f, 0.12f, 0.9f), Cream, null, () => { });
+            RefreshModeButton();
+        }
+        Text TitleBtn(Transform parent, string label, float x, float y, float w, float h, int fs, Color bg, Color ink, Color? border, UnityEngine.Events.UnityAction onClick)
+        {
+            var rt = Rect("B " + label, parent, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + w * 0.5f, -(y + h * 0.5f)), new Vector2(w, h));
+            var im = rt.gameObject.AddComponent<Image>(); im.color = bg.a > 0f ? bg : new Color(0f, 0f, 0f, 0.001f);
+            if (border.HasValue) { var o = rt.gameObject.AddComponent<Outline>(); o.effectColor = new Color(border.Value.r, border.Value.g, border.Value.b, 0.45f); o.effectDistance = new Vector2(2f, 2f); }
+            var b = rt.gameObject.AddComponent<Button>(); if (onClick != null) b.onClick.AddListener(onClick);
+            var cols = b.colors; cols.highlightedColor = new Color(1f, 1f, 1f, 0.85f); cols.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f); b.colors = cols;
+            var t = Txt("Label", rt, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(w, h), fs, TextAnchor.MiddleCenter, ink, true); t.text = label;
+            return t;
+        }
+        void RefreshModeButton() { ModeDefs.Mode md; if (modeBtnLabel != null) modeBtnLabel.text = "Mode: " + (ModeDefs.All.TryGetValue(Chosen, out md) ? md.name : Chosen); }
+        void ShowTitle() { if (modePage != null) modePage.SetActive(false); if (titlePage != null) titlePage.SetActive(true); RefreshModeButton(); RefreshBank(); }
+        void ShowModes() { titlePage.SetActive(false); modePage.SetActive(true); Render(); }
+        GameObject toast;
+        void Toast(string text)
+        {
+            if (toast != null) Destroy(toast);
+            var t = Txt("Toast", titlePage.transform, new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(900f, 30f), 18, TextAnchor.MiddleCenter, Cream); t.text = text; toast = t.gameObject; Destroy(toast, 3f);
+        }
+        /// <summary>Play together (the original's oNet): hosting and joining by room code is not in this version yet; say so plainly.</summary>
+        GameObject net;
+        void ShowNet()
+        {
+            if (net != null) { net.SetActive(true); return; }
+            net = new GameObject("Net", typeof(RectTransform)); net.transform.SetParent(transform, false);
+            var rt = net.GetComponent<RectTransform>(); rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+            net.AddComponent<Image>().color = new Color(0.05f, 0.07f, 0.12f, 0.92f);
+            Btn("Arrow", net.transform, new Vector2(0f, 1f), new Vector2(66f, -34f), new Vector2(44f, 44f), "←", 24, () => net.SetActive(false));
+            Txt("H", net.transform, new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 50f), 36, TextAnchor.MiddleCenter, Cream, true).text = "Fly together";
+            var p = Txt("P", net.transform, new Vector2(0.5f, 0.5f), new Vector2(0f, 40f), new Vector2(820f, 300f), 20, TextAnchor.MiddleCenter, Cream); p.horizontalOverflow = HorizontalWrapMode.Wrap;
+            p.text = "One of you hosts and reads out the room code. The others type it in and join, from anywhere.\n\nOnline play is the one part of the original not in this version yet: the room-code host/join is being rebuilt on Unity's networking and will arrive in a later build. Everyone must be on the same game version.";
+            Btn("Back", net.transform, new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(200f, 54f), "Back", 20, () => net.SetActive(false));
+        }
+
         string cat;
         Transform tiles; readonly List<Button> tabs = new List<Button>();
         ScrollRect scroll;
@@ -47,18 +115,18 @@ namespace BomberBuddies
                 var es = new GameObject("EventSystem"); es.transform.SetParent(transform.parent, false);
                 es.AddComponent<EventSystem>(); es.AddComponent<InputSystemUIInputModule>();
             }
-            Img("Background", transform, Vector2.zero, Vector2.one, new Color(0.05f, 0.07f, 0.12f, 1f));
-            var safe = Rect("Safe", transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); safe.offsetMin = new Vector2(44f, 12f); safe.offsetMax = new Vector2(-44f, -8f);
+            // the backdrop: the original's dusk painting behind every title-side screen
+            var bgImg = Img("Background", transform, Vector2.zero, Vector2.one, Color.white);
+            var bgTex = Resources.Load<Texture2D>("Art/title_bg"); if (bgTex != null) { bgImg.sprite = Sprite.Create(bgTex, new UnityEngine.Rect(0, 0, bgTex.width, bgTex.height), new Vector2(0.5f, 0.5f)); bgImg.preserveAspect = false; } else bgImg.color = new Color(0.16f, 0.22f, 0.27f, 1f);
+            BuildTitle();
+            modePage = Rect("Mode page", transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero).gameObject; var mpr = modePage.GetComponent<RectTransform>(); mpr.offsetMin = Vector2.zero; mpr.offsetMax = Vector2.zero;
+            Img("Dim", modePage.transform, Vector2.zero, Vector2.one, new Color(0.05f, 0.07f, 0.12f, 0.92f));
+            var safe = Rect("Safe", modePage.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); safe.offsetMin = new Vector2(44f, 12f); safe.offsetMax = new Vector2(-44f, -8f);
+            Btn("Arrow", safe, new Vector2(0f, 1f), new Vector2(22f, -34f), new Vector2(44f, 44f), "←", 24, () => ShowTitle());
 
-            Txt("Title", safe, new Vector2(0f, 1f), new Vector2(230f, -34f), new Vector2(460f, 50f), 40, TextAnchor.MiddleLeft, Color.white, true).text = "BOMBER BUDDIES";
-            // hangar + bank, top right
-            var hb = Rect("Hangar button", safe, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-90f, -34f), new Vector2(180f, 48f));
-            var hbi = hb.gameObject.AddComponent<Image>(); hbi.color = new Color(0.22f, 0.4f, 0.3f, 1f);
-            var hbb = hb.gameObject.AddComponent<Button>(); hbb.onClick.AddListener(() => { Sfx.Play("ui_click", 0.5f); gameObject.SetActive(false); Hangar.Open(transform.parent, () => { gameObject.SetActive(true); RefreshBank(); }); });
-            Txt("Label", hb, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(180f, 48f), 22, TextAnchor.MiddleCenter, Color.white, true).text = "Hangar";
-            var cb = Btn("Credits", safe, new Vector2(1f, 1f), new Vector2(-250f, -34f), new Vector2(120f, 40f), "Credits", 16, () => ShowCredits());
-            Btn("Options", safe, new Vector2(1f, 1f), new Vector2(-510f, -34f), new Vector2(120f, 40f), "Options", 16, () => { OptionsScreen.Open(transform, null); });
-            Btn("Setup", safe, new Vector2(1f, 1f), new Vector2(-380f, -34f), new Vector2(130f, 40f), "Battle setup", 16, () => ShowSetup());
+            Txt("Title", safe, new Vector2(0f, 1f), new Vector2(290f, -34f), new Vector2(460f, 50f), 36, TextAnchor.MiddleLeft, Color.white, true).text = "Game mode";
+            Txt("Note", safe, new Vector2(0f, 1f), new Vector2(560f, -62f), new Vector2(1000f, 20f), 13, TextAnchor.MiddleLeft, new Color(0.75f, 0.78f, 0.82f)).text = "What kind of fight the 3D game is. In a linked game the host's choice is used for everyone.";
+            Btn("Setup", safe, new Vector2(1f, 1f), new Vector2(-110f, -34f), new Vector2(160f, 40f), "Battle setup", 16, () => ShowSetup());
             bankText = Txt("Bank", safe, new Vector2(1f, 1f), new Vector2(-150f, -84f), new Vector2(300f, 30f), 15, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f)); RefreshBank();
 
             // the category tabs
@@ -81,6 +149,7 @@ namespace BomberBuddies
             tiles = content;
             Txt("Hint", safe, new Vector2(0.5f, 0f), new Vector2(0f, 16f), new Vector2(1400f, 26f), 14, TextAnchor.MiddleCenter, new Color(0.6f, 0.65f, 0.75f)).text = "Keyboard: WASD move · mouse look · Shift sprint/boost · Space jump/bomb · F get in/out · E/Q throttle · V view · C free look · Tab support · B swap seat";
             Render();
+            ShowTitle();
         }
 
         void Render()
@@ -98,13 +167,13 @@ namespace BomberBuddies
             var btn = rt.gameObject.AddComponent<Button>(); btn.interactable = mode.playable;
             var colors = btn.colors; colors.highlightedColor = new Color(0.22f, 0.3f, 0.42f); colors.pressedColor = new Color(0.35f, 0.5f, 0.7f); colors.disabledColor = Color.white; btn.colors = colors;
             string id = mode.id;
-            btn.onClick.AddListener(() => { Sfx.Play("ui_click", 0.6f); Pick(id); });
+            btn.onClick.AddListener(() => { Sfx.Play("ui_click", 0.6f); Chosen = id; PlayerPrefs.SetString("bb_mode", id); ShowTitle(); });
             // the art, 320×180 like the original's tiles
             var art = Resources.Load<Sprite>("Art/" + mode.id); if (art == null) { var tex = Resources.Load<Texture2D>("Art/" + mode.id); if (tex != null) art = Sprite.Create(tex, new UnityEngine.Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f)); }
             var pic = Rect("Art", rt, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, Vector2.zero); pic.offsetMin = new Vector2(6f, -154f); pic.offsetMax = new Vector2(-6f, -6f);
             var pim = pic.gameObject.AddComponent<Image>(); pim.raycastTarget = false;
             if (art != null) { pim.sprite = art; pim.preserveAspect = false; pim.color = mode.playable ? Color.white : new Color(0.45f, 0.45f, 0.5f); } else pim.color = new Color(0.08f, 0.1f, 0.14f, 1f);
-            Txt("Name", rt, new Vector2(0f, 1f), new Vector2(141f, -168f), new Vector2(270f, 24f), 19, TextAnchor.MiddleLeft, mode.playable ? Color.white : new Color(0.6f, 0.62f, 0.66f), true).text = mode.name + (mode.playable ? "" : "   · coming");
+            Txt("Name", rt, new Vector2(0f, 1f), new Vector2(141f, -168f), new Vector2(270f, 24f), 19, TextAnchor.MiddleLeft, mode.playable ? Color.white : new Color(0.6f, 0.62f, 0.66f), true).text = mode.name + (mode.id == Chosen ? "   · Chosen" : mode.playable ? "" : "   · coming");
             var d = Txt("Desc", rt, new Vector2(0f, 1f), new Vector2(141f, -205f), new Vector2(270f, 48f), 11, TextAnchor.UpperLeft, new Color(0.8f, 0.85f, 0.92f));
             d.text = mode.desc; d.horizontalOverflow = HorizontalWrapMode.Wrap; d.verticalOverflow = VerticalWrapMode.Truncate;
         }

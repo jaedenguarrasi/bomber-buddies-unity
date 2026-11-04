@@ -53,7 +53,7 @@ namespace BomberBuddies
             root.SetActive(false);
         }
 
-        void Save() { Settings.LookSens = Sensitivity; Settings.InvertY = InvertY; Settings.BigButtons = BigButtons; Settings.Lefty = Lefty; Settings.Steer = Tilt ? "tilt" : "stick"; Settings.Detail = Detail; Settings.Save(); Refresh(); }
+        void Save() { Settings.Save(); Refresh(); }
 
         void Refresh()
         {

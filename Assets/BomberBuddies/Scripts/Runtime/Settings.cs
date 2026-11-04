@@ -1,73 +1,142 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BomberBuddies
 {
-    /// <summary>Every option the original kept in save.opt, in one place, saved to PlayerPrefs. The Options screen edits these;
-    /// the systems read them. Difficulty presets fill the four multipliers the way the original's did.</summary>
+    /// <summary>The original's save.opt: every option from the OPTS table, stored under the original's keys (opt_&lt;k&gt;) with the
+    /// original's defaults. The typed properties below are what the systems read; the Controls screen edits the raw values.</summary>
     public static class Settings
     {
-        // sound and look
-        public static float Volume = 0.7f, LookSens = 1f, AimSens = 1f;
-        public static bool InvertY, AimInvert, CamBank = true, SlowAim = true;
-        public static string PadPitch = "pull";          // pull: stick back = nose up (the original's default) · push: stick forward = nose up
-        // touch
-        public static string FireMode = "hold";          // hold · toggle (tap the gun button to start/stop) · drag (holding a look-finger down fires)
-        public static bool FixedStick, Lefty, BigButtons, LookPad = true, TwoFingerAim = true, AutoHide = true;
-        public static string Steer = "stick";            // stick · tilt
-        public static string TiltRole = "fly";           // fly · aim
-        // flying and crews
-        public static string FlightModel = "arcade";     // arcade · aero
-        public static string HeliScheme = "a";           // a: throttle climbs, stick drives · b: stick climbs, throttle drives
-        public static string CrewAI = "ai";              // ai: the other seat is crewed · solo: nobody else aboard
-        public static string Turret = "auto";            // auto: a single-seat chin gun tracks targets on its own · manual
-        // difficulty
-        public static string Difficulty = "normal";      // easy · normal · hard · custom
-        public static float EnemyHp = 1f, EnemyDmg = 1f, EnemyAcc = 1f, YouHp = 1f;
-        public static string Side = "good";              // good · bad (Beast side everywhere: your squad comes as greys)
-        public static int Detail = 1;
+        static readonly Dictionary<string, object> vals = new Dictionary<string, object>();
+        static readonly Dictionary<string, OptionDefs.Opt> defs = new Dictionary<string, OptionDefs.Opt>();
+        public static OptionDefs.Opt Def(string k) { OptionDefs.Opt d; return defs.TryGetValue(k, out d) ? d : null; }
 
-        public static void Load()
+        public static object Get(string k) { object v; if (vals.TryGetValue(k, out v)) return v; var d = Def(k); return d != null ? d.def : null; }
+        public static string Str(string k) { var v = Get(k); return v == null ? "" : v is bool ? ((bool)v ? "true" : "false") : v is float ? ((float)v).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) : v.ToString(); }
+        public static bool Bool(string k) { var v = Get(k); return v is bool ? (bool)v : v is string ? (string)v == "true" : v is float ? (float)v != 0f : false; }
+        public static float Num(string k) { var v = Get(k); return v is float ? (float)v : v is bool ? ((bool)v ? 1f : 0f) : 0f; }
+        public static bool Is(string k, object c) { var v = Get(k); return v != null && c != null && v.Equals(c); }
+
+        public static void Set(string k, object v)
         {
-            Volume = PlayerPrefs.GetFloat("opt_vol", 0.7f); LookSens = PlayerPrefs.GetFloat("bb_sens", 1f); AimSens = PlayerPrefs.GetFloat("opt_aimsens", 1f);
-            InvertY = PlayerPrefs.GetInt("bb_inv", 0) == 1; AimInvert = PlayerPrefs.GetInt("opt_aiminv", 0) == 1; CamBank = PlayerPrefs.GetInt("opt_cambank", 1) == 1; SlowAim = PlayerPrefs.GetInt("opt_slowaim", 1) == 1;
-            PadPitch = PlayerPrefs.GetString("opt_padpitch", "pull"); FireMode = PlayerPrefs.GetString("opt_firemode", "hold");
-            FixedStick = PlayerPrefs.GetInt("opt_fixedstick", 0) == 1; Lefty = PlayerPrefs.GetInt("bb_lefty", 0) == 1; BigButtons = PlayerPrefs.GetInt("bb_big", 0) == 1;
-            LookPad = PlayerPrefs.GetInt("opt_lookpad", 1) == 1; TwoFingerAim = PlayerPrefs.GetInt("opt_twof", 1) == 1; AutoHide = PlayerPrefs.GetInt("opt_autohide", 1) == 1;
-            Steer = PlayerPrefs.GetInt("bb_tilt", 0) == 1 ? "tilt" : "stick"; TiltRole = PlayerPrefs.GetString("opt_tiltrole", "fly");
-            FlightModel = PlayerPrefs.GetString("opt_flight", "arcade"); HeliScheme = PlayerPrefs.GetString("opt_heli", "a"); CrewAI = PlayerPrefs.GetString("opt_crew", "ai"); Turret = PlayerPrefs.GetString("opt_turret", "auto");
-            Difficulty = PlayerPrefs.GetString("opt_diff", "normal"); EnemyHp = PlayerPrefs.GetFloat("opt_dEnemyHp", 1f); EnemyDmg = PlayerPrefs.GetFloat("opt_dEnemyDmg", 1f); EnemyAcc = PlayerPrefs.GetFloat("opt_dEnemyAcc", 1f); YouHp = PlayerPrefs.GetFloat("opt_dYouHp", 1f);
-            Side = PlayerPrefs.GetString("opt_side", "good"); Detail = PlayerPrefs.GetInt("bb_detail", 1);
-            Apply();
-        }
-        public static void Save()
-        {
-            PlayerPrefs.SetFloat("opt_vol", Volume); PlayerPrefs.SetFloat("bb_sens", LookSens); PlayerPrefs.SetFloat("opt_aimsens", AimSens);
-            PlayerPrefs.SetInt("bb_inv", InvertY ? 1 : 0); PlayerPrefs.SetInt("opt_aiminv", AimInvert ? 1 : 0); PlayerPrefs.SetInt("opt_cambank", CamBank ? 1 : 0); PlayerPrefs.SetInt("opt_slowaim", SlowAim ? 1 : 0);
-            PlayerPrefs.SetString("opt_padpitch", PadPitch); PlayerPrefs.SetString("opt_firemode", FireMode);
-            PlayerPrefs.SetInt("opt_fixedstick", FixedStick ? 1 : 0); PlayerPrefs.SetInt("bb_lefty", Lefty ? 1 : 0); PlayerPrefs.SetInt("bb_big", BigButtons ? 1 : 0);
-            PlayerPrefs.SetInt("opt_lookpad", LookPad ? 1 : 0); PlayerPrefs.SetInt("opt_twof", TwoFingerAim ? 1 : 0); PlayerPrefs.SetInt("opt_autohide", AutoHide ? 1 : 0);
-            PlayerPrefs.SetInt("bb_tilt", Steer == "tilt" ? 1 : 0); PlayerPrefs.SetString("opt_tiltrole", TiltRole);
-            PlayerPrefs.SetString("opt_flight", FlightModel); PlayerPrefs.SetString("opt_heli", HeliScheme); PlayerPrefs.SetString("opt_crew", CrewAI); PlayerPrefs.SetString("opt_turret", Turret);
-            PlayerPrefs.SetString("opt_diff", Difficulty); PlayerPrefs.SetFloat("opt_dEnemyHp", EnemyHp); PlayerPrefs.SetFloat("opt_dEnemyDmg", EnemyDmg); PlayerPrefs.SetFloat("opt_dEnemyAcc", EnemyAcc); PlayerPrefs.SetFloat("opt_dYouHp", YouHp);
-            PlayerPrefs.SetString("opt_side", Side); PlayerPrefs.SetInt("bb_detail", Detail);
+            vals[k] = v;
+            var d = Def(k);
+            if (v is bool) PlayerPrefs.SetString("opt_" + k, (bool)v ? "b:true" : "b:false");
+            else if (v is float) PlayerPrefs.SetString("opt_" + k, "f:" + ((float)v).ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+            else PlayerPrefs.SetString("opt_" + k, "s:" + v);
+            // the difficulty presets fill the four multipliers; touching a multiplier makes it Custom (the original's rule)
+            if (k == "diff") ApplyPreset((string)v);
+            if ((k == "dEnemyHp" || k == "dEnemyDmg" || k == "dEnemyAcc" || k == "dYouHp") && !Is("diff", "custom")) { vals["diff"] = "custom"; PlayerPrefs.SetString("opt_diff", "s:custom"); }
             PlayerPrefs.Save();
             Apply();
         }
+
+        static void ApplyPreset(string d)
+        {
+            float[] p = d == "easy" ? new[] { 0.8f, 0.6f, 1.4f, 1.6f } : d == "normal" ? new[] { 1.6f, 1f, 1f, 1f } : d == "hard" ? new[] { 2.4f, 1.4f, 0.7f, 0.8f } : d == "brutal" ? new[] { 3.5f, 2f, 0.45f, 0.6f } : null;
+            if (p == null) return;
+            string[] ks = { "dEnemyHp", "dEnemyDmg", "dEnemyAcc", "dYouHp" };
+            for (int i = 0; i < 4; i++) { vals[ks[i]] = p[i]; PlayerPrefs.SetString("opt_" + ks[i], "f:" + p[i].ToString("R", System.Globalization.CultureInfo.InvariantCulture)); }
+        }
+
+        public static void Load()
+        {
+            defs.Clear(); vals.Clear();
+            foreach (var d in OptionDefs.All)
+            {
+                defs[d.k] = d;
+                string raw = PlayerPrefs.GetString("opt_" + d.k, "");
+                if (raw.Length < 2) continue;
+                if (raw.StartsWith("b:")) vals[d.k] = raw == "b:true";
+                else if (raw.StartsWith("f:")) { float f; if (float.TryParse(raw.Substring(2), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out f)) vals[d.k] = f; }
+                else vals[d.k] = raw.Substring(2);
+            }
+            Apply();
+        }
+        public static void Save() { PlayerPrefs.Save(); Apply(); }
+        public static void ResetAll() { foreach (var d in OptionDefs.All) PlayerPrefs.DeleteKey("opt_" + d.k); Load(); }
+
+        // ---- what the systems read (the original's names, typed) ----
+        public static float Volume { get { return Num("vol"); } }
+        public static bool Music { get { return Bool("music"); } }
+        public static float LookSens { get { return Num("sens"); } }
+        public static float PitchSens { get { return Num("sensP"); } }
+        public static float AimSens { get { return Num("aimSens"); } }
+        public static float MouseSens { get { return Num("mouseSens"); } }
+        public static bool InvertY { get { return Bool("invertY"); } }
+        public static bool HeliInvert { get { return Bool("heliInvert"); } }
+        public static bool AimInvert { get { return Bool("aimInvert"); } }
+        public static bool CamBank { get { return Bool("camBank"); } }
+        public static bool SlowAim { get { return Bool("slowAim"); } }
+        public static bool AutoLevel { get { return Bool("autoLevel"); } }
+        public static bool Fine { get { return Bool("fine"); } }
+        public static bool Deploy { get { return Bool("deploy"); } }
+        public static string PadPitch { get { return Str("padPitch"); } }
+        public static string PadLayout { get { return Str("padLayout"); } }
+        public static float PadDead { get { return Num("padDead"); } }
+        public static float PadSens { get { return Num("padSens"); } }
+        public static bool PadRumble { get { return Bool("padRumble"); } }
+        public static string FireMode { get { return Str("fireMode"); } }
+        public static bool AimToggle { get { return Bool("aimToggle"); } }
+        public static bool FixedStick { get { return Bool("fixedStick"); } }
+        public static bool Lefty { get { return Bool("lefty"); } }
+        public static bool BigButtons { get { return Bool("bigButtons"); } }
+        public static float CtlAlpha { get { return Num("ctlAlpha"); } }
+        public static string SliderPos { get { return Str("sliderPos"); } }
+        public static bool LookPad { get { return Bool("lookPad"); } }
+        public static bool GunDrag { get { return Bool("gunDrag"); } }
+        public static bool GunTilt { get { return Bool("gunTilt"); } }
+        public static bool TwoFingerAim { get { return true; } }      // the original's drag-on-the-view aim with a second finger is always on
+        public static bool AutoHide { get { return true; } }
+        public static string StickSide { get { return Str("stickSide"); } }
+        public static float LookZoom { get { return Num("lookZoom"); } }
+        public static float TiltZoom { get { return Num("tiltZoom"); } }
+        public static string Steer { get { return Str("steer"); } }
+        public static string TiltRole { get { return Str("tiltRole"); } }
+        public static string StickRole { get { return Str("stickRole"); } }
+        public static string TiltAxis { get { return Str("tiltAxis"); } }
+        public static float TiltRangeX { get { return Num("tiltRangeX"); } }
+        public static float TiltRangeY { get { return Num("tiltRangeY"); } }
+        public static float TiltDead { get { return Num("tiltDead"); } }
+        public static string TiltCurve { get { return Str("tiltCurve"); } }
+        public static float TiltSmooth { get { return Num("tiltSmooth"); } }
+        public static bool TiltFlipX { get { return Bool("tiltFlipX"); } }
+        public static bool TiltFlipY { get { return Bool("tiltFlipY"); } }
+        public static bool TiltBtn { get { return Bool("tiltBtn"); } }
+        public static float TiltAimK { get { return Num("tiltAimK"); } }
+        public static float TiltSensFor(string craft, bool aim) { var d = Def((aim ? "ta_" : "ts_") + craft); return d != null ? Num(d.k) : 1f; }
+        public static string FlightModel { get { return Str("flightModel"); } }
+        public static string HeliModel { get { return Str("heliModel"); } }
+        public static string HeliScheme { get { return Str("heliScheme"); } }
+        public static string CrewAI { get { return Str("crewAI"); } }
+        public static string Turret { get { return Str("turret"); } }
+        public static string DroneMode { get { return Str("droneMode"); } }
+        public static float DroneCam { get { return Num("droneCam"); } }
+        public static float DroneRates { get { return Num("droneRates"); } }
+        public static string Difficulty { get { return Str("diff"); } }
+        public static float EnemyHp { get { return Num("dEnemyHp"); } }
+        public static float EnemyDmg { get { return Num("dEnemyDmg"); } }
+        public static float EnemyAcc { get { return Num("dEnemyAcc"); } }
+        public static float YouHp { get { return Num("dYouHp"); } }
+        public static string Side { get { return Str("side"); } }
+        public static bool Under { get { return Bool("under"); } }
+        public static string Gfx { get { return Str("gfx"); } }
+        public static bool Shadows { get { return Is("shadows", "on"); } }
+        public static bool Film { get { return Is("film", "on"); } }
+        public static float Pix { get { return Num("pix"); } }
+        public static float Dist { get { return Num("dist"); } }
+        public static float Bodies { get { return Num("bodies"); } }
+        public static string SfxPack { get { return Str("sfxPack"); } }
+        public static int Detail { get { string g = Gfx; return g == "low" ? 0 : g == "med" ? 1 : g == "high" ? 2 : 3; } }
+
         /// <summary>Push the ones other systems do not poll: volume, the legacy statics, the layout, the graphics.</summary>
         public static void Apply()
         {
             AudioListener.volume = Volume;
-            PauseMenu.Sensitivity = LookSens; PauseMenu.InvertY = InvertY; PauseMenu.BigButtons = BigButtons; PauseMenu.Lefty = Lefty; PauseMenu.Tilt = Steer == "tilt"; PauseMenu.Detail = Detail;
+            Sfx.MusicOn = Music;
+            PauseMenu.Sensitivity = LookSens; PauseMenu.InvertY = InvertY; PauseMenu.BigButtons = BigButtons; PauseMenu.Lefty = Lefty; PauseMenu.Tilt = Steer == "tilt"; PauseMenu.Detail = Mathf.Min(2, Detail);
             PauseMenu.ApplyDetail();
             if (GameState.Hud != null) GameState.Hud.ApplyLayoutOptions();
-        }
-        /// <summary>The presets: easy / normal / hard set the four multipliers; anything else is custom.</summary>
-        public static void SetDifficulty(string d)
-        {
-            Difficulty = d;
-            if (d == "easy") { EnemyHp = 0.7f; EnemyDmg = 0.6f; EnemyAcc = 0.7f; YouHp = 1.5f; }
-            else if (d == "normal") { EnemyHp = 1f; EnemyDmg = 1f; EnemyAcc = 1f; YouHp = 1f; }
-            else if (d == "hard") { EnemyHp = 1.5f; EnemyDmg = 1.5f; EnemyAcc = 1.3f; YouHp = 0.75f; }
         }
     }
 }
