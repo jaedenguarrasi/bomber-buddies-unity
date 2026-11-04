@@ -45,6 +45,7 @@ namespace BomberBuddies
             GameState.Library = library;
             Settings.Load();
             gameObject.AddComponent<InputBridge>();
+            if (System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-autojoin") >= 0) NetSession.Get();
             if (ChosenMode != null) { string m = ChosenMode; ChosenMode = null; Begin(m); return; }
             Sfx.Create(transform);
             if (showMenu) { MainMenu.Create(transform, library, Begin); return; }

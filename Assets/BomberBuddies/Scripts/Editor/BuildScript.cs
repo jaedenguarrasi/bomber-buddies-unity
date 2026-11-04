@@ -18,6 +18,19 @@ namespace BomberBuddies.Editor
         [MenuItem("Bomber Buddies/Build/Windows (to Builds folder)")]
         public static void MenuBuildWindows() { Run(BuildTarget.StandaloneWindows64, "Builds/Windows/BomberBuddies.exe", "0.1.0", 1); }
 
+        /// <summary>Testing the link on one PC: the editor hosts Nearby, this launches the Windows build headless as a buddy that joins it.</summary>
+        [MenuItem("Bomber Buddies/Test/Launch a headless buddy (joins the nearby host)")]
+        public static void MenuLaunchBuddy()
+        {
+            string exe = Path.GetFullPath("Builds/Windows/BomberBuddies.exe");
+            if (!File.Exists(exe)) { Debug.LogError("Build Windows first: " + exe); return; }
+            var psi = new System.Diagnostics.ProcessStartInfo(exe, "-batchmode -nographics -autojoin -logFile \"" + Path.GetFullPath("Builds/Windows/buddy.log") + "\"") { UseShellExecute = false };
+            System.Diagnostics.Process.Start(psi);
+            Debug.Log("Buddy launched; its log is Builds/Windows/buddy.log");
+        }
+        [MenuItem("Bomber Buddies/Test/Stop headless buddies")]
+        public static void MenuStopBuddies() { foreach (var p in System.Diagnostics.Process.GetProcessesByName("BomberBuddies")) { try { p.Kill(); } catch { } } }
+
         [MenuItem("Bomber Buddies/Build/Android APK (to Builds folder)")]
         public static void MenuBuildAndroid() { Run(BuildTarget.Android, "Builds/Android/BomberBuddies.apk", "0.1.0", 1); }
 

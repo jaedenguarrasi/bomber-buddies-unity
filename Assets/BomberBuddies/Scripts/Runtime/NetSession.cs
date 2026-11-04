@@ -281,9 +281,13 @@ namespace BomberBuddies
         }
         public void Stat(int kills, int deaths) { Peer p; if (peers.TryGetValue(MyId, out p)) { p.kills = kills; p.deaths = deaths; } }
 
+        /// <summary>-autojoin on the command line: a test buddy that joins the first nearby host it hears and deploys on its own.</summary>
+        public bool AutoJoin { get { return System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-autojoin") >= 0; } }
         float pingT;
         void Update()
         {
+            if (AutoJoin && role == Role.None && !loading) { if (!listening) StartListening(); if (nearby.Count > 0) { Debug.Log("autojoin → " + nearby[0].Key); JoinNearby(nearby[0].Key); } }
+            if (AutoJoin && NetSync.Instance != null && Hangar.IsOpen && Hangar.Instance.DeployMode && Time.timeSinceLevelLoad > 3f) Hangar.Instance.DeployNow();
             if (loading && GameBootstrap.ChosenMode == null) loading = false;
             if (role == Role.Join && Active) { pingT -= Time.unscaledDeltaTime; if (pingT <= 0f) { pingT = 2f; var w = new FastBufferWriter(16, Unity.Collections.Allocator.Temp); w.WriteValueSafe((byte)5); w.WriteValueSafe(Time.realtimeSinceStartup); SendToHost(w, false); } }
             if (beacon != null && role == Role.Host) { beaconT -= Time.unscaledDeltaTime; if (beaconT <= 0f) { beaconT = 1f; Shout(); } }

@@ -54,7 +54,7 @@ namespace BomberBuddies
             }
         }
 
-        void DeployNow()
+        public void DeployNow()
         {
             Vector3? at = depTap ? depTapSpot : depSel == 0 ? (Vector3?)null : DeployPoints()[Mathf.Min(depSel, DeployPoints().Count - 1)].at;
             var cb = onDeploy; onDeploy = null; deployMode = false;
