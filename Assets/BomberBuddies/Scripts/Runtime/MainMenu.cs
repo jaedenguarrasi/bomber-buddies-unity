@@ -131,28 +131,32 @@ namespace BomberBuddies
             modePage = Rect("Mode page", transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero).gameObject; var mpr = modePage.GetComponent<RectTransform>(); mpr.offsetMin = Vector2.zero; mpr.offsetMax = Vector2.zero;
             Img("Dim", modePage.transform, Vector2.zero, Vector2.one, new Color(0.05f, 0.07f, 0.12f, 0.92f));
             var safe = Rect("Safe", modePage.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); safe.offsetMin = new Vector2(44f, 12f); safe.offsetMax = new Vector2(-44f, -8f);
-            Btn("Arrow", safe, new Vector2(0f, 1f), new Vector2(22f, -34f), new Vector2(44f, 44f), "←", 24, () => ShowTitle());
-
-            Txt("Title", safe, new Vector2(0f, 1f), new Vector2(290f, -34f), new Vector2(460f, 50f), 36, TextAnchor.MiddleLeft, Color.white, true).text = "Game mode";
-            Txt("Note", safe, new Vector2(0f, 1f), new Vector2(560f, -62f), new Vector2(1000f, 20f), 13, TextAnchor.MiddleLeft, new Color(0.75f, 0.78f, 0.82f)).text = "What kind of fight the 3D game is. In a linked game the host's choice is used for everyone.";
-            Btn("Setup", safe, new Vector2(1f, 1f), new Vector2(-110f, -34f), new Vector2(160f, 40f), "Battle setup", 16, () => ShowSetup());
-            bankText = Txt("Bank", safe, new Vector2(1f, 1f), new Vector2(-150f, -84f), new Vector2(300f, 30f), 15, TextAnchor.MiddleRight, new Color(1f, 0.85f, 0.35f)); RefreshBank();
+            // the original's header bar: chevron on the left, "Game mode" big on the right, the note under it
+            Btn("Arrow", modePage.transform, new Vector2(0f, 1f), new Vector2(30f, -30f), new Vector2(44f, 44f), "←", 24, () => ShowTitle());
+            var head = Rect("Head", safe, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, Vector2.zero); head.offsetMin = new Vector2(0f, -78f); head.offsetMax = new Vector2(0f, -20f);
+            head.gameObject.AddComponent<Image>().color = new Color(0.1f, 0.14f, 0.18f, 0.9f);
+            Btn("Chevron", head, new Vector2(0f, 0.5f), new Vector2(24f, 0f), new Vector2(44f, 44f), "‹", 28, () => ShowTitle());
+            Txt("Title", head, new Vector2(1f, 0.5f), new Vector2(-250f, 0f), new Vector2(480f, 56f), 40, TextAnchor.MiddleRight, Cream, true).text = "Game mode";
+            Txt("Note", safe, new Vector2(0f, 1f), new Vector2(500f, -94f), new Vector2(1000f, 20f), 14, TextAnchor.MiddleLeft, new Color(0.85f, 0.87f, 0.9f)).text = "What kind of fight the 3D game is. In a linked game the host's choice is used for everyone.";
+            Btn("Setup", safe, new Vector2(1f, 1f), new Vector2(-80f, -130f), new Vector2(150f, 36f), "Battle setup", 15, () => ShowSetup());
+            bankText = Txt("Bank", safe, new Vector2(1f, 1f), new Vector2(-280f, -130f), new Vector2(240f, 30f), 14, TextAnchor.MiddleRight, Gold); RefreshBank();
 
             // the category tabs
             float x = 0f;
             foreach (var g in ModeDefs.Groups)
             {
                 string gg = g;
-                var b = Btn("Tab " + g, safe, new Vector2(0f, 1f), new Vector2(x + 80f, -84f), new Vector2(156f, 40f), g, 17, () => { cat = gg; PlayerPrefs.SetString("bb_mcat", cat); Sfx.Tone(520f, 0.04f, 0.04f, "triangle"); Render(); });
-                tabs.Add(b); x += 162f;
+                float w = 36f + g.Length * 9f;
+                var b = Btn("Tab " + g, safe, new Vector2(0f, 1f), new Vector2(x + w * 0.5f, -130f), new Vector2(w, 36f), g, 15, () => { cat = gg; PlayerPrefs.SetString("bb_mcat", cat); Sfx.Tone(520f, 0.04f, 0.04f, "triangle"); Render(); });
+                tabs.Add(b); x += w + 8f;
             }
 
             // the scrolling tile grid
-            var view = Rect("View", safe, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); view.offsetMin = new Vector2(0f, 40f); view.offsetMax = new Vector2(0f, -112f);
+            var view = Rect("View", safe, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); view.offsetMin = new Vector2(0f, 40f); view.offsetMax = new Vector2(0f, -156f);
             view.gameObject.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.001f); view.gameObject.AddComponent<RectMask2D>();
             scroll = view.gameObject.AddComponent<ScrollRect>();
             var content = Rect("Tiles", view, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, Vector2.zero); content.pivot = new Vector2(0.5f, 1f);
-            var grid = content.gameObject.AddComponent<GridLayoutGroup>(); grid.cellSize = new Vector2(282f, 236f); grid.spacing = new Vector2(14f, 14f); grid.childAlignment = TextAnchor.UpperCenter; grid.padding = new RectOffset(0, 0, 4, 8);
+            var grid = content.gameObject.AddComponent<GridLayoutGroup>(); grid.cellSize = new Vector2(268f, 272f); grid.spacing = new Vector2(16f, 16f); grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount; grid.constraintCount = 4; grid.childAlignment = TextAnchor.UpperCenter; grid.padding = new RectOffset(0, 0, 4, 8);
             var fit = content.gameObject.AddComponent<ContentSizeFitter>(); fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             scroll.content = content; scroll.viewport = view; scroll.horizontal = false; scroll.movementType = ScrollRect.MovementType.Clamped; scroll.scrollSensitivity = 30f;
             tiles = content;
@@ -163,7 +167,7 @@ namespace BomberBuddies
 
         void Render()
         {
-            foreach (var b in tabs) b.GetComponent<Image>().color = b.name == "Tab " + cat ? new Color(0.3f, 0.42f, 0.6f, 1f) : new Color(0.14f, 0.18f, 0.26f, 1f);
+            foreach (var b in tabs) { bool on = b.name == "Tab " + cat; b.GetComponent<Image>().color = on ? Cream : new Color(0.12f, 0.16f, 0.2f, 1f); b.transform.Find("Label").GetComponent<Text>().color = on ? InkDark : Cream; }
             foreach (Transform c in tiles) Destroy(c.gameObject);
             foreach (var kv in ModeDefs.All) if (kv.Value.group == cat) Tile(kv.Value);
             Canvas.ForceUpdateCanvases(); if (scroll != null) scroll.verticalNormalizedPosition = 1f;
@@ -171,19 +175,22 @@ namespace BomberBuddies
 
         void Tile(ModeDefs.Mode mode)
         {
-            var rt = Rect("Tile " + mode.id, tiles, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(282f, 236f));
-            var im = rt.gameObject.AddComponent<Image>(); im.color = mode.playable ? new Color(0.14f, 0.18f, 0.26f, 0.95f) : new Color(0.1f, 0.11f, 0.14f, 0.95f);
-            var btn = rt.gameObject.AddComponent<Button>(); btn.interactable = mode.playable;
-            var colors = btn.colors; colors.highlightedColor = new Color(0.22f, 0.3f, 0.42f); colors.pressedColor = new Color(0.35f, 0.5f, 0.7f); colors.disabledColor = Color.white; btn.colors = colors;
+            bool chosen = mode.id == Chosen;
+            var rt = Rect("Tile " + mode.id, tiles, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(268f, 272f));
+            var im = rt.gameObject.AddComponent<Image>(); im.color = chosen ? new Color(0.16f, 0.19f, 0.22f, 0.98f) : mode.playable ? new Color(0.1f, 0.13f, 0.16f, 0.95f) : new Color(0.08f, 0.09f, 0.11f, 0.95f);
+            if (chosen) { var ol = rt.gameObject.AddComponent<Outline>(); ol.effectColor = Gold; ol.effectDistance = new Vector2(2f, 2f); }
             string id = mode.id;
-            btn.onClick.AddListener(() => { Sfx.Play("ui_click", 0.6f); Chosen = id; PlayerPrefs.SetString("bb_mode", id); ShowTitle(); });
+            // the original's gold button: Play this, or Chosen on the current one
+            var pb = Btn("Play", rt, new Vector2(0.5f, 0f), new Vector2(0f, 26f), new Vector2(244f, 36f), chosen ? "Chosen" : mode.playable ? "Play this" : "Coming", 17, () => { if (!mode.playable) return; Sfx.Play("ui_click", 0.6f); Chosen = id; PlayerPrefs.SetString("bb_mode", id); ShowTitle(); });
+            pb.GetComponent<Image>().color = chosen ? Color.clear : mode.playable ? Gold : new Color(0.2f, 0.2f, 0.22f, 1f); pb.transform.Find("Label").GetComponent<Text>().color = chosen ? Gold : mode.playable ? InkDark : Cream;
+            if (chosen) { var ol = pb.gameObject.AddComponent<Outline>(); ol.effectColor = Gold; ol.effectDistance = new Vector2(1.5f, 1.5f); }
             // the art, 320×180 like the original's tiles
             var art = Resources.Load<Sprite>("Art/" + mode.id); if (art == null) { var tex = Resources.Load<Texture2D>("Art/" + mode.id); if (tex != null) art = Sprite.Create(tex, new UnityEngine.Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f)); }
-            var pic = Rect("Art", rt, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, Vector2.zero); pic.offsetMin = new Vector2(6f, -154f); pic.offsetMax = new Vector2(-6f, -6f);
+            var pic = Rect("Art", rt, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, Vector2.zero); pic.offsetMin = new Vector2(10f, -150f); pic.offsetMax = new Vector2(-10f, -10f);
             var pim = pic.gameObject.AddComponent<Image>(); pim.raycastTarget = false;
             if (art != null) { pim.sprite = art; pim.preserveAspect = false; pim.color = mode.playable ? Color.white : new Color(0.45f, 0.45f, 0.5f); } else pim.color = new Color(0.08f, 0.1f, 0.14f, 1f);
-            Txt("Name", rt, new Vector2(0f, 1f), new Vector2(141f, -168f), new Vector2(270f, 24f), 19, TextAnchor.MiddleLeft, mode.playable ? Color.white : new Color(0.6f, 0.62f, 0.66f), true).text = mode.name + (mode.id == Chosen ? "   · Chosen" : mode.playable ? "" : "   · coming");
-            var d = Txt("Desc", rt, new Vector2(0f, 1f), new Vector2(141f, -205f), new Vector2(270f, 48f), 11, TextAnchor.UpperLeft, new Color(0.8f, 0.85f, 0.92f));
+            Txt("Name", rt, new Vector2(0f, 1f), new Vector2(134f, -166f), new Vector2(248f, 24f), 17, TextAnchor.MiddleLeft, mode.playable ? Cream : new Color(0.6f, 0.62f, 0.66f), true).text = mode.name;
+            var d = Txt("Desc", rt, new Vector2(0f, 1f), new Vector2(134f, -196f), new Vector2(248f, 36f), 12, TextAnchor.UpperLeft, new Color(0.8f, 0.84f, 0.88f));
             d.text = mode.desc; d.horizontalOverflow = HorizontalWrapMode.Wrap; d.verticalOverflow = VerticalWrapMode.Truncate;
         }
 
