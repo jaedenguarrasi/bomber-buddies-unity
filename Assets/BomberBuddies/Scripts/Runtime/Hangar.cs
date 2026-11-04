@@ -84,6 +84,7 @@ namespace BomberBuddies
         void UpdateDeployDots()
         {
             if (depDots == null || World3.Instance == null) return;
+            depDotList.RemoveAll(d => d == null);   // the map is rebuilt on every Render
             float size = depDots.GetComponent<RectTransform>().rect.width; int used = 0;
             Action<Vector3, Color, float> dot = (wp, c, sz) =>
             {
