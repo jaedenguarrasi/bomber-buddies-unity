@@ -62,7 +62,7 @@ namespace BomberBuddies
 
         public void Open() { root.SetActive(true); Time.timeScale = 0f; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
         public void Close() { root.SetActive(false); Time.timeScale = 1f; }
-        public void Toggle() { if (IsOpen) Close(); else Open(); }
+        public void Toggle() { if (IsOpen) Close(); else if (!(DeployScreen.Instance != null && DeployScreen.Instance.IsOpen) && !MatchEnd.Over && !Hangar.IsOpen && !(OptionsScreen.Instance != null && OptionsScreen.Instance.IsOpen)) Open(); }
 
         Text Txt(string name, Vector2 pos, Vector2 size, int fontSize, string text)
         {
