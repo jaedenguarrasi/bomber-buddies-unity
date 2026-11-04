@@ -120,9 +120,10 @@ namespace BomberBuddies
             var pgo = new GameObject("Placeholder", typeof(RectTransform)); pgo.transform.SetParent(box.transform, false);
             var pr = pgo.GetComponent<RectTransform>(); pr.anchorMin = Vector2.zero; pr.anchorMax = Vector2.one; pr.offsetMin = new Vector2(12f, 4f); pr.offsetMax = new Vector2(-12f, -4f);
             var p = pgo.AddComponent<Text>(); p.font = font; p.fontSize = 18; p.color = new Color(1f, 1f, 1f, 0.35f); p.alignment = TextAnchor.MiddleLeft; p.text = caps ? "5 letters or numbers" : "";
-            field = box.AddComponent<InputField>(); field.textComponent = t; field.placeholder = p; field.characterLimit = maxLen; field.text = value;
-            field.contentType = InputField.ContentType.Alphanumeric; field.caretColor = Ink; field.selectionColor = new Color(0.9f, 0.75f, 0.2f, 0.4f);
-            if (caps) field.onValueChanged.AddListener(v => { string u = v.ToUpperInvariant(); if (u != v) field.text = u; });
+            var f = box.AddComponent<InputField>(); f.textComponent = t; f.placeholder = p; f.characterLimit = maxLen; f.text = value;
+            f.contentType = InputField.ContentType.Alphanumeric; f.caretColor = Ink; f.selectionColor = new Color(0.9f, 0.75f, 0.2f, 0.4f);
+            if (caps) f.onValueChanged.AddListener(v => { string u = v.ToUpperInvariant(); if (u != v) f.text = u; });
+            field = f;
             return go;
         }
         void Item(Transform parent, string name, string sub, string button, Action a)

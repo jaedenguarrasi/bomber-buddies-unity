@@ -10,6 +10,7 @@ using Unity.Networking.Transport.Relay;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Relay;
+using Unity.Services.Relay.Models;
 using UnityEngine;
 
 namespace BomberBuddies
@@ -91,7 +92,7 @@ namespace BomberBuddies
                 await SignIn();
                 var alloc = await RelayService.Instance.CreateAllocationAsync(7);
                 string code = await RelayService.Instance.GetJoinCodeAsync(alloc.AllocationId);
-                transport.SetRelayServerData(AllocationUtils.ToRelayServerData(alloc, "udp"));
+                transport.SetRelayServerData(new RelayServerData(alloc, "udp"));
                 joinCode = code.ToUpperInvariant();
                 StartHostCommon();
                 status = "Room " + joinCode + " · read it out. Waiting for buddies.";
@@ -108,7 +109,7 @@ namespace BomberBuddies
             {
                 await SignIn();
                 var ja = await RelayService.Instance.JoinAllocationAsync(code);
-                transport.SetRelayServerData(AllocationUtils.ToRelayServerData(ja, "udp"));
+                transport.SetRelayServerData(new RelayServerData(ja, "udp"));
                 StartClientCommon();
             }
             catch (Exception e) { status = OnlineError(e); role = Role.None; }
