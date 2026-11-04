@@ -19,6 +19,7 @@ namespace BomberBuddies
         public Vector2 Look { get; private set; }          // degrees to turn this frame: x yaw, y pitch (up positive)
         public bool Fire { get; private set; }
         public bool Aim { get; private set; }
+        bool aimLatched;
         public bool Sprint { get; private set; }
         public bool JumpPressed { get; private set; }
         public bool JumpHeld { get; private set; }
@@ -235,8 +236,11 @@ namespace BomberBuddies
             if (Keyboard.current != null && Keyboard.current.tKey.wasPressedThisFrame) { IsTouch = !IsTouch; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }   // editor: T shows the touch layer for testing with the mouse
 #endif
             deg *= PauseMenu.Sensitivity;
-            bool aimingNow = aim.IsPressed() || TouchAim;
+            // aimToggle: the Aim button flips aiming instead of holding it
+            if (Settings.AimToggle) { if (aim.wasPressedThisFrame) aimLatched = !aimLatched; } else aimLatched = false;
+            bool aimingNow = aim.IsPressed() || TouchAim || aimLatched;
             if (aimingNow) deg *= Settings.AimSens;
+            if (aimingNow && IsTouch) deg *= Settings.LookZoom;   // thumb look while zoomed
             if (PauseMenu.InvertY != (aimingNow && Settings.AimInvert)) deg.y = -deg.y;
             RawLook = deg; Look = Hijacked ? Vector2.zero : deg;
             RawMove = Move; if (Hijacked) Move = Vector2.zero;
@@ -244,7 +248,7 @@ namespace BomberBuddies
             LookHeld = freeLook.IsPressed();
             RawFire = fire.IsPressed() || touchFire; Fire = !Hijacked && RawFire;
             SupportPressed = supportQ; supportQ = false; SeatPressed = seatQ; seatQ = false; ItemsPressed = itemsQ; itemsQ = false; MapPressed = mapQ; mapQ = false;
-            Aim = aim.IsPressed() || TouchAim;
+            Aim = aim.IsPressed() || TouchAim || aimLatched;
             Sprint = sprint.IsPressed();
             JumpPressed = jumpQ; jumpQ = false; JumpHeld = jump.IsPressed() && !Hijacked;
             CrouchPressed = crouchQ; crouchQ = false; CrouchHeld = crouch.IsPressed() && !Hijacked;

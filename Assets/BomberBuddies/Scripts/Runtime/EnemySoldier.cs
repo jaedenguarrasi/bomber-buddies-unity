@@ -293,7 +293,8 @@ namespace BomberBuddies
                 deadT += dt;
                 if (model != null) model.Animate(0f, 0f, 0f, false, dt);
                 // the bodies stay where they fell (the original's field of them) until there are too many; then the oldest sink
-                if (deadT > 12f && (Dead > 40 || deadT > 240f)) { transform.position += Vector3.down * dt * 0.4f; if (deadT > (Dead > 40 ? 16f : 244f)) { Dead--; Destroy(gameObject); } }
+                { float keep = Settings.Bodies <= 0f ? 1f : Settings.Bodies; int cap = Mathf.RoundToInt(40f * keep); float ttl = 240f * keep;
+                if (deadT > 12f && (Dead > cap || deadT > ttl)) { transform.position += Vector3.down * dt * 0.4f; if (deadT > (Dead > cap ? 16f : ttl + 4f)) { Dead--; Destroy(gameObject); } } }
                 return;
             }
             retargetT -= dt;

@@ -360,6 +360,8 @@ namespace BomberBuddies
             // time slows while you aim (the original's slowAim), unless something else owns the clock
             if (Settings.SlowAim && !(PauseMenu.Instance != null && PauseMenu.Instance.IsOpen) && !Commander.On) { float wantTs = aiming ? 0.6f : 1f; if (Mathf.Abs(Time.timeScale - wantTs) > 0.01f && (Time.timeScale == 1f || Time.timeScale == 0.6f)) Time.timeScale = wantTs; }
             var move = input.Move;
+            // stickSide "turn": the soldier's stick turns him instead of sidestepping (the original's option)
+            if (Settings.StickSide == "turn" && rig != null) { rig.AddLook(new Vector2(move.x * 120f * dt, 0f)); move.x = 0f; }
             sprinting = input.Sprint && move.y > 0.35f && !crouching && !aiming && !input.Fire;
             if (sprinting) crouching = false;
             crouchK = Mathf.MoveTowards(crouchK, crouching ? 1f : 0f, dt * 6f);

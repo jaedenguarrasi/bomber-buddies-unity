@@ -114,6 +114,24 @@ namespace BomberBuddies
             GameState.Touch();
         }
 
+        static VolumeProfile filmProfile; static float fogStart0, fogEnd0;
+        /// <summary>The original's film / dist / pix options: vignette and grain on or off, fog and far plane scaled, render scale for pixelation.</summary>
+        public static void ApplyGraphicsOptions()
+        {
+            if (filmProfile != null)
+            {
+                Vignette v; FilmGrain g; LensDistortion l; bool film = Settings.Film;
+                if (filmProfile.TryGet(out v)) v.active = film; if (filmProfile.TryGet(out g)) g.active = film; if (filmProfile.TryGet(out l)) l.active = film;
+            }
+            float d = Settings.Dist; if (d <= 0f) d = 1f;
+            if (fogEnd0 > 0f) { RenderSettings.fogStartDistance = fogStart0 * d; RenderSettings.fogEndDistance = fogEnd0 * d; }
+            var cam = Camera.main; if (cam != null) cam.farClipPlane = Mathf.Max(cam.farClipPlane, 4000f * d);
+            float pix = Settings.Pix; if (pix <= 0f) pix = 1f;
+            var urp = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
+            if (urp != null && pix < 1f) { urp.renderScale = pix; urp.upscalingFilter = UnityEngine.Rendering.Universal.UpscalingFilterSelection.Point; }
+            else if (urp != null) urp.upscalingFilter = UnityEngine.Rendering.Universal.UpscalingFilterSelection.Auto;
+        }
+
         // the original's day sky: SKY.day, SUNDIRS.day, SUNTINT.day, fog 520..1750 units, vignette 0.26, grain 0.035
         void BuildLighting()
         {
@@ -158,6 +176,8 @@ namespace BomberBuddies
             var grain = profile.Add<FilmGrain>(true); grain.type.Override(FilmGrainLookup.Thin1); grain.intensity.Override(0.12f);
             var lens = profile.Add<LensDistortion>(true); lens.intensity.Override(-0.18f); lens.scale.Override(1.0f);
             vol.profile = profile;
+            filmProfile = profile; fogStart0 = RenderSettings.fogStartDistance; fogEnd0 = RenderSettings.fogEndDistance;
+            ApplyGraphicsOptions();
         }
 
         /// <summary>The sky at an altitude: day on the ground, blending to space (black overhead, a thin blue band, stars) high up.</summary>

@@ -89,7 +89,7 @@ namespace BomberBuddies
         public static bool TwoFingerAim { get { return true; } }      // the original's drag-on-the-view aim with a second finger is always on
         public static bool AutoHide { get { return true; } }
         public static string StickSide { get { return Str("stickSide"); } }
-        public static float LookZoom { get { return Num("lookZoom"); } }
+        public static float LookZoom { get { float v = Num("lookZoom"); return v <= 0f ? 1f : v; } }
         public static float TiltZoom { get { return Num("tiltZoom"); } }
         public static string Steer { get { return Str("steer"); } }
         public static string TiltRole { get { return Str("tiltRole"); } }
@@ -136,6 +136,7 @@ namespace BomberBuddies
             Sfx.MusicOn = Music;
             PauseMenu.Sensitivity = LookSens; PauseMenu.InvertY = InvertY; PauseMenu.BigButtons = BigButtons; PauseMenu.Lefty = Lefty; PauseMenu.Tilt = Steer == "tilt"; PauseMenu.Detail = Mathf.Min(2, Detail);
             PauseMenu.ApplyDetail();
+            GameBootstrap.ApplyGraphicsOptions();
             if (GameState.Hud != null) GameState.Hud.ApplyLayoutOptions();
         }
     }
