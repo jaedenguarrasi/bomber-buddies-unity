@@ -215,6 +215,7 @@ namespace BomberBuddies
             int lookFingers = 0; touchFire = false;
             if (Touchscreen.current != null)
             {
+                if (!EnhancedTouchSupport.enabled) EnhancedTouchSupport.Enable();   // a scene reload can leave it off
                 foreach (var t in Touch.activeTouches)
                 {
                     bool lookSide = Settings.Lefty ? t.startScreenPosition.x < Screen.width * 0.58f : t.startScreenPosition.x > Screen.width * 0.42f;
