@@ -73,7 +73,7 @@ namespace BomberBuddies
             foreach (var t in Tabs2)
             {
                 string tt = t; float w = 40f + t.Length * 9f;
-                var b = Btn("Tab " + t, safe, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + w * 0.5f, -158f), new Vector2(w, 36f), t, 16, () => { tab = tt; Render(); });
+                var b = Btn("Tab " + t, safe, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + w * 0.5f, -158f), new Vector2(w, 36f), t, 16, () => { tab = tt; list.anchoredPosition = Vector2.zero; Render(); list.anchoredPosition = Vector2.zero; });
                 tabs2.Add(b); x += w + 8f;
             }
 
@@ -107,6 +107,7 @@ namespace BomberBuddies
 
         void Render()
         {
+            var keepScroll = list != null ? list.anchoredPosition : Vector2.zero;
             bankText.text = Cr(Progress.Bank) + " credits";
             foreach (var b in tabs2) { bool on = b.name == "Tab " + tab; b.GetComponent<Image>().color = on ? Cream : BtnC; b.transform.Find("Label").GetComponent<Text>().color = on ? Ink : Cream; }
             foreach (Transform c in list) Destroy(c.gameObject);
@@ -190,8 +191,9 @@ namespace BomberBuddies
                     break;
             }
             Canvas.ForceUpdateCanvases();
-            list.anchoredPosition = Vector2.zero;
+            list.anchoredPosition = keepScroll; StartCoroutine(RestoreScroll(keepScroll));
         }
+        System.Collections.IEnumerator RestoreScroll(Vector2 p) { yield return null; if (list != null) list.anchoredPosition = p; }
 
         /// <summary>The showroom (showroomHTML): the preview with its arrows, the name and blurb left, the stat bars and the action right.</summary>
         void ShowroomBox(string key, bool gun)
