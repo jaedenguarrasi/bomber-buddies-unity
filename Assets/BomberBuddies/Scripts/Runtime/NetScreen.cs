@@ -21,6 +21,8 @@ namespace BomberBuddies
             var s = go.AddComponent<NetScreen>(); Instance = s; s.onBack = onBack; s.inGame = inGame; s.Build(); s.Render(); return s;
         }
         public bool IsOpen { get { return gameObject.activeSelf; } }
+        /// <summary>B on a pad: what the Back / Leave button would do.</summary>
+        public void Back() { if (bLeave != null) bLeave.onClick.Invoke(); }
 
         void Build()
         {

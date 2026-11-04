@@ -20,6 +20,8 @@ namespace BomberBuddies
             Instance.onClose = onClose; Instance.root.SetActive(true); Instance.transform.SetAsLastSibling(); Instance.Render(); return Instance;
         }
         public bool IsOpen { get { return root != null && root.activeSelf; } }
+        /// <summary>L1 / R1 on a pad: the next or previous tab.</summary>
+        public void StepTab(int dir) { var tabs = OptionDefs.Tabs; int i = System.Array.IndexOf(tabs, tab); tab = tabs[(i + dir + tabs.Length) % tabs.Length]; Render(); if (scroll != null) scroll.verticalNormalizedPosition = 1f; Sfx.Tone(560f, 0.04f, 0.04f, "triangle"); }
         public void Close() { root.SetActive(false); Settings.Save(); var cb = onClose; onClose = null; if (cb != null) cb(); }
 
         void Build()

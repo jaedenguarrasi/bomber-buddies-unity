@@ -40,6 +40,7 @@ namespace BomberBuddies
             root.SetActive(false);
         }
 
+        public bool IsOpen { get { return root != null && root.activeSelf; } }
         public void Close() { if (op != null) { op.Cancel(); op = null; } root.SetActive(false); var cb = onClose; onClose = null; if (cb != null) cb(); }
 
         static string Label(string actionName)

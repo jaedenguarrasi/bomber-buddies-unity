@@ -82,6 +82,7 @@ namespace BomberBuddies
             BuildPlayer();
             GameState.Hud = Hud.Create(transform);
             MatchEnd.Create(GameState.Hud.transform);
+            VrMode.Refresh();
             Support.Create(transform, library, GameState.Hud.transform);
             ItemWheel.Create(transform, library, GameState.Hud.transform);
             var pm = PlayerManager.Create(transform, library, player, rig, cam);

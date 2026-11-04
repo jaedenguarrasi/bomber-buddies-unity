@@ -61,6 +61,15 @@ namespace BomberBuddies
 
         [Header("Sensitivity")]
         public float mouseDegPerPixel = 0.09f;
+        /// <summary>The original's stick feel: a dead zone (padDead), then a curve that is fine near the centre and full at the edge, scaled by padSens.</summary>
+        static Vector2 PadCurve(Vector2 v)
+        {
+            float dz = Settings.PadDead; if (dz <= 0f) dz = 0.15f; float sn = Settings.PadSens; if (sn <= 0f) sn = 1f;
+            System.Func<float, float> f = x => { float a = Mathf.Abs(x); if (a <= dz) return 0f; float n = Mathf.Min(1f, (a - dz) / (1f - dz)); return Mathf.Sign(x) * (n * n * 0.75f + n * 0.25f) * sn; };
+            return new Vector2(f(v.x), f(v.y));
+        }
+        /// <summary>A real controller (not the on-screen one the touch layer drives).</summary>
+        public static bool RealPad(Gamepad gp) { return gp != null && (!string.IsNullOrEmpty(gp.description.interfaceName) || !string.IsNullOrEmpty(gp.description.product)) && gp.description.interfaceName != "OnScreen"; }
         public float stickDegPerSecond = 170f;
         public float touchDegPerPixel = 0.16f;
 
@@ -130,7 +139,7 @@ namespace BomberBuddies
 
             reload = new InputAction("Reload", InputActionType.Button);
             reload.AddBinding("<Keyboard>/r");
-            reload.AddBinding("<Gamepad>/dpad/right");
+            // (no pad reload: the original reloads on the magazine, X is kick / get out)
             reload.performed += _ => reloadQ = true;
 
             view = new InputAction("View", InputActionType.Button);
@@ -144,7 +153,7 @@ namespace BomberBuddies
 
             support = new InputAction("Support", InputActionType.Button);
             support.AddBinding("<Keyboard>/tab");
-            support.AddBinding("<Gamepad>/dpad/up");
+            support.AddBinding("<Gamepad>/dpad/up");      // on foot / on the ground; in the air the D-pad is the throttle
             support.performed += _ => supportQ = true;
 
             seatAct = new InputAction("Seat", InputActionType.Button);
@@ -154,7 +163,7 @@ namespace BomberBuddies
 
             itemsAct = new InputAction("Items", InputActionType.Button);
             itemsAct.AddBinding("<Keyboard>/i");
-            itemsAct.AddBinding("<Gamepad>/dpad/down");
+            itemsAct.AddBinding("<Gamepad>/dpad/right");   // the original: hold D-pad right for the item wheel
             itemsAct.performed += _ => itemsQ = true;
 
             mapAct = new InputAction("Map", InputActionType.Button);
@@ -195,6 +204,8 @@ namespace BomberBuddies
         void Update()
         {
             Move = Vector2.ClampMagnitude(move.ReadValue<Vector2>(), 1f);
+            bool moveFromPad = move.activeControl != null && move.activeControl.device is Gamepad;
+            if (moveFromPad) Move = PadCurve(Move);
             if (TouchMove.sqrMagnitude > 0.0001f && Move.sqrMagnitude < 0.01f) Move = Vector2.ClampMagnitude(TouchMove, 1f);
             // tilt steering (the original's steer: 'tilt'): in the air on a phone, the phone's lean is the stick
             if (PauseMenu.Tilt && IsTouch && Accelerometer.current != null && PlayerManager.Instance != null && !PlayerManager.Instance.OnFoot && PlayerManager.Instance.drive == null)
@@ -208,6 +219,8 @@ namespace BomberBuddies
 
             var l = look.ReadValue<Vector2>();
             bool fromMouse = look.activeControl != null && look.activeControl.device is Mouse;
+            bool fromPad = look.activeControl != null && look.activeControl.device is Gamepad;
+            if (fromPad) l = PadCurve(l);
             Vector2 deg = fromMouse ? l * mouseDegPerPixel : l * stickDegPerSecond * Time.deltaTime;
 
             // touch look: any finger that is not on a UI control and started on the look half (the right, or the left for a lefty);
@@ -232,7 +245,7 @@ namespace BomberBuddies
             if (Settings.FireMode == "toggle" && AutoFire) touchFire = true;
             if (!IsTouch) { TouchAim = false; AutoFire = false; touchFire = false; }
             // a real controller hides the touch controls; the on-screen stick and buttons drive a virtual gamepad, which must not
-            if (Gamepad.current != null && Gamepad.current.wasUpdatedThisFrame && !Application.isMobilePlatform && !string.IsNullOrEmpty(Gamepad.current.description.interfaceName)) IsTouch = false;
+            if (Gamepad.current != null && Gamepad.current.wasUpdatedThisFrame && RealPad(Gamepad.current)) IsTouch = false;   // a real controller hides the touch layer, on the phone too
 #if UNITY_EDITOR
             if (Keyboard.current != null && Keyboard.current.tKey.wasPressedThisFrame) { IsTouch = !IsTouch; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }   // editor: T shows the touch layer for testing with the mouse
 #endif
@@ -248,6 +261,8 @@ namespace BomberBuddies
 
             LookHeld = freeLook.IsPressed();
             RawFire = fire.IsPressed() || touchFire; Fire = !Hijacked && RawFire;
+            bool flyingNow = PlayerManager.Instance != null && !PlayerManager.Instance.OnFoot && PlayerManager.Instance.drive == null;
+            if (flyingNow && supportQ && Gamepad.current != null && Gamepad.current.dpad.up.isPressed) supportQ = false;
             SupportPressed = supportQ; supportQ = false; SeatPressed = seatQ; seatQ = false; ItemsPressed = itemsQ; itemsQ = false; MapPressed = mapQ; mapQ = false;
             Aim = aim.IsPressed() || TouchAim || aimLatched;
             Sprint = sprint.IsPressed();

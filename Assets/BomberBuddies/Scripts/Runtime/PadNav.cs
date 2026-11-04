@@ -17,7 +17,7 @@ namespace BomberBuddies
         {
             var es = EventSystem.current; var gp = Gamepad.current;
             if (es == null) return;
-            bool padOn = gp != null && !string.IsNullOrEmpty(gp.description.interfaceName);
+            bool padOn = InputBridge.RealPad(gp);
             if (!padOn) { Restore(); return; }
             var sel = es.currentSelectedGameObject;
             bool wants = gp.dpad.ReadValue().sqrMagnitude > 0.2f || gp.leftStick.ReadValue().sqrMagnitude > 0.3f || gp.buttonSouth.wasPressedThisFrame;
@@ -30,7 +30,9 @@ namespace BomberBuddies
                     if (s == null || !s.IsActive() || !s.interactable || !s.gameObject.activeInHierarchy) continue;
                     var cg = s.GetComponentInParent<CanvasGroup>(); if (cg != null && (!cg.interactable || cg.alpha < 0.5f)) continue;
                     if (s.GetComponent<Button>() == null) continue;
-                    float y = s.transform.position.y - Mathf.Abs(s.transform.position.x) * 0.01f; if (y > bestY) { bestY = y; best = s; }
+                    // the original lands on the gold "go" button first (Play 3D, Resume, Deploy, Take off again), else the top one
+                    var im = s.GetComponent<Image>(); bool go = im != null && im.color.r > 0.8f && im.color.g > 0.6f && im.color.b < 0.4f;
+                    float y = s.transform.position.y - Mathf.Abs(s.transform.position.x) * 0.01f + (go ? 100000f : 0f); if (y > bestY) { bestY = y; best = s; }
                 }
                 if (best != null) { es.SetSelectedGameObject(best.gameObject); sel = best.gameObject; }
             }
@@ -39,8 +41,20 @@ namespace BomberBuddies
             // B backs out of whatever is open
             if (gp.buttonEast.wasPressedThisFrame)
             {
-                if (Hangar.IsOpen) Hangar.Instance.Close();
+                if (NetScreen.Instance != null && NetScreen.Instance.IsOpen) NetScreen.Instance.Back();
+                else if (ControlsScreen.Instance != null && ControlsScreen.Instance.IsOpen) ControlsScreen.Instance.Close();
+                else if (OptionsScreen.Instance != null && OptionsScreen.Instance.IsOpen) OptionsScreen.Instance.Close();
+                else if (Hangar.IsOpen) Hangar.Instance.Close();
                 else if (PauseMenu.Instance != null && PauseMenu.Instance.IsOpen) PauseMenu.Instance.Close();
+                else if (MainMenu.Instance != null) MainMenu.Instance.Back();
+            }
+            // L1 / R1 step through the tabs of whatever is open, as the original did
+            int dir = gp.rightShoulder.wasPressedThisFrame ? 1 : gp.leftShoulder.wasPressedThisFrame ? -1 : 0;
+            if (dir != 0)
+            {
+                if (OptionsScreen.Instance != null && OptionsScreen.Instance.IsOpen) OptionsScreen.Instance.StepTab(dir);
+                else if (Hangar.IsOpen) Hangar.Instance.StepTab(dir);
+                else if (MainMenu.Instance != null) MainMenu.Instance.StepTab(dir);
             }
         }
         void Restore() { if (lastImg != null) lastImg.color = lastColor; lastImg = null; lastSel = null; }

@@ -19,6 +19,20 @@ namespace BomberBuddies
         GameObject modePage, titlePage; Text modeBtnLabel;
         /// <summary>The mode the title's Play 3D starts (the original's save.gm, shown on the "Mode: …" button).</summary>
         public static string Chosen = "battle";
+        public static MainMenu Instance { get; private set; }
+        /// <summary>B on a pad: close whatever title-side page is open.</summary>
+        public void Back()
+        {
+            if (credits != null && credits.activeSelf) credits.SetActive(false);
+            else if (setup != null && setup.activeSelf) { PlayerPrefs.Save(); setup.SetActive(false); }
+            else if (modePage != null && modePage.activeSelf) ShowTitle();
+        }
+        /// <summary>L1 / R1 on the mode page: the next or previous group of modes.</summary>
+        public void StepTab(int dir)
+        {
+            if (modePage == null || !modePage.activeSelf) return;
+            var g = ModeDefs.Groups; int i = System.Array.IndexOf(g, cat); cat = g[(i + dir + g.Length) % g.Length]; PlayerPrefs.SetString("bb_mcat", cat); Sfx.Tone(520f, 0.04f, 0.04f, "triangle"); Render();
+        }
 
         static readonly Color Cream = new Color(239f / 255f, 233f / 255f, 214f / 255f), Gold = new Color(226f / 255f, 179f / 255f, 60f / 255f), Sky = new Color(127f / 255f, 196f / 255f, 216f / 255f), InkDark = new Color(29f / 255f, 42f / 255f, 46f / 255f);
 
@@ -106,7 +120,7 @@ namespace BomberBuddies
         {
             var go = new GameObject("Main menu");
             go.transform.SetParent(parent, false);
-            var m = go.AddComponent<MainMenu>();
+            var m = go.AddComponent<MainMenu>(); Instance = m;
             m.onPick = onPick;
             m.Build();
             return m;
@@ -127,7 +141,7 @@ namespace BomberBuddies
             if (EventSystem.current == null)
             {
                 var es = new GameObject("EventSystem"); es.transform.SetParent(transform.parent, false);
-                es.AddComponent<EventSystem>(); es.AddComponent<InputSystemUIInputModule>();
+                es.AddComponent<EventSystem>(); { var mod = es.AddComponent<InputSystemUIInputModule>(); mod.AssignDefaultActions(); }
             }
             // the backdrop: the original's dusk painting behind every title-side screen
             var bgImg = Img("Background", transform, Vector2.zero, Vector2.one, Color.white);
@@ -249,9 +263,10 @@ namespace BomberBuddies
             var t = Txt("Text", credits.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 600f), 18, TextAnchor.MiddleCenter, new Color(0.9f, 0.93f, 1f)); t.text = text; t.horizontalOverflow = HorizontalWrapMode.Wrap; t.supportRichText = true;
         }
 
+        void OnDestroy() { if (Instance == this) Instance = null; }
         void Pick(string id)
         {
-            var cb = onPick;
+            Instance = null; var cb = onPick;
             Destroy(gameObject);
             if (cb != null) cb(id);
         }

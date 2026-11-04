@@ -109,6 +109,12 @@ namespace BomberBuddies
         }
 
         public static bool IsOpen { get { return Instance != null && Instance.gameObject.activeSelf; } }
+        /// <summary>L1 / R1 on a pad: the next or previous tab (Where first on the deploy sheet).</summary>
+        public void StepTab(int dir)
+        {
+            var all = new System.Collections.Generic.List<string>(); if (deployMode) all.Add("Where"); all.AddRange(Tabs2);
+            int i = all.IndexOf(tab); tab = all[(i + dir + all.Count) % all.Count]; list.anchoredPosition = Vector2.zero; Render(); list.anchoredPosition = Vector2.zero; Sfx.Tone(560f, 0.04f, 0.04f, "triangle");
+        }
         float flashT; string flashText;
         public static void Flash(string text) { if (Instance != null) { Instance.flashT = 1.6f; Instance.flashText = text; } }
         void LateUpdate() { if (flashT > 0f) { flashT -= Time.unscaledDeltaTime; if (bankText != null) bankText.text = flashT > 0f ? flashText : Cr(Progress.Bank) + " credits"; } }

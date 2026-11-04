@@ -123,6 +123,7 @@ namespace BomberBuddies
         public static string Gfx { get { return Str("gfx"); } }
         public static bool Shadows { get { return Is("shadows", "on"); } }
         public static bool Film { get { return Is("film", "on"); } }
+        public static bool Vr { get { return Is("vr", "on"); } }
         public static float Pix { get { return Num("pix"); } }
         public static float Dist { get { return Num("dist"); } }
         public static float Bodies { get { return Num("bodies"); } }
@@ -137,6 +138,7 @@ namespace BomberBuddies
             PauseMenu.Sensitivity = LookSens; PauseMenu.InvertY = InvertY; PauseMenu.BigButtons = BigButtons; PauseMenu.Lefty = Lefty; PauseMenu.Tilt = Steer == "tilt"; PauseMenu.Detail = Mathf.Min(2, Detail);
             PauseMenu.ApplyDetail();
             GameBootstrap.ApplyGraphicsOptions();
+            VrMode.Refresh();
             if (GameState.Hud != null) GameState.Hud.ApplyLayoutOptions();
         }
     }

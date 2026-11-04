@@ -276,7 +276,7 @@ namespace BomberBuddies
                 var es = new GameObject("EventSystem");
                 es.transform.SetParent(transform.parent, false);
                 es.AddComponent<EventSystem>();
-                es.AddComponent<InputSystemUIInputModule>();
+                { var mod = es.AddComponent<InputSystemUIInputModule>(); mod.AssignDefaultActions(); }
             }
             PadNav.Create(transform.parent);
 
@@ -589,7 +589,7 @@ namespace BomberBuddies
             if (messageT > 0f) { messageT -= dt; if (messageT <= 0f) message.text = ""; else message.color = new Color(1f, 1f, 1f, Mathf.Clamp01(messageT * 1.5f)); }
             if (commsT > 0f) { commsT -= dt; if (commsT <= 0f) commsText.text = ""; }
             linkT -= dt; if (linkT <= 0f) { linkT = 0.5f;if (NetSession.Instance != null && NetSession.Instance.Active && commsText != null && commsT <= 0f) { var ns = NetSession.Instance; commsText.text = (ns.rtt >= 0f ? "Link " + Mathf.RoundToInt(ns.rtt) + " ms" : "Linked") + (ns.peers.Count > 1 ? " · " + (ns.peers.Count - 1) + (ns.peers.Count == 2 ? " buddy" : " buddies") : ", waiting for buddy"); } }
-            if (touchGroup != null && InputBridge.Instance != null && (touchGroup.alpha > 0.5f) != InputBridge.Instance.IsTouch) ShowTouch(InputBridge.Instance.IsTouch);
+            if (touchGroup != null && InputBridge.Instance != null && (touchGroup.alpha > 0.5f) != (InputBridge.Instance.IsTouch && !VrMode.On)) ShowTouch(InputBridge.Instance.IsTouch && !VrMode.On);
             if (InputBridge.Instance != null && InputBridge.Instance.PausePressed && PauseMenu.Instance != null) PauseMenu.Instance.Toggle();
         }
 
