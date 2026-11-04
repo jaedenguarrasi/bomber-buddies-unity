@@ -70,6 +70,10 @@ namespace BomberBuddies
             mapImage.texture = mapTex;
         }
 
+        /// <summary>The painted island for the deploy screen's map.</summary>
+        public Texture2D MapTexture() { if (mapRoot == null) BuildMap(); PaintMap(); return mapTex; }
+        public static Sprite CircleSprite() { return Circle(); }
+
         public void ToggleMap()
         {
             if (mapRoot == null) BuildMap();

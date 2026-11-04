@@ -15,10 +15,23 @@ namespace BomberBuddies
         Text bankText, title;
         RectTransform list;
         bool eraseArmed;
+        // deploy mode: the original's oDeploy is this same sheet with a Where tab in front and Deploy / Quit to menu under it
+        bool deployMode; Action<Vector3?> onDeploy; int depSel; bool depTap; Vector3 depTapSpot; Vector3 depBase;
+        Button whereTab, bDeploy, bQuitD, chevron, arrow; Text depWhere; GameObject footer; RawImage depMap; Transform depDots;
+        public bool DeployMode { get { return deployMode; } }
+
+        /// <summary>The deploy sheet before every spawn: Where / Vehicle / Weapons / Upgrades / Teammates, then Deploy (or Space).</summary>
+        public static Hangar OpenDeploy(Transform parent, Vector3 basePoint, Action<Vector3?> onDeploy)
+        {
+            var h = Open(parent, null);
+            h.deployMode = true; h.onDeploy = onDeploy; h.depBase = basePoint; h.depSel = 0; h.depTap = false; h.tab = "Where";
+            h.Render();
+            return h;
+        }
 
         public static Hangar Open(Transform parent, Action onClose)
         {
-            if (Instance != null) { Instance.onClose = onClose; Instance.gameObject.SetActive(true); Instance.Render(); return Instance; }
+            if (Instance != null) { Instance.onClose = onClose; Instance.deployMode = false; Instance.onDeploy = null; if (Instance.tab == "Where") Instance.tab = "Vehicle / class"; Instance.gameObject.SetActive(true); Instance.Render(); return Instance; }
             var go = new GameObject("Hangar");
             go.transform.SetParent(parent, false);
             var h = go.AddComponent<Hangar>();
@@ -28,15 +41,78 @@ namespace BomberBuddies
             return h;
         }
 
+        void Update()
+        {
 #if UNITY_EDITOR
-        void Update() { if (UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.equalsKey.wasPressedThisFrame) { Progress.Bank += 1000; Render(); } }   // editor: = gives 1,000 credits for testing
+            if (UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.equalsKey.wasPressedThisFrame) { Progress.Bank += 1000; Render(); }   // editor: = gives 1,000 credits for testing
 #endif
+            if (deployMode)
+            {
+                var kb = UnityEngine.InputSystem.Keyboard.current; var gp = UnityEngine.InputSystem.Gamepad.current;
+                if ((kb != null && kb.spaceKey.wasPressedThisFrame) || (gp != null && gp.startButton.wasPressedThisFrame)) DeployNow();
+                if (tab == "Where") UpdateDeployDots();
+            }
+        }
+
+        void DeployNow()
+        {
+            Vector3? at = depTap ? depTapSpot : depSel == 0 ? (Vector3?)null : DeployPoints()[Mathf.Min(depSel, DeployPoints().Count - 1)].at;
+            var cb = onDeploy; onDeploy = null; deployMode = false;
+            gameObject.SetActive(false);
+            if (cb != null) cb(at);
+        }
+
+        struct DepPt { public string name, desc; public Vector3 at; }
+        List<DepPt> DeployPoints()
+        {
+            var pts = new List<DepPt> { new DepPt { name = "Your base", desc = "Your side's landing ground", at = depBase } };
+            if (Teammates.Instance != null)
+            {
+                // the original groups teammates that stand together: "Beside this teammate" / "these teammates"
+                var used = new List<Health>();
+                foreach (var h in Teammates.Instance.Fielded)
+                {
+                    if (h == null || !h.alive || used.Contains(h)) continue;
+                    int n = 0; foreach (var o in Teammates.Instance.Fielded) if (o != null && o.alive && Vector3.Distance(o.transform.position, h.transform.position) < 25f) { used.Add(o); n++; }
+                    pts.Add(new DepPt { name = "Teammates" + (n > 1 ? " ×" + n : ""), desc = "Beside " + (n > 1 ? "these teammates" : "this teammate"), at = h.transform.position });
+                }
+            }
+            return pts;
+        }
+
+        readonly List<Image> depDotList = new List<Image>();
+        void UpdateDeployDots()
+        {
+            if (depDots == null || World3.Instance == null) return;
+            float size = depDots.GetComponent<RectTransform>().rect.width; int used = 0;
+            Action<Vector3, Color, float> dot = (wp, c, sz) =>
+            {
+                if (used >= depDotList.Count) { var im = Img("Dot", depDots, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(6f, 6f), c); im.sprite = Hud.CircleSprite(); depDotList.Add(im); }
+                var d = depDotList[used++]; d.enabled = true; d.color = c; d.rectTransform.sizeDelta = new Vector2(sz, sz);
+                float ox = wp.x / (GalacticMode.U * World3.Spread) + World3.MID3, oz = wp.z / (GalacticMode.U * World3.Spread) + World3.MID3;
+                d.rectTransform.anchoredPosition = new Vector2((ox / World3.WORLD3 - 0.5f) * size, (oz / World3.WORLD3 - 0.5f) * size);
+            };
+            foreach (var h in Health.All) { if (h == null || !h.alive || !h.gameObject.activeInHierarchy) continue; if (h.team != 0) dot(h.transform.position, h.isAir ? new Color(1f, 0.55f, 0.3f) : new Color(1f, 0.25f, 0.2f), 5f); else if (!h.stationary) dot(h.transform.position, new Color(0.5f, 0.7f, 1f), 6f); }
+            var pts = DeployPoints(); for (int i = 0; i < pts.Count; i++) dot(pts[i].at, i == 0 ? Gold : new Color(0.5f, 0.7f, 1f), 9f);
+            var chosen = depTap ? depTapSpot : pts[Mathf.Min(depSel, pts.Count - 1)].at; dot(chosen, Color.white, 14f);
+            for (int i = used; i < depDotList.Count; i++) depDotList[i].enabled = false;
+        }
+
+        void MapTapped(Vector2 local, float size)
+        {
+            float ox = (local.x / size + 0.5f) * World3.WORLD3, oz = (local.y / size + 0.5f) * World3.WORLD3;
+            var w = World3.ToWorld(ox, 0f, oz);
+            float h = GameState.GroundHeight != null ? GameState.GroundHeight(w.x, w.z) : 0f;
+            if (h <= World3.SEA * GalacticMode.U + 0.5f) { Toast("That is the sea."); return; }
+            depTapSpot = new Vector3(w.x, h, w.z); depTap = true; Render();
+        }
 
         public static bool IsOpen { get { return Instance != null && Instance.gameObject.activeSelf; } }
         float flashT; string flashText;
         public static void Flash(string text) { if (Instance != null) { Instance.flashT = 1.6f; Instance.flashText = text; } }
         void LateUpdate() { if (flashT > 0f) { flashT -= Time.unscaledDeltaTime; if (bankText != null) bankText.text = flashT > 0f ? flashText : Cr(Progress.Bank) + " credits"; } }
 
+        float whereX; readonly List<float> tabX = new List<float>();
         Showroom room; RawImage preview; string look, lookGun, vcat; Transform tabRow2; readonly List<Button> tabs2 = new List<Button>(); GameObject toast;
         static readonly Color Cream = new Color(239f / 255f, 233f / 255f, 214f / 255f), Gold = new Color(226f / 255f, 179f / 255f, 60f / 255f), Ink = new Color(29f / 255f, 42f / 255f, 46f / 255f), BoxC = new Color(0.08f, 0.1f, 0.13f, 0.92f), BtnC = new Color(0.12f, 0.16f, 0.2f, 1f);
         static readonly string[] Tabs2 = { "Vehicle / class", "Weapons", "Upgrades", "Teammates" };
@@ -61,21 +137,32 @@ namespace BomberBuddies
             // the header bar: chevron, Hangar, credits
             var head = Rect("Head", safe, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, Vector2.zero).GetComponent<RectTransform>(); head.offsetMin = new Vector2(0f, -78f); head.offsetMax = new Vector2(0f, -20f);
             head.gameObject.AddComponent<Image>().color = new Color(0.1f, 0.14f, 0.18f, 0.9f);
-            Btn("Chevron", head, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(24f, 0f), new Vector2(44f, 44f), "‹", 28, () => Close());
+            chevron = Btn("Chevron", head, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(24f, 0f), new Vector2(44f, 44f), "‹", 28, () => Close());
             title = Txt("Title", head, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(500f, 50f), 38, TextAnchor.MiddleCenter, Cream, true); title.text = "Hangar";
             bankText = Txt("Bank", head, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-210f, 0f), new Vector2(420f, 44f), 24, TextAnchor.MiddleRight, Gold, true);
-            Btn("Arrow", transform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(30f, -30f), new Vector2(44f, 44f), "←", 24, () => Close());
+            arrow = Btn("Arrow", transform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(30f, -30f), new Vector2(44f, 44f), "←", 24, () => Close());
 
             // 2D game | 3D game, then Vehicle / class | Weapons | Upgrades | Teammates
             var b2d = Btn("Tab 2D", safe, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(52f, -112f), new Vector2(104f, 40f), "2D game", 18, () => Toast("The 2D game is not in this version yet."));
             var b3d = Btn("Tab 3D", safe, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(164f, -112f), new Vector2(104f, 40f), "3D game", 18, () => { }); b3d.GetComponent<Image>().color = Cream; b3d.transform.Find("Label").GetComponent<Text>().color = Ink;
             float x = 0f;
+            whereTab = Btn("Tab Where", safe, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + 45f, -158f), new Vector2(90f, 36f), "Where", 16, () => { tab = "Where"; Render(); });
+            tabs2.Add(whereTab); whereX = x; x += 98f;
             foreach (var t in Tabs2)
             {
                 string tt = t; float w = 40f + t.Length * 9f;
                 var b = Btn("Tab " + t, safe, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x + w * 0.5f, -158f), new Vector2(w, 36f), t, 16, () => { tab = tt; list.anchoredPosition = Vector2.zero; Render(); list.anchoredPosition = Vector2.zero; });
-                tabs2.Add(b); x += w + 8f;
+                tabs2.Add(b); tabX.Add(x); x += w + 8f;
             }
+            // the deploy footer: Deploy (Space) · Quit to menu · where you will appear
+            footer = Rect("Foot", safe, new Vector2(0f, 0f), new Vector2(1f, 0f), Vector2.zero, Vector2.zero).gameObject;
+            var fr = footer.GetComponent<RectTransform>(); fr.offsetMin = new Vector2(0f, 8f); fr.offsetMax = new Vector2(0f, 64f);
+            footer.AddComponent<Image>().color = new Color(0.1f, 0.14f, 0.18f, 0.9f);
+            bDeploy = Btn("Deploy", footer.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(100f, 0f), new Vector2(180f, 44f), "Deploy", 18, () => DeployNow());
+            bDeploy.GetComponent<Image>().color = Gold; bDeploy.transform.Find("Label").GetComponent<Text>().color = Ink;
+            bQuitD = Btn("QuitD", footer.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(290f, 0f), new Vector2(170f, 44f), "Quit to menu", 16, () => { Time.timeScale = 1f; GameBootstrap.ChosenMode = null; UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex); });
+            depWhere = Txt("Where", footer.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-230f, 0f), new Vector2(440f, 40f), 13, TextAnchor.MiddleRight, new Color(0.75f, 0.78f, 0.82f));
+            footer.SetActive(false);
 
             // the scrolling list
             var view = Rect("View", safe, new Vector2(0f, 0f), new Vector2(1f, 1f), Vector2.zero, Vector2.zero);
@@ -92,6 +179,7 @@ namespace BomberBuddies
 
         public void Close()
         {
+            if (deployMode) return;   // the deploy sheet has no back: Deploy or Quit to menu
             gameObject.SetActive(false);
             var cb = onClose; onClose = null;
             if (cb != null) cb();
@@ -108,7 +196,14 @@ namespace BomberBuddies
         void Render()
         {
             var keepScroll = list != null ? list.anchoredPosition : Vector2.zero;
-            bankText.text = Cr(Progress.Bank) + " credits";
+            bankText.text = deployMode ? Mathf.Max(0, GameState.Lives - GameState.Deaths) + (GameState.Lives - GameState.Deaths == 1 ? " life left" : " lives left") : Cr(Progress.Bank) + " credits";
+            title.text = deployMode ? "Deploy" : "Hangar";
+            chevron.gameObject.SetActive(!deployMode); arrow.gameObject.SetActive(!deployMode); footer.SetActive(deployMode); whereTab.gameObject.SetActive(deployMode);
+            // the tabs slide left when Where is hidden
+            for (int i = 0; i < Tabs2.Length; i++) { var r = tabs2[i + 1].GetComponent<RectTransform>(); r.anchoredPosition = new Vector2((deployMode ? tabX[i] : tabX[i] - 98f) + r.sizeDelta.x * 0.5f, -158f); }
+            var vrt = list.parent.GetComponent<RectTransform>(); vrt.offsetMin = new Vector2(0f, deployMode ? 70f : 10f);
+            if (deployMode) { var pts = DeployPoints(); depWhere.text = "You will appear " + (depTap ? "at your own spot" : depSel == 0 ? "at your base" : (pts[Mathf.Min(depSel, pts.Count - 1)].desc.ToLower())) + " as the " + (Progress.Def(Progress.Craft) != null ? Progress.Def(Progress.Craft).name.ToLower() : Progress.Craft) + "."; }
+            depDots = null;
             foreach (var b in tabs2) { bool on = b.name == "Tab " + tab; b.GetComponent<Image>().color = on ? Cream : BtnC; b.transform.Find("Label").GetComponent<Text>().color = on ? Ink : Cream; }
             foreach (Transform c in list) Destroy(c.gameObject);
             if (room != null) { Destroy(room.gameObject); room = null; }
@@ -116,6 +211,30 @@ namespace BomberBuddies
             string vname = cd != null ? cd.name : craft; bool two = cd != null && cd.seats == 2;
             switch (tab)
             {
+                case "Where":
+                    {
+                        var box = Box(); Note(box, "Pick a place, or tap the map for a spot of your own. Red dots are the enemy.");
+                        var row = Rect("MapRow", box, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(0f, 300f)); row.gameObject.AddComponent<LayoutElement>().preferredHeight = 300f;
+                        var mapGo = Rect("Map", row, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(150f, 0f), new Vector2(290f, 290f));
+                        var mask = mapGo.gameObject.AddComponent<Image>(); mask.sprite = Hud.CircleSprite(); mask.color = Color.white; mask.raycastTarget = true; mapGo.gameObject.AddComponent<Mask>().showMaskGraphic = false;
+                        var inner = Rect("Island", mapGo, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+                        depMap = inner.gameObject.AddComponent<RawImage>(); depMap.texture = GameState.Hud != null ? GameState.Hud.MapTexture() : null; depMap.raycastTarget = false;
+                        depDots = inner;
+                        var tap = mapGo.gameObject.AddComponent<MapTap>(); tap.onTap = l => MapTapped(l, 290f);
+                        var side = Rect("Points", row, new Vector2(0f, 0f), new Vector2(1f, 1f), Vector2.zero, Vector2.zero).GetComponent<RectTransform>(); side.offsetMin = new Vector2(310f, 0f); side.offsetMax = Vector2.zero;
+                        var vl2 = side.gameObject.AddComponent<VerticalLayoutGroup>(); vl2.spacing = 6f; vl2.childForceExpandHeight = false; vl2.childControlHeight = true; vl2.childControlWidth = true; vl2.childAlignment = TextAnchor.UpperLeft;
+                        var pts = DeployPoints();
+                        for (int i = 0; i < pts.Count; i++)
+                        {
+                            int ii = i; bool on = !depTap && i == depSel;
+                            var t = Tile(side, pts[i].name, pts[i].desc, on ? "Chosen" : "Choose", !on, () => { depSel = ii; depTap = false; Render(); }, false);
+                            t.GetComponent<LayoutElement>().preferredHeight = 60f;
+                            if (on) { t.transform.Find("Buy").GetComponent<Image>().color = Gold; t.transform.Find("Buy/Label").GetComponent<Text>().color = Ink; }
+                        }
+                        if (depTap) { var t = Tile(side, "Your own spot", "Where you tapped on the map", "Chosen", false, null, false); t.GetComponent<LayoutElement>().preferredHeight = 60f; t.transform.Find("Buy").GetComponent<Image>().color = Gold; t.transform.Find("Buy/Label").GetComponent<Text>().color = Ink; }
+                        UpdateDeployDots();
+                    }
+                    break;
                 case "Vehicle / class":
                     {
                         if (look == null || Progress.Def(look) == null) look = craft;
@@ -379,6 +498,17 @@ namespace BomberBuddies
             tx.horizontalOverflow = HorizontalWrapMode.Overflow; tx.verticalOverflow = VerticalWrapMode.Overflow;
             return tx;
         }
+        /// <summary>A tap on the deploy map: reports the local point (centre = 0,0).</summary>
+        class MapTap : MonoBehaviour, UnityEngine.EventSystems.IPointerClickHandler
+        {
+            public Action<Vector2> onTap;
+            public void OnPointerClick(UnityEngine.EventSystems.PointerEventData e)
+            {
+                Vector2 l; var rt = GetComponent<RectTransform>();
+                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, e.position, e.pressEventCamera, out l) && onTap != null) onTap(l);
+            }
+        }
+
         Button Btn(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size, string label, int fontSize, Action onClick)
         {
             var t = Rect(name, parent, anchorMin, anchorMax, pos, size);

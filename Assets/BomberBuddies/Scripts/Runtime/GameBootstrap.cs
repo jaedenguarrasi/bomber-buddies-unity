@@ -108,8 +108,8 @@ namespace BomberBuddies
             System.Action<Vector3> spawn = at => { if (Progress.IsFoot(Progress.Craft)) pm.SpawnOnFoot(at); else if (Progress.IsRide(Progress.Craft)) pm.SpawnDriving(at); else pm.SpawnInAir(at); team.Deploy(at); };
             var deploy = DeployScreen.Create(GameState.Hud.transform);
             // the deploy screen before every spawn: pick what you come back as, then Deploy (the original's oDeploy)
-            pm.placeOnRespawn = () => { deploy.Open(() => spawn(Underground.Instance != null ? world.spawn : world.spawn + new Vector3(Random.Range(-40f, 40f), 0f, Random.Range(-40f, 40f)))); return true; };
-            deploy.Open(() => spawn(world.spawn));
+            pm.placeOnRespawn = () => { deploy.Open(world.spawn, at => spawn(at ?? (Underground.Instance != null ? world.spawn : world.spawn + new Vector3(Random.Range(-40f, 40f), 0f, Random.Range(-40f, 40f))))); return true; };
+            deploy.Open(world.spawn, at => spawn(at ?? world.spawn));
             GameState.Hud.Announce(spawner.Mode.name);
             GameState.Touch();
         }

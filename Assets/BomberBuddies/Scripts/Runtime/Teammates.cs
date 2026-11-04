@@ -19,6 +19,9 @@ namespace BomberBuddies
             return t;
         }
 
+        /// <summary>Everyone hired who is on the field right now.</summary>
+        public IEnumerable<Health> Fielded { get { foreach (var kv in fielded) foreach (var h in kv.Value) if (h != null && h.alive) yield return h; } }
+
         /// <summary>Top the team up to what was hired, around a point on the ground (the player's spawn, or wherever they are).</summary>
         public void Deploy(Vector3 near)
         {
