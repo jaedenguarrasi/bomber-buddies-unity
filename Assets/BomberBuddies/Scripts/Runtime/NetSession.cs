@@ -50,7 +50,7 @@ namespace BomberBuddies
 
         NetworkManager nm; UnityTransport transport;
         const string Msg = "bb";
-        const int LanPort = 7777, BeaconPort = 47777;
+        const int LanPort = 7777, BeaconPort = 47777; int lanPort = LanPort;
         UdpClient beacon; float beaconT; bool listening;
         public readonly List<KeyValuePair<string, string>> nearby = new List<KeyValuePair<string, string>>();   // address → host name
         readonly Dictionary<string, float> nearbySeen = new Dictionary<string, float>();
@@ -135,9 +135,17 @@ namespace BomberBuddies
             EnsureManager(); online = false;
             try
             {
-                transport.SetConnectionData("0.0.0.0", (ushort)LanPort, "0.0.0.0");
-                StartHostCommon();
-                joinCode = LocalAddress();
+                // the first free port from 7777 up (an editor that was just stopped can still hold one)
+                bool up = false; lanPort = LanPort;
+                for (int tries = 0; tries < 10 && !up; tries++, lanPort++)
+                {
+                    transport.SetConnectionData("0.0.0.0", (ushort)lanPort, "0.0.0.0");
+                    try { StartHostCommon(); up = nm.IsListening; } catch { up = false; }
+                    if (!up) { nm.Shutdown(); }
+                }
+                if (!up) throw new Exception("no free port");
+                lanPort--;
+                joinCode = LocalAddress() + (lanPort != LanPort ? ":" + lanPort : "");
                 StartBeacon();
                 status = "Hosting on this Wi-Fi as " + callSign + ". Waiting for buddies.";
             }
@@ -148,7 +156,7 @@ namespace BomberBuddies
         public void JoinNearby(string address)
         {
             EnsureManager(); online = false; joinCode = address; status = "Joining " + address + "…"; Fire();
-            try { transport.SetConnectionData(address, (ushort)LanPort); StartClientCommon(); }
+            try { ushort port = (ushort)LanPort; int c = address.IndexOf(':'); if (c > 0) { ushort.TryParse(address.Substring(c + 1), out port); address = address.Substring(0, c); } transport.SetConnectionData(address, port); StartClientCommon(); }
             catch (Exception e) { status = "Could not join: " + e.Message; role = Role.None; }
             Fire();
         }
@@ -293,7 +301,7 @@ namespace BomberBuddies
         void StartBeacon() { try { beacon = new UdpClient(); beacon.EnableBroadcast = true; beaconT = 0f; } catch (Exception e) { nearbyUnsupported = true; status = "Nearby is not available here: " + e.Message; } }
         void Shout()
         {
-            try { var b = Encoding.UTF8.GetBytes("BB|" + Application.version + "|" + callSign + "|" + LocalAddress()); beacon.Send(b, b.Length, new IPEndPoint(IPAddress.Broadcast, BeaconPort)); } catch { }
+            try { var b = Encoding.UTF8.GetBytes("BB|" + Application.version + "|" + callSign + "|" + lanPort); beacon.Send(b, b.Length, new IPEndPoint(IPAddress.Broadcast, BeaconPort)); } catch { }
         }
         void StopBeacon() { if (beacon != null) { try { beacon.Close(); } catch { } beacon = null; } }
         UdpClient ear;
@@ -313,7 +321,7 @@ namespace BomberBuddies
                 {
                     var ep = new IPEndPoint(IPAddress.Any, 0); var b = ear.Receive(ref ep); var s = Encoding.UTF8.GetString(b).Split('|');
                     if (s.Length < 4 || s[0] != "BB" || s[1] != Application.version) continue;
-                    string addr = ep.Address.ToString(); if (!nearbySeen.ContainsKey(addr)) { nearby.Add(new KeyValuePair<string, string>(addr, s[2])); changed = true; }
+                    string addr = ep.Address.ToString() + (s[3] != LanPort.ToString() ? ":" + s[3] : ""); if (!nearbySeen.ContainsKey(addr)) { nearby.Add(new KeyValuePair<string, string>(addr, s[2])); changed = true; }
                     nearbySeen[addr] = Time.unscaledTime;
                 }
             }
@@ -323,6 +331,7 @@ namespace BomberBuddies
             if (changed) Fire();
         }
 
-        void OnDestroy() { StopBeacon(); StopListening(); }
+        void OnDestroy() { Leave(); }
+        void OnApplicationQuit() { Leave(); }
     }
 }
