@@ -219,6 +219,7 @@ namespace BomberBuddies
         // 4 setmode(mode) host→all · 5 ping(t) · 6 pong(t)
         void SendLobby()
         {
+            if (nm == null || !nm.IsListening || role != Role.Host) return;
             var w = new FastBufferWriter(1024, Unity.Collections.Allocator.Temp);
             w.WriteValueSafe((byte)2); w.WriteValueSafe(lobbyMode); w.WriteValueSafe(started); w.WriteValueSafe(peers.Count);
             foreach (var p in peers.Values) { w.WriteValueSafe(p.id); w.WriteValueSafe(p.name ?? "Buddy"); w.WriteValueSafe(p.craft ?? "plane"); w.WriteValueSafe(p.kills); w.WriteValueSafe(p.deaths); }
