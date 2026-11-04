@@ -29,6 +29,9 @@ namespace BomberBuddies
         public float SizeK { get { return standHeight / 1.8f; } }
         /// <summary>Cover (coverNear / coverSnap): crouched against something waist-high you tuck in behind it; aiming peeks over.</summary>
         public bool InCover { get; private set; }
+        /// <summary>Standing next to waist-high cover (the original's coverNear).</summary>
+        public bool CoverNear { get; private set; }
+        public bool IsMedic { get { return kit != null && kit.medic; } }
         public bool Peeking { get; private set; }
         float coverT;
         public bool ControlsLocked { get; set; }
@@ -372,6 +375,9 @@ namespace BomberBuddies
                 InCover = Physics.Raycast(transform.position + Vector3.up * 0.8f, fwd, out ch, 1.1f, ~((1 << 8) | (1 << 9)), QueryTriggerInteraction.Ignore) && ch.collider.GetComponent<Health>() == null;
             }
             else InCover = false;
+            // the original's coverNear: something waist-high right in front while standing (the button then reads "Cover")
+            if (grounded && !crouching) { RaycastHit cn; var fw = rig.FlatRotation * Vector3.forward; CoverNear = Physics.Raycast(transform.position + Vector3.up * 0.8f, fw, out cn, 1.4f, ~((1 << 8) | (1 << 9)), QueryTriggerInteraction.Ignore) && cn.collider.GetComponent<Health>() == null && !Physics.Raycast(transform.position + Vector3.up * 1.6f, fw, 1.4f, ~((1 << 8) | (1 << 9)), QueryTriggerInteraction.Ignore); }
+            else CoverNear = false;
             Peeking = InCover && aiming;
             if (InCover != wasCover && GameState.Hud != null) GameState.Hud.Comms(InCover ? "In cover: aim to peek" : "Out of cover");
             float speed = aiming ? aimSpeed : Prone ? crouchSpeed * 0.45f : crouching ? crouchSpeed : sprinting ? sprintSpeed : walkSpeed;

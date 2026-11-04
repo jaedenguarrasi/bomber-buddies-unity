@@ -434,6 +434,23 @@ namespace BomberBuddies
             var t = Txt("Label", im.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(size, size), fontSize, TextAnchor.MiddleCenter, new Color(0.12f, 0.12f, 0.14f, 0.9f), true);
             t.text = label;
             labels[key] = t; buttons[key] = im;
+            if (key == "bomb")
+            {   // the original's "N left" under the Bomb label (r*0.36 font, r*0.34 below centre)
+                var sub = Txt("Sub", im.transform, new Vector2(0.5f, 0.5f), new Vector2(0f, -size * 0.17f), new Vector2(size, size * 0.3f), Mathf.RoundToInt(size * 0.18f), TextAnchor.MiddleCenter, new Color(0.12f, 0.12f, 0.14f, 0.9f), true);
+                sub.text = ""; subLabel = sub;
+            }
+        }
+        Text subLabel;
+
+        /// <summary>The original's gbLabel: the B button reads for what it would do right now.</summary>
+        static string FootActionLabel(FootController p)
+        {
+            if (p == null) return "Crouch";
+            if (p.Carrying) return "Throw";
+            if (p.Sprinting && !p.Crouching) return "Slide";
+            if (p.InCover) return "Leave cover";
+            if (p.CoverNear) return "Cover";
+            return p.Crouching ? "Stand" : "Crouch";
         }
 
         void SetButton(string key, string label, bool shown)
@@ -551,10 +568,13 @@ namespace BomberBuddies
                 }
                 boostFill.fillAmount = p.Sprinting ? 0.6f : 1f;
                 bombsText.text = Dots(GameState.Grenades, 8);
+                Text gbT; if (labels.TryGetValue("gb", out gbT)) gbT.text = FootActionLabel(p);
+                Text pnT; if (labels.TryGetValue("pn", out pnT)) pnT.text = p.IsMedic ? "Heal" : "Kick";
                 speedText.text = "Speed " + Mathf.RoundToInt(p.MoveSpeed / GalacticMode.U);
             }
             livesText.text = Lives(Mathf.Max(0, GameState.Lives - GameState.Deaths));
             if (canopy != null) canopy.enabled = fly && flight.cockpit;
+            if (subLabel != null) subLabel.text = fly ? flight.bombs + " left" : drive != null && drive.Active ? "" : GameState.Grenades + " left";
             UpdateRadar();
             UpdateMarkers();
             UpdateCcip();
