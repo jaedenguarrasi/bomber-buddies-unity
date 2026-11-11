@@ -286,6 +286,12 @@ namespace BomberBuddies.Editor
             var skyShader = Shader.Find("BomberBuddies/Sky");
             if (sky2 == null && skyShader != null) { sky2 = new Material(skyShader); AssetDatabase.CreateAsset(sky2, sky2Path); }
             if (sky2 != null) { if (skyShader != null && sky2.shader != skyShader) sky2.shader = skyShader; EditorUtility.SetDirty(sky2); Add("sky", sky2); }
+            // the original's smoke, dust and flashes
+            string softPath = MaterialsDir + "/BB_soft.mat";
+            var soft = AssetDatabase.LoadAssetAtPath<Material>(softPath);
+            var softShader = Shader.Find("BomberBuddies/Soft");
+            if (soft == null && softShader != null) { soft = new Material(softShader); AssetDatabase.CreateAsset(soft, softPath); }
+            if (soft != null) { if (softShader != null && soft.shader != softShader) soft.shader = softShader; EditorUtility.SetDirty(soft); Add("soft", soft); }
 
             lib.entries = entries.ToArray();
             EditorUtility.SetDirty(lib);

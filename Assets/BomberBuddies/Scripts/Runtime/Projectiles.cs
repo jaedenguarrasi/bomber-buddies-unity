@@ -41,6 +41,7 @@ namespace BomberBuddies
             if (p.boltMat != null) { p.boltMat.SetColor("_BaseColor", new Color(1f, 0.55f, 0.25f)); p.boltMat.SetColor("_EmissionColor", new Color(1f, 0.45f, 0.15f) * 6f); }
             p.bombMat = lib != null ? lib.Get("gunmetal") : null;
             p.fireMat = lib != null ? lib.Instance("glow") : null;
+            Fx.Create(p.transform, lib);
             if (p.fireMat != null) { p.fireMat.SetColor("_BaseColor", new Color(1f, 0.6f, 0.2f)); p.fireMat.SetColor("_EmissionColor", new Color(1f, 0.5f, 0.12f) * 5f); }
             Instance = p;
             return p;
@@ -258,7 +259,9 @@ namespace BomberBuddies
         /// <summary>Blast damage: full inside coreR, falling to nothing at dmgR. Ship parts use their bomb multiplier.</summary>
         public void Explode(Vector3 at, float coreR, float dmgR, float dmg, GameObject source, int team, bool fromNet = false)
         {
-            Flash(at, Mathf.Max(1f, dmgR * 0.45f));
+            // the original's blast: flash, fire and black smoke, thrown dirt, sparks and rolling dust (no more glowing ball)
+            if (Fx.Instance != null) Fx.Instance.Explosion(at, Mathf.Clamp(Mathf.Max(coreR, dmgR * 0.25f) / GalacticMode.U, 4f, 90f));
+            else Flash(at, Mathf.Max(1f, dmgR * 0.45f));
             if (World3.Instance != null && (team != 2 || fromNet)) World3.Instance.Blast(at, dmgR, dmg);
             Sfx.Play(dmgR > 20f ? "expl_huge" : dmgR > 6f ? "expl_big" : "expl_small", dmgR > 6f ? 0.9f : 0.7f, 1f, at);
             if (fromNet) { Shake(at, dmgR); return; }   // another phone's blast: the look and the crater, the damage was done there
