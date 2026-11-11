@@ -49,25 +49,25 @@ namespace BomberBuddies
             var model = new GameObject("Model").transform; model.SetParent(parent, false);
             wingL = wingR = null; var mat = lib != null ? lib.Get("lowpoly") : null;
             var hide = MeshBuilder.Rgb(96, 40, 36); var belly = MeshBuilder.Rgb(160, 120, 70); var horn = MeshBuilder.Rgb(230, 220, 190); var eye = MeshBuilder.Emissive(MeshBuilder.Rgb(255, 180, 40));
-            var mb = new MeshBuilder();
+            var mb = new MeshBuilder { mat = 14f };
             mb.Frustum(0f, 10f, 0f, 60f, 24f, 20f, 0.7f, 0.8f, 0f, hide);           // body
             mb.DBox(0f, 2f, 0f, 50f, 8f, 16f, belly);
             mb.Spawn("Body", model, mat, false).layer = layer;
-            var nb = new MeshBuilder(); nb.Frustum(0f, 0f, 0f, 36f, 10f, 10f, 0.7f, 0.7f, 0f, hide); nb.DBox(0f, 2f, 40f, 24f, 11f, 16f, hide); nb.DBox(0f, -2f, 44f, 20f, 3f, 16f, belly);
+            var nb = new MeshBuilder { mat = 14f }; nb.Frustum(0f, 0f, 0f, 36f, 10f, 10f, 0.7f, 0.7f, 0f, hide); nb.DBox(0f, 2f, 40f, 24f, 11f, 16f, hide); nb.DBox(0f, -2f, 44f, 20f, 3f, 16f, belly);
             for (int i = 0; i < 2; i++) nb.DBox(i == 0 ? -5f : 5f, 9f, 34f, 2f, 7f, 2f, horn);
             nb.DBox(-6f, 4f, 48f, 2f, 2f, 1f, eye); nb.DBox(6f, 4f, 48f, 2f, 2f, 1f, eye);
             neck = nb.Spawn("Neck", model, mat, false).transform; neck.localPosition = new Vector3(0f, 16f * U, 26f * U); neck.localRotation = Quaternion.Euler(-20f, 0f, 0f); neck.gameObject.layer = layer;
-            var tb = new MeshBuilder(); tb.Frustum(0f, 0f, 0f, 70f, 12f, 12f, 0.2f, 0.2f, 0f, hide);
+            var tb = new MeshBuilder { mat = 14f }; tb.Frustum(0f, 0f, 0f, 70f, 12f, 12f, 0.2f, 0.2f, 0f, hide);
             tail = tb.Spawn("Tail", model, mat, false).transform; tail.localPosition = new Vector3(0f, 10f * U, -28f * U); tail.localRotation = Quaternion.Euler(0f, 180f, 0f); tail.gameObject.layer = layer;
             for (int side = 0; side < 2; side++)
             {
-                var wb = new MeshBuilder(); float sx = side == 0 ? -1f : 1f;
+                var wb = new MeshBuilder { mat = 14f }; float sx = side == 0 ? -1f : 1f;
                 wb.DBox(sx * 30f, 0f, 0f, 60f, 1.2f, 36f, MeshBuilder.Rgb(70, 28, 26));
                 wb.DBox(sx * 30f, 0.8f, 10f, 60f, 2.2f, 3f, hide); wb.DBox(sx * 58f, 1f, -8f, 6f, 3f, 40f, hide);
                 var w = wb.Spawn(side == 0 ? "WingL" : "WingR", model, mat, false).transform; w.localPosition = new Vector3(sx * 10f * U, 18f * U, 0f); w.gameObject.layer = layer;
                 if (side == 0) wingL = w; else wingR = w;
             }
-            for (int i = 0; i < 2; i++) { var lb = new MeshBuilder(); lb.DBox(0f, -8f, 0f, 7f, 16f, 8f, hide); lb.DBox(0f, -16f, 3f, 8f, 3f, 12f, belly); var l = lb.Spawn("Leg", model, mat, false).transform; l.localPosition = new Vector3((i == 0 ? -10f : 10f) * U, 4f * U, -8f * U); l.gameObject.layer = layer; }
+            for (int i = 0; i < 2; i++) { var lb = new MeshBuilder { mat = 14f }; lb.DBox(0f, -8f, 0f, 7f, 16f, 8f, hide); lb.DBox(0f, -16f, 3f, 8f, 3f, 12f, belly); var l = lb.Spawn("Leg", model, mat, false).transform; l.localPosition = new Vector3((i == 0 ? -10f : 10f) * U, 4f * U, -8f * U); l.gameObject.layer = layer; }
                     return model;
         }
 

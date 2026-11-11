@@ -118,7 +118,7 @@ namespace BomberBuddies
         void BuildBoardModel()
         {
             model = new GameObject("Model").transform; model.SetParent(transform, false);
-            var mat = lib != null ? lib.Get("lowpoly") : null; var mb = new MeshBuilder();
+            var mat = lib != null ? lib.Get("lowpoly") : null; var mb = new MeshBuilder { mat = 2f };
             mb.DBox(0f, 0f, 0f, 10f, 1.2f, 22f, MeshBuilder.Rgb(60, 60, 70)); mb.DBox(-3.5f, -1.5f, -8f, 2.5f, 2.5f, 6f, MeshBuilder.Rgb(120, 120, 130)); mb.DBox(3.5f, -1.5f, -8f, 2.5f, 2.5f, 6f, MeshBuilder.Rgb(120, 120, 130));
             mb.DBox(-3.5f, -1.5f, -11.5f, 1.5f, 1.5f, 1f, MeshBuilder.Emissive(MeshBuilder.Rgb(120, 200, 255))); mb.DBox(3.5f, -1.5f, -11.5f, 1.5f, 1.5f, 1f, MeshBuilder.Emissive(MeshBuilder.Rgb(120, 200, 255)));
             mb.DBox(0f, 7f, 0f, 5f, 12f, 3f, MeshBuilder.Rgb(50, 40, 60)); mb.DBox(0f, 15f, 0f, 3.5f, 4f, 3.5f, MeshBuilder.Rgb(214, 170, 130)); mb.DBox(0f, 17.5f, 0f, 4f, 1.5f, 4f, MeshBuilder.Rgb(160, 30, 40));

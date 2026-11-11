@@ -21,7 +21,7 @@ namespace BomberBuddies
         /// <summary>The fighter-bomber: 36 long, 42 span. Returns the body; the propeller is a child named "Prop".</summary>
         public static GameObject Plane(Transform parent, MaterialLibrary lib, Color32 c, int layer)
         {
-            var mb = new MeshBuilder();
+            var mb = new MeshBuilder { mat = 2f };
             var wing = MeshBuilder.Mul(c, 0.78f);
             mb.Frustum(-7f, 0.4f, 0f, 17f, 2.4f, 2f, 2.5f, 2.5f, -0.4f, c);      // tail cone
             mb.DBox(7.5f, 0f, 0f, 12f, 6f, 5f, c);                               // fuselage
@@ -32,7 +32,7 @@ namespace BomberBuddies
             mb.Frustum(3.5f, 4f, 0f, 9f, 1.6f, 3.2f, 0.5f, 0.9f, 0.4f, Glass);  // canopy
             var go = mb.Spawn("Body", parent, Mat(lib), false);
             go.layer = layer;
-            var pm = new MeshBuilder();
+            var pm = new MeshBuilder { mat = 2f };
             pm.DBox(0f, 0f, 0f, 0.8f, 11f, 1f, MeshBuilder.Rgb(40, 40, 44));
             var prop = pm.Spawn("Prop", go.transform, Mat(lib), false);
             prop.transform.localPosition = new Vector3(0f, 0f, 19.2f * GalacticMode.U);
@@ -43,7 +43,7 @@ namespace BomberBuddies
         /// <summary>The attack helicopter: 50-unit rotor. Children "Rotor" and "Tail rotor" spin.</summary>
         public static GameObject Heli(Transform parent, MaterialLibrary lib, Color32 c, int layer)
         {
-            var mb = new MeshBuilder();
+            var mb = new MeshBuilder { mat = 2f };
             var dark = MeshBuilder.Rgb(40, 40, 40);
             mb.Frustum(-2f, 0f, 0f, 16f, 6.6f, 6.6f, 1.36f, 1.3f, 0f, c);        // body
             mb.Frustum(-19.5f, 1.5f, 0f, 20f, 1.5f, 1.5f, 2.1f, 2.1f, 0f, c);    // tail boom
@@ -54,13 +54,13 @@ namespace BomberBuddies
             mb.DBox(9f, -5f, 0f, 9f, 1.5f, 1.5f, dark);                          // chin gun
             var go = mb.Spawn("Body", parent, Mat(lib), false);
             go.layer = layer;
-            var rm = new MeshBuilder();
+            var rm = new MeshBuilder { mat = 2f };
             rm.DBox(0f, 0f, 0f, 50f, 0.6f, 3f, MeshBuilder.Rgb(35, 35, 35));
             rm.DBox(0f, 0f, 0f, 3f, 0.6f, 50f, MeshBuilder.Rgb(35, 35, 35));
             var rotor = rm.Spawn("Rotor", go.transform, Mat(lib), false);
             rotor.transform.localPosition = new Vector3(0f, 7.6f * GalacticMode.U, 0f);
             rotor.layer = layer;
-            var tm = new MeshBuilder();
+            var tm = new MeshBuilder { mat = 2f };
             tm.DBox(0f, 0f, 0f, 0.5f, 8f, 0.6f, MeshBuilder.Rgb(35, 35, 35));
             var tail = tm.Spawn("Tail rotor", go.transform, Mat(lib), false);
             tail.transform.localPosition = new Vector3(0.9f * GalacticMode.U, 5f * GalacticMode.U, -28f * GalacticMode.U);
@@ -71,7 +71,7 @@ namespace BomberBuddies
         /// <summary>The flying saucer (saucer3): a wide dark disc, a lit rim, and a dome. "Rim" glows.</summary>
         public static GameObject Saucer(Transform parent, MaterialLibrary lib, int layer)
         {
-            var mb = new MeshBuilder();
+            var mb = new MeshBuilder { mat = 2f };
             var hull = MeshBuilder.Rgb(88, 92, 104); var rim = MeshBuilder.Emissive(MeshBuilder.Rgb(120, 230, 200)); var dome = MeshBuilder.Rgb(150, 200, 215);
             mb.Prism(0f, -2.5f, 0f, 0f, 30f, 14f, 12, 0f, hull);     // the underside, wide at the top
             mb.Prism(0f, 0f, 3.5f, 0f, 30f, 24f, 12, 0f, MeshBuilder.Mul(hull, 1.15f));
@@ -85,7 +85,7 @@ namespace BomberBuddies
         public static GameObject Vehicle(Transform parent, MaterialLibrary lib, EnemyVehicle.Kind kind, int team, int layer, out Transform turret, out Transform barrel)
         {
             var B = team == 0 ? You : Body; var D = team == 0 ? MeshBuilder.Mul(You, 0.6f) : Dark;
-            var mb = new MeshBuilder();
+            var mb = new MeshBuilder { mat = 2f };
             GameObject go; turret = null; barrel = null;
             switch (kind)
             {
@@ -96,8 +96,8 @@ namespace BomberBuddies
                     for (int i = 0; i < 4; i++) mb.DBox(i < 2 ? 7f : -7f, 2.6f, i % 2 == 0 ? 5.5f : -5.5f, 5.2f, 5.2f, 2.6f, D);
                     go = mb.Spawn("Body", parent, Mat(lib), false);
                     {
-                        var tm = new MeshBuilder(); tm.DBox(0f, 0f, 0f, 3f, 5f, 3f, D); var t = tm.Spawn("Turret", go.transform, Mat(lib), false); t.transform.localPosition = new Vector3(0f, 10f * GalacticMode.U, -3.5f * GalacticMode.U);
-                        var gm = new MeshBuilder(); gm.DBox(5f, 0f, 0f, 10f, 1.2f, 1.2f, MeshBuilder.Rgb(25, 25, 25)); var g = gm.Spawn("Barrel", t.transform, Mat(lib), false); g.transform.localPosition = new Vector3(0f, 2.5f * GalacticMode.U, 0f);
+                        var tm = new MeshBuilder { mat = 2f }; tm.DBox(0f, 0f, 0f, 3f, 5f, 3f, D); var t = tm.Spawn("Turret", go.transform, Mat(lib), false); t.transform.localPosition = new Vector3(0f, 10f * GalacticMode.U, -3.5f * GalacticMode.U);
+                        var gm = new MeshBuilder { mat = 2f }; gm.DBox(5f, 0f, 0f, 10f, 1.2f, 1.2f, MeshBuilder.Rgb(25, 25, 25)); var g = gm.Spawn("Barrel", t.transform, Mat(lib), false); g.transform.localPosition = new Vector3(0f, 2.5f * GalacticMode.U, 0f);
                         turret = t.transform; barrel = g.transform;
                     }
                     break;
@@ -107,8 +107,8 @@ namespace BomberBuddies
                     mb.DBox(-9f, 10f, 4f, 5f, 1.2f, 3f, Mark);
                     go = mb.Spawn("Body", parent, Mat(lib), false);
                     {
-                        var tm = new MeshBuilder(); tm.Frustum(-0.5f, 0f, 0f, 14f, 5.6f, 11.5f, 0.66f, 0.7f, -0.4f, B); var t = tm.Spawn("Turret", go.transform, Mat(lib), false); t.transform.localPosition = new Vector3(0f, 12f * GalacticMode.U, 0f);
-                        var gm = new MeshBuilder(); gm.DBox(10f, 0f, 0f, 20f, 2.2f, 2.2f, D); var g = gm.Spawn("Barrel", t.transform, Mat(lib), false); g.transform.localPosition = new Vector3(0f, 0.6f * GalacticMode.U, 7f * GalacticMode.U);
+                        var tm = new MeshBuilder { mat = 2f }; tm.Frustum(-0.5f, 0f, 0f, 14f, 5.6f, 11.5f, 0.66f, 0.7f, -0.4f, B); var t = tm.Spawn("Turret", go.transform, Mat(lib), false); t.transform.localPosition = new Vector3(0f, 12f * GalacticMode.U, 0f);
+                        var gm = new MeshBuilder { mat = 2f }; gm.DBox(10f, 0f, 0f, 20f, 2.2f, 2.2f, D); var g = gm.Spawn("Barrel", t.transform, Mat(lib), false); g.transform.localPosition = new Vector3(0f, 0.6f * GalacticMode.U, 7f * GalacticMode.U);
                         turret = t.transform; barrel = g.transform;
                     }
                     break;
@@ -118,8 +118,8 @@ namespace BomberBuddies
                         mb.DBox(0f, 6f, 0f, 36f, 12f, 36f, conc); mb.DBox(0f, 13.5f, 0f, 28f, 3f, 28f, MeshBuilder.Mul(conc, 0.9f));
                         mb.DBox(0f, 8f, 0f, 37f, 2.2f, 20f, slit); mb.DBox(0f, 8f, 0f, 20f, 2.2f, 37f, slit);
                         go = mb.Spawn("Body", parent, Mat(lib), false);
-                        var tm = new MeshBuilder(); tm.DBox(0f, 0f, 0f, 1f, 1f, 1f, slit); var t = tm.Spawn("Turret", go.transform, Mat(lib), false); t.transform.localPosition = new Vector3(0f, 8f * GalacticMode.U, 0f);
-                        var gm = new MeshBuilder(); gm.DBox(9f, 0f, 0f, 10f, 1.4f, 1.4f, MeshBuilder.Rgb(25, 25, 25)); var g = gm.Spawn("Barrel", t.transform, Mat(lib), false);
+                        var tm = new MeshBuilder { mat = 2f }; tm.DBox(0f, 0f, 0f, 1f, 1f, 1f, slit); var t = tm.Spawn("Turret", go.transform, Mat(lib), false); t.transform.localPosition = new Vector3(0f, 8f * GalacticMode.U, 0f);
+                        var gm = new MeshBuilder { mat = 2f }; gm.DBox(9f, 0f, 0f, 10f, 1.4f, 1.4f, MeshBuilder.Rgb(25, 25, 25)); var g = gm.Spawn("Barrel", t.transform, Mat(lib), false);
                         turret = t.transform; barrel = g.transform;
                     }
                     break;
@@ -127,8 +127,8 @@ namespace BomberBuddies
                     {
                         mb.DBox(0f, 2.5f, 0f, 24f, 5f, 14f, B); mb.DBox(0f, 7.5f, 0f, 5f, 5f, 5f, D);
                         go = mb.Spawn("Body", parent, Mat(lib), false);
-                        var tm = new MeshBuilder(); tm.DBox(1f, 0f, 0f, 17f, 2.4f, 7f, D); var t = tm.Spawn("Turret", go.transform, Mat(lib), false); t.transform.localPosition = new Vector3(0f, 11f * GalacticMode.U, 0f); t.transform.localRotation = Quaternion.Euler(-48f, 0f, 0f);
-                        var gm = new MeshBuilder(); gm.DBox(1f, 2f, 0f, 15f, 2.6f, 2.6f, MeshBuilder.Rgb(233, 229, 218)); var g = gm.Spawn("Barrel", t.transform, Mat(lib), false);
+                        var tm = new MeshBuilder { mat = 2f }; tm.DBox(1f, 0f, 0f, 17f, 2.4f, 7f, D); var t = tm.Spawn("Turret", go.transform, Mat(lib), false); t.transform.localPosition = new Vector3(0f, 11f * GalacticMode.U, 0f); t.transform.localRotation = Quaternion.Euler(-48f, 0f, 0f);
+                        var gm = new MeshBuilder { mat = 2f }; gm.DBox(1f, 2f, 0f, 15f, 2.6f, 2.6f, MeshBuilder.Rgb(233, 229, 218)); var g = gm.Spawn("Barrel", t.transform, Mat(lib), false);
                         turret = t.transform; barrel = g.transform;
                     }
                     break;
@@ -136,8 +136,8 @@ namespace BomberBuddies
                     mb.DBox(0f, 2.5f, 0f, 22f, 5f, 22f, Sand);
                     go = mb.Spawn("Body", parent, Mat(lib), false);
                     {
-                        var tm = new MeshBuilder(); tm.DBox(0f, 0f, 0f, 7f, 6f, 7f, B); var t = tm.Spawn("Turret", go.transform, Mat(lib), false); t.transform.localPosition = new Vector3(0f, 8f * GalacticMode.U, 0f);
-                        var gm = new MeshBuilder(); gm.DBox(8.5f, 0f, 2f, 17f, 1.5f, 1.5f, D); gm.DBox(8.5f, 0f, -2f, 17f, 1.5f, 1.5f, D); var g = gm.Spawn("Barrel", t.transform, Mat(lib), false); g.transform.localPosition = new Vector3(0f, 1f * GalacticMode.U, 4f * GalacticMode.U); g.transform.localRotation = Quaternion.Euler(-50f, 0f, 0f);
+                        var tm = new MeshBuilder { mat = 2f }; tm.DBox(0f, 0f, 0f, 7f, 6f, 7f, B); var t = tm.Spawn("Turret", go.transform, Mat(lib), false); t.transform.localPosition = new Vector3(0f, 8f * GalacticMode.U, 0f);
+                        var gm = new MeshBuilder { mat = 2f }; gm.DBox(8.5f, 0f, 2f, 17f, 1.5f, 1.5f, D); gm.DBox(8.5f, 0f, -2f, 17f, 1.5f, 1.5f, D); var g = gm.Spawn("Barrel", t.transform, Mat(lib), false); g.transform.localPosition = new Vector3(0f, 1f * GalacticMode.U, 4f * GalacticMode.U); g.transform.localRotation = Quaternion.Euler(-50f, 0f, 0f);
                         turret = t.transform; barrel = g.transform;
                     }
                     break;

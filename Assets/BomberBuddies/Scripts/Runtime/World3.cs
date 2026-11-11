@@ -350,18 +350,29 @@ namespace BomberBuddies
         static readonly Color32[] HOUSE_ROOF = { MeshBuilder.Rgb(181, 69, 47), MeshBuilder.Rgb(150, 62, 48), MeshBuilder.Rgb(74, 85, 96), MeshBuilder.Rgb(120, 86, 60) };
         static readonly Color32[] TOWER_COL = { MeshBuilder.Rgb(222, 210, 184), MeshBuilder.Rgb(196, 138, 104), MeshBuilder.Rgb(150, 172, 180), MeshBuilder.Rgb(206, 194, 150) };
 
+        Vector3 cornerN;
         Color32 CornerColour(int x, int z)
         {
+            x = Mathf.Clamp(x, 0, N3 - 1); z = Mathf.Clamp(z, 0, N3 - 1);
             int k = z * N3 + x;
             float h = hm[k], a = h - SEA;
-            float hL = hm[Mathf.Max(0, k - 1)], hR = hm[Mathf.Min(N3 * N3 - 1, k + 1)], hU = hm[Mathf.Max(0, k - N3)], hD = hm[Mathf.Min(N3 * N3 - 1, k + N3)];
+            float hL = hm[x > 0 ? k - 1 : k], hR = hm[x < N3 - 1 ? k + 1 : k], hU = hm[z > 0 ? k - N3 : k], hD = hm[z < N3 - 1 ? k + N3 : k];
             float nx = (hL - hR) / (2f * BS), nz = (hU - hD) / (2f * BS), ny = 1f / Mathf.Sqrt(nx * nx + 1f + nz * nz);
             float v = Noise3(x / 9f, z / 9f, 77);
             var col = MeshBuilder.Rgb(Mathf.RoundToInt(Mathf.Lerp(94, 118, v)), Mathf.RoundToInt(Mathf.Lerp(125, 150, v)), Mathf.RoundToInt(Mathf.Lerp(58, 72, v)));
             if (a > 70f) col = MeshBuilder.Mix(col, MeshBuilder.Rgb(86, 110, 62), Clamp01((a - 70f) / 60f));
             if (a < 11f) col = MeshBuilder.Mix(col, MeshBuilder.Rgb(222, 205, 150), Clamp01((11f - a) / 6f));
             if (ny < 0.86f) col = MeshBuilder.Mix(col, MeshBuilder.Rgb(143, 103, 59), Clamp01((0.86f - ny) / 0.18f));
-            if (road3[k] != 0) { int nn = Mathf.RoundToInt(Noise3(x / 3f, z / 3f, 5) * 10f); col = MeshBuilder.Rgb(86 + nn, 88 + nn, 90 + nn); }
+            float dd = hm0[k] - h;
+            if (dd > 0.8f)
+            {
+                // dug out: topsoil, then darker earth, then clay
+                float t = Clamp01((dd - 0.8f) / 2.5f), s2 = Clamp01((dd - 9f) / 6f), s3 = Clamp01((dd - 22f) / 8f);
+                var earth = MeshBuilder.Rgb(Mathf.RoundToInt(Mathf.Lerp(Mathf.Lerp(143, 111, s2), 69, s3)), Mathf.RoundToInt(Mathf.Lerp(Mathf.Lerp(103, 76, s2), 58, s3)), Mathf.RoundToInt(Mathf.Lerp(Mathf.Lerp(59, 47, s2), 51, s3)));
+                col = MeshBuilder.Mix(col, earth, t);
+            }
+            cornerN = new Vector3(nx / Spread, 1f, nz / Spread).normalized;
+            if (road3[k] != 0 && dd <= 0.8f) { int nn = Mathf.RoundToInt(Noise3(x / 3f, z / 3f, 5) * 10f); col = MeshBuilder.Rgb(86 + nn, 88 + nn, 90 + nn); }
             if (burn[k] != 0) col = MeshBuilder.Mix(col, MeshBuilder.Rgb(43, 36, 31), burn[k] / 255f * 0.8f);
             return col;
         }
@@ -402,10 +413,12 @@ namespace BomberBuddies
                     float h00 = hm[k], h10 = hm[k + 1], h01 = hm[k + N3], h11 = hm[k + N3 + 1];
                     if (h00 < SEA - 1f && h10 < SEA - 1f && h01 < SEA - 1f && h11 < SEA - 1f) continue;
                     float x0 = (x * BS - MID3) * Spread, z0 = (z * BS - MID3) * Spread, x1 = x0 + BS * Spread, z1 = z0 + BS * Spread;
-                    var c00 = CornerColour(x, z); var c10 = CornerColour(x + 1, z); var c01 = CornerColour(x, z + 1); var c11 = CornerColour(x + 1, z + 1);
-                    // two triangles per cell, each with the average of its corner colours (flat shaded)
-                    mb.Tri(new Vector3(x0, h00, z0), new Vector3(x1, h11, z1), new Vector3(x1, h10, z0), Avg(c00, c10, c11));
-                    mb.Tri(new Vector3(x0, h00, z0), new Vector3(x0, h01, z1), new Vector3(x1, h11, z1), Avg(c00, c11, c01));
+                    var c00 = CornerColour(x, z); var n00 = cornerN; var c10 = CornerColour(x + 1, z); var n10 = cornerN; var c01 = CornerColour(x, z + 1); var n01 = cornerN; var c11 = CornerColour(x + 1, z + 1); var n11 = cornerN;
+                    // two triangles per cell, smooth: each corner carries its own colour and slope, as the original's ground does
+                    mb.mat = 7f;
+                    mb.TriSmooth(new Vector3(x0, h00, z0), new Vector3(x1, h11, z1), new Vector3(x1, h10, z0), c00, c11, c10, n00, n11, n10);
+                    mb.TriSmooth(new Vector3(x0, h00, z0), new Vector3(x0, h01, z1), new Vector3(x1, h11, z1), c00, c01, c11, n00, n01, n11);
+                    mb.mat = 1f;
                     // what stands on the cell
                     float px = x0, pz = z0, ph = h00;
                     if (tree3[k] == 1 || tree3[k] == 2) Tree(k, px, ph, pz, tree3[k]);
@@ -430,13 +443,15 @@ namespace BomberBuddies
         {
             float s = 0.85f + 0.5f * Hash(k + 0.5f), rot = Hash(k + 2.2f) * Mathf.PI * 2f;
             var trunk = MeshBuilder.Rgb(74, 58, 42);
-            mb.Box(x - 1.3f, x + 1.3f, h - 2f, h + 9f * s, z - 1.3f, z + 1.3f, trunk, true);
+            mb.mat = 6f; mb.Box(x - 1.3f, x + 1.3f, h - 2f, h + 9f * s, z - 1.3f, z + 1.3f, trunk, true);
+            mb.mat = 9f;
             if (type == 1)
             {
                 mb.Prism(x, h + 6f * s, h + 19f * s, z, 8f * s, 2.6f * s, 7, rot, MeshBuilder.Rgb(63, 97, 54));
                 mb.Prism(x, h + 16f * s, h + 31f * s, z, 5.6f * s, 0f, 7, rot + 0.4f, MeshBuilder.Rgb(70, 108, 58));
             }
             else mb.Blob(x, h + 17f * s, z, 9f * s, 10f * s, 9f * s, 7, MeshBuilder.Rgb(74, 118, 60));
+            mb.mat = 1f;
             AddCollider(WM(x, h + 4.5f * s, z), new Vector3(2.6f * U, 9f * s * U, 2.6f * U), "Tree");
         }
 
@@ -457,6 +472,7 @@ namespace BomberBuddies
         {
             int look = (house3[k] - 20) % 4; var col = TOWER_COL[look];
             float hw = bhw[k] - 1f; int floors = bfl[k]; float top = floors * FLOOR_H;
+            float wallMat = look == 1 ? 3f : 4f; mb.mat = wallMat;
             mb.Box(x - hw, x + hw, h - 3f, h, z - hw, z + hw, col, true);
             mb.Box(x - hw - 0.4f, x + hw + 0.4f, h, h + 5f, z - hw - 0.4f, z + hw + 0.4f, MeshBuilder.Mul(col, 0.8f), true);
             mb.Box(x - hw, x + hw, h, h + top, z - hw, z + hw, col, true);
@@ -466,10 +482,11 @@ namespace BomberBuddies
             for (int f = 0; f < floors; f += stride)
             {
                 float y0 = h + f * FLOOR_H + 4.5f, y1 = y0 + 5f;
-                var gc = Hash(k + f * 3.3f) > 0.78f ? lit : glass;
+                var gc = Hash(k + f * 3.3f) > 0.78f ? lit : glass; mb.mat = 10f;
                 mb.Box(x - hw + 2f, x + hw - 2f, y0, y1, z - hw - 0.25f, z + hw + 0.25f, gc);
                 mb.Box(x - hw - 0.25f, x + hw + 0.25f, y0, y1, z - hw + 2f, z + hw - 2f, gc);
             }
+            mb.mat = wallMat;
             // cornices every 6th floor, parapet, roof furniture
             for (int f = 6; f < floors; f += 6) { float y = h + f * FLOOR_H; mb.Box(x - hw - 0.8f, x + hw + 0.8f, y, y + 1.2f, z - hw - 0.8f, z + hw + 0.8f, MeshBuilder.Mul(col, 0.86f)); }
             float ty = h + top;
@@ -479,8 +496,9 @@ namespace BomberBuddies
             if (!mobile)
             {
                 mb.Box(x + hw * 0.4f - 2.5f, x + hw * 0.4f + 2.5f, ty, ty + 6f, z - hw * 0.4f - 2.5f, z - hw * 0.4f + 2.5f, MeshBuilder.Rgb(150, 146, 138), true);
-                mb.Box(x - 0.3f, x + 0.3f, ty, ty + 18f, z - 0.3f, z + 0.3f, MeshBuilder.Rgb(60, 60, 64));
+                mb.mat = 2f; mb.Box(x - 0.3f, x + 0.3f, ty, ty + 18f, z - 0.3f, z + 0.3f, MeshBuilder.Rgb(60, 60, 64));
             }
+            mb.mat = 1f;
             var wc = WM(x, h + top * 0.5f, z);
             AddCollider(wc, new Vector3(hw * 2f * U, (top + 3f) * U, hw * 2f * U), "Tower");
             pendingColliders[pendingColliders.Count - 1].AddComponent<BuildingTag>().k = k;
@@ -491,7 +509,8 @@ namespace BomberBuddies
             var H = homes[k];
             float lx = H.lx, lz = H.lz, wh = H.hall ? 16f * 1.55f : 16f, t = 1.3f, rh = 7f, o = 1.5f;
             var wall = HOUSE_WALL[H.wc]; var roof = HOUSE_ROOF[H.rf];
-            mb.Box(x - lx, x + lx, h - 3f, h + 0.35f, z - lz, z + lz, MeshBuilder.Rgb(156, 126, 96), true);
+            float wm = (H.wc & 1) != 0 ? 4f : 3f;
+            mb.mat = 6f; mb.Box(x - lx, x + lx, h - 3f, h + 0.35f, z - lz, z + lz, MeshBuilder.Rgb(156, 126, 96), true); mb.mat = wm;
             // four walls with a doorway in the door wall (0 +x, 1 -x, 2 +z, 3 -z) and a window in each of the others
             float dw = 4.5f, dh = 13f;
             void WallX(float wx, bool door)
@@ -504,7 +523,7 @@ namespace BomberBuddies
                 else
                 {
                     mb.Box(wx - t, wx + t, h, h + wh, z - lz, z + lz, wall, true);
-                    mb.Box(wx - t - 0.2f, wx + t + 0.2f, h + 6f, h + 11f, z - 2.3f, z + 2.3f, MeshBuilder.Rgb(118, 146, 164));
+                    mb.mat = 10f; mb.Box(wx - t - 0.2f, wx + t + 0.2f, h + 6f, h + 11f, z - 2.3f, z + 2.3f, MeshBuilder.Rgb(118, 146, 164)); mb.mat = wm;
                 }
             }
             void WallZ(float wz, bool door)
@@ -517,7 +536,7 @@ namespace BomberBuddies
                 else
                 {
                     mb.Box(x - lx, x + lx, h, h + wh, wz - t, wz + t, wall, true);
-                    mb.Box(x - 2.3f, x + 2.3f, h + 6f, h + 11f, wz - t - 0.2f, wz + t + 0.2f, MeshBuilder.Rgb(118, 146, 164));
+                    mb.mat = 10f; mb.Box(x - 2.3f, x + 2.3f, h + 6f, h + 11f, wz - t - 0.2f, wz + t + 0.2f, MeshBuilder.Rgb(118, 146, 164)); mb.mat = wm;
                 }
             }
             WallX(x + lx, H.door == 0); WallX(x - lx, H.door == 1); WallZ(z + lz, H.door == 2); WallZ(z - lz, H.door == 3);
@@ -526,19 +545,19 @@ namespace BomberBuddies
             float ry = h + wh;
             if (ridgeX)
             {
-                mb.Quad(new Vector3(x - lx - o, ry, z - lz - o), new Vector3(x - lx - o, ry + rh, z), new Vector3(x + lx + o, ry + rh, z), new Vector3(x + lx + o, ry, z - lz - o), roof);
-                mb.Quad(new Vector3(x + lx + o, ry, z + lz + o), new Vector3(x + lx + o, ry + rh, z), new Vector3(x - lx - o, ry + rh, z), new Vector3(x - lx - o, ry, z + lz + o), roof);
+                mb.mat = 5f; mb.Quad(new Vector3(x - lx - o, ry, z - lz - o), new Vector3(x - lx - o, ry + rh, z), new Vector3(x + lx + o, ry + rh, z), new Vector3(x + lx + o, ry, z - lz - o), roof); mb.mat = wm;
+                mb.mat = 5f; mb.Quad(new Vector3(x + lx + o, ry, z + lz + o), new Vector3(x + lx + o, ry + rh, z), new Vector3(x - lx - o, ry + rh, z), new Vector3(x - lx - o, ry, z + lz + o), roof); mb.mat = wm;
                 mb.Tri(new Vector3(x + lx, ry, z - lz), new Vector3(x + lx, ry + rh, z), new Vector3(x + lx, ry, z + lz), wall);
                 mb.Tri(new Vector3(x - lx, ry, z + lz), new Vector3(x - lx, ry + rh, z), new Vector3(x - lx, ry, z - lz), wall);
             }
             else
             {
-                mb.Quad(new Vector3(x + lx + o, ry, z - lz - o), new Vector3(x, ry + rh, z - lz - o), new Vector3(x, ry + rh, z + lz + o), new Vector3(x + lx + o, ry, z + lz + o), roof);
-                mb.Quad(new Vector3(x - lx - o, ry, z + lz + o), new Vector3(x, ry + rh, z + lz + o), new Vector3(x, ry + rh, z - lz - o), new Vector3(x - lx - o, ry, z - lz - o), roof);
+                mb.mat = 5f; mb.Quad(new Vector3(x + lx + o, ry, z - lz - o), new Vector3(x, ry + rh, z - lz - o), new Vector3(x, ry + rh, z + lz + o), new Vector3(x + lx + o, ry, z + lz + o), roof); mb.mat = wm;
+                mb.mat = 5f; mb.Quad(new Vector3(x - lx - o, ry, z + lz + o), new Vector3(x, ry + rh, z + lz + o), new Vector3(x, ry + rh, z - lz - o), new Vector3(x - lx - o, ry, z - lz - o), roof); mb.mat = wm;
                 mb.Tri(new Vector3(x - lx, ry, z - lz), new Vector3(x, ry + rh, z - lz), new Vector3(x + lx, ry, z - lz), wall);
                 mb.Tri(new Vector3(x + lx, ry, z + lz), new Vector3(x, ry + rh, z + lz), new Vector3(x - lx, ry, z + lz), wall);
             }
-            mb.Box(x + lx * 0.5f - 1.2f, x + lx * 0.5f + 1.2f, ry + 2f, ry + rh + 2f, z - 1.2f, z + 1.2f, MeshBuilder.Rgb(120, 90, 80), true);
+            mb.mat = 3f; mb.Box(x + lx * 0.5f - 1.2f, x + lx * 0.5f + 1.2f, ry + 2f, ry + rh + 2f, z - 1.2f, z + 1.2f, MeshBuilder.Rgb(120, 90, 80), true); mb.mat = 1f;
             // colliders: the four walls (with the doorway left open) and the roof slab
             var c = new Vector3(x, 0f, z);
             float wy = h + wh * 0.5f;
@@ -573,39 +592,44 @@ namespace BomberBuddies
             int kind = (house3[k] - 1) % 4;
             float lx = (kind & 1) != 0 ? 13f : 9f, lz = (kind & 1) != 0 ? 9f : 13f, y0 = h - 3f, y1 = h + 11f, rh = 8f, o = 1.6f;
             var wall = HOUSE_WALL[kind]; var roof = HOUSE_ROOF[kind];
+            float wm = (kind & 1) != 0 ? 4f : 3f; mb.mat = wm;
             mb.Box(x - lx, x + lx, y0, y1, z - lz, z + lz, wall, true);
             bool ridgeX = lx > lz;
             if (ridgeX)
             {
-                mb.Quad(new Vector3(x - lx - o, y1, z - lz - o), new Vector3(x - lx - o, y1 + rh, z), new Vector3(x + lx + o, y1 + rh, z), new Vector3(x + lx + o, y1, z - lz - o), roof);
-                mb.Quad(new Vector3(x + lx + o, y1, z + lz + o), new Vector3(x + lx + o, y1 + rh, z), new Vector3(x - lx - o, y1 + rh, z), new Vector3(x - lx - o, y1, z + lz + o), roof);
+                mb.mat = 5f; mb.Quad(new Vector3(x - lx - o, y1, z - lz - o), new Vector3(x - lx - o, y1 + rh, z), new Vector3(x + lx + o, y1 + rh, z), new Vector3(x + lx + o, y1, z - lz - o), roof); mb.mat = wm;
+                mb.mat = 5f; mb.Quad(new Vector3(x + lx + o, y1, z + lz + o), new Vector3(x + lx + o, y1 + rh, z), new Vector3(x - lx - o, y1 + rh, z), new Vector3(x - lx - o, y1, z + lz + o), roof); mb.mat = wm;
                 mb.Tri(new Vector3(x + lx, y1, z - lz), new Vector3(x + lx, y1 + rh, z), new Vector3(x + lx, y1, z + lz), wall);
                 mb.Tri(new Vector3(x - lx, y1, z + lz), new Vector3(x - lx, y1 + rh, z), new Vector3(x - lx, y1, z - lz), wall);
-                mb.Box(x + lx, x + lx + 0.3f, h, h + 9.5f, z - 1.6f, z + 1.6f, MeshBuilder.Rgb(74, 58, 42));
+                mb.mat = 6f; mb.Box(x + lx, x + lx + 0.3f, h, h + 9.5f, z - 1.6f, z + 1.6f, MeshBuilder.Rgb(74, 58, 42));
             }
             else
             {
-                mb.Quad(new Vector3(x + lx + o, y1, z - lz - o), new Vector3(x, y1 + rh, z - lz - o), new Vector3(x, y1 + rh, z + lz + o), new Vector3(x + lx + o, y1, z + lz + o), roof);
-                mb.Quad(new Vector3(x - lx - o, y1, z + lz + o), new Vector3(x, y1 + rh, z + lz + o), new Vector3(x, y1 + rh, z - lz - o), new Vector3(x - lx - o, y1, z - lz - o), roof);
+                mb.mat = 5f; mb.Quad(new Vector3(x + lx + o, y1, z - lz - o), new Vector3(x, y1 + rh, z - lz - o), new Vector3(x, y1 + rh, z + lz + o), new Vector3(x + lx + o, y1, z + lz + o), roof); mb.mat = wm;
+                mb.mat = 5f; mb.Quad(new Vector3(x - lx - o, y1, z + lz + o), new Vector3(x, y1 + rh, z + lz + o), new Vector3(x, y1 + rh, z - lz - o), new Vector3(x - lx - o, y1, z - lz - o), roof); mb.mat = wm;
                 mb.Tri(new Vector3(x - lx, y1, z - lz), new Vector3(x, y1 + rh, z - lz), new Vector3(x + lx, y1, z - lz), wall);
                 mb.Tri(new Vector3(x + lx, y1, z + lz), new Vector3(x, y1 + rh, z + lz), new Vector3(x - lx, y1, z + lz), wall);
-                mb.Box(x - 1.6f, x + 1.6f, h, h + 9.5f, z + lz, z + lz + 0.3f, MeshBuilder.Rgb(74, 58, 42));
+                mb.mat = 6f; mb.Box(x - 1.6f, x + 1.6f, h, h + 9.5f, z + lz, z + lz + 0.3f, MeshBuilder.Rgb(74, 58, 42));
             }
+            mb.mat = 1f;
             AddCollider(WM(x, (y0 + y1 + rh) * 0.5f, z), new Vector3(2f * lx * U, (y1 + rh - y0) * U, 2f * lz * U), "House");
         }
 
         void FuelTank(float x, float h, float z)
         {
+            mb.mat = 2f;
             mb.Prism(x, h - 2f, h + 12f, z, 8f, 8f, 10, 0f, MeshBuilder.Rgb(226, 226, 214));
             mb.Prism(x, h + 12f, h + 15.5f, z, 8f, 0f, 10, 0f, MeshBuilder.Rgb(206, 206, 196));
             mb.Prism(x, h + 5f, h + 7.2f, z, 8.15f, 8.15f, 10, 0f, MeshBuilder.Rgb(181, 69, 47));
             mb.Box(x + 8f, x + 9f, h, h + 12f, z - 1f, z + 1f, MeshBuilder.Rgb(74, 85, 96));
+            mb.mat = 1f;
             AddCollider(WM(x, h + 5f, z), new Vector3(16f * U, 14f * U, 16f * U), "Tank");
         }
 
         void CoverMesh(Cover c)
         {
             float h = HAt0(c.x, c.z), x = (c.x - MID3) * Spread, z = (c.z - MID3) * Spread;
+            mb.mat = c.kind == "car" ? 2f : c.kind == "barrier" ? 4f : 13f;
             switch (c.kind)
             {
                 case "car":
@@ -638,6 +662,7 @@ namespace BomberBuddies
                     }
                     break;
             }
+            mb.mat = 1f;
         }
 
         void AddColliderYaw(float x, float y, float z, float len, float h, float wid, float yaw)
@@ -664,10 +689,10 @@ namespace BomberBuddies
 
         void BuildRidges()
         {
-            mb.Clear();
+            mb.Clear(); mb.mat = 0f;
             Ridge(13500f, 150f, 900f, 5f, 13f, 1.1f, MeshBuilder.Emissive(MeshBuilder.Rgb(168, 188, 186)));
             Ridge(11000f, 90f, 520f, 7f, 19f, 4.2f, MeshBuilder.Emissive(MeshBuilder.Rgb(140, 165, 148)));
-            var go = mb.Spawn("Ridges", transform, lowPoly, false, false);
+            var go = mb.Spawn("Ridges", transform, lowPoly, false, false); mb.mat = 1f;
         }
 
         void Ridge(float R, float b, float amp, float f1, float f2, float ph, Color32 col)
@@ -686,7 +711,7 @@ namespace BomberBuddies
 
         void BuildClouds()
         {
-            mb.Clear();
+            mb.Clear(); mb.mat = 0f;
             int lowN = mobile ? 14 : 26, hiN = mobile ? 10 : 22;
             for (int i = 0; i < lowN; i++)
             {
@@ -703,7 +728,7 @@ namespace BomberBuddies
                 mb.Blob(x, y, z, sx, 40f, sz, 9, MeshBuilder.Emissive(MeshBuilder.Rgb(252, 253, 252)));
                 mb.Blob(x + sx * 0.5f, y - 8f, z - sz * 0.25f, sx * 0.6f, 28f, sz * 0.6f, 9, MeshBuilder.Emissive(MeshBuilder.Rgb(247, 250, 249)));
             }
-            mb.Spawn("Clouds", transform, lowPoly, false, false);
+            mb.Spawn("Clouds", transform, lowPoly, false, false); mb.mat = 1f;
         }
     }
 }

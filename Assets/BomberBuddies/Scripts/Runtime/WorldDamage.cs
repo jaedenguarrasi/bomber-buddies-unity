@@ -140,7 +140,7 @@ namespace BomberBuddies
             int keep = Mathf.Clamp(atFloor, 0, floors - 1); int gone = floors - keep;
             if (gone <= 0) gone = floors;
             // the falling section as its own mesh, hinged on the far edge in the direction it falls
-            var fm = new MeshBuilder();
+            var fm = new MeshBuilder { mat = 4f };
             float len = gone * FLOOR_H;
             fm.Box(-hw, hw, 0f, len, -hw, hw, col, true);
             var glass = MeshBuilder.Rgb(104, 128, 142);
@@ -186,9 +186,11 @@ namespace BomberBuddies
         {
             float s = 0.6f + Hash(k + 7.7f) * 0.5f;
             var col = MeshBuilder.Rgb(132, 124, 112);
+            mb.mat = 11f;
             mb.Box(x - 9f * s, x + 9f * s, h - 1f, h + 2.5f * s, z - 9f * s, z + 9f * s, col, true);
             mb.Box(x - 5f * s, x + 6f * s, h + 2f * s, h + 5f * s, z - 4f * s, z + 5f * s, MeshBuilder.Mul(col, 0.9f), true);
             mb.Box(x + 2f, x + 7f * s, h + 2f, h + 7f * s, z - 7f * s, z - 2f, MeshBuilder.Mul(col, 0.8f), true);
+            mb.mat = 1f;
             AddCollider(WM(x, h + 2f * s, z), new Vector3(18f * s * U, 4f * s * U, 18f * s * U), "Rubble");
         }
 
@@ -196,7 +198,7 @@ namespace BomberBuddies
         void Shed(Vector3 at, Vector3 vel, Color32 col, float size)
         {
             if (debris.Count > 90) { var d0 = debris[0]; if (d0.t != null) Destroy(d0.t.gameObject); debris.RemoveAt(0); }
-            var m = new MeshBuilder(); float s = size / U;
+            var m = new MeshBuilder { mat = 4f }; float s = size / U;
             m.Box(-s * 0.5f, s * 0.5f, -s * 0.35f, s * 0.35f, -s * 0.4f, s * 0.4f, col, true);
             var go = m.Spawn("Debris", transform, lowPoly, false, false);
             go.transform.position = at; go.transform.rotation = Random.rotation;

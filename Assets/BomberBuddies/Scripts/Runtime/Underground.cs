@@ -52,14 +52,14 @@ namespace BomberBuddies
         /// <summary>A rectangular space: floor, ceiling and four thick walls, with the given openings left out (gaps along a wall).</summary>
         void Room(Vector3 min, Vector3 max, Color32 wall, Color32 floor, Color32 ceil, float thick = 2f)
         {
-            var mb = new MeshBuilder { scale = 1f };
+            var mb = new MeshBuilder { scale = 1f, mat = 4f };
             mb.Box(new Vector3(min.x - thick, min.y - thick, min.z - thick), new Vector3(max.x + thick, min.y, max.z + thick), floor, true);
             mb.Box(new Vector3(min.x - thick, max.y, min.z - thick), new Vector3(max.x + thick, max.y + thick, max.z + thick), ceil, true);
             Piece(mb, "Slab", true);
         }
         void Wall(Vector3 a, Vector3 b, float h, float y0, Color32 col, float thick = 2f)
         {
-            var mb = new MeshBuilder { scale = 1f };
+            var mb = new MeshBuilder { scale = 1f, mat = 4f };
             var min = Vector3.Min(a, b); var max = Vector3.Max(a, b);
             if (Mathf.Approximately(min.x, max.x)) { min.x -= thick * 0.5f; max.x += thick * 0.5f; } else { min.z -= thick * 0.5f; max.z += thick * 0.5f; }
             mb.Box(new Vector3(min.x, y0, min.z), new Vector3(max.x, y0 + h, max.z), col, true);
@@ -67,12 +67,12 @@ namespace BomberBuddies
         }
         void Lamp(Vector3 at, Color32 col, float size = 0.6f)
         {
-            var mb = new MeshBuilder { scale = 1f }; mb.Box(at - Vector3.one * size * 0.5f, at + Vector3.one * size * 0.5f, col); Piece(mb, "Lamp", false);
+            var mb = new MeshBuilder { scale = 1f, mat = 4f }; mb.Box(at - Vector3.one * size * 0.5f, at + Vector3.one * size * 0.5f, col); Piece(mb, "Lamp", false);
         }
         Health Breakable(string name, Vector3 min, Vector3 max, Color32 col, float hp, System.Action<Health> onDied)
         {
             var go = new GameObject(name); go.transform.SetParent(transform, false); go.layer = 9;
-            var mb = new MeshBuilder { scale = 1f }; mb.Box(min, max, col, true); var g = mb.Spawn("Body", go.transform, mat, true, false); g.layer = 9;
+            var mb = new MeshBuilder { scale = 1f, mat = 4f }; mb.Box(min, max, col, true); var g = mb.Spawn("Body", go.transform, mat, true, false); g.layer = 9;
             var h = go.AddComponent<Health>(); h.max = hp; h.current = hp; h.team = 1; h.aimHeight = (max.y - min.y) * 0.5f; go.transform.position = Vector3.zero;
             var hz = g.AddComponent<HitZone>(); hz.owner = h; hz.multiplier = 1f;
             h.OnDied += info => { onDied(h); Destroy(go); };
@@ -91,13 +91,13 @@ namespace BomberBuddies
             Wall(c + new Vector3(-W * 0.5f, 0f, -L * 0.5f), c + new Vector3(W * 0.5f, 0f, -L * 0.5f), H, c.y, rock);
             Wall(c + new Vector3(-W * 0.5f, 0f, L * 0.5f), c + new Vector3(W * 0.5f, 0f, L * 0.5f), H, c.y, rock);
             // the rails down the middle, platforms either side at two stations, pillars, stopped trains
-            var mb = new MeshBuilder { scale = 1f };
+            var mb = new MeshBuilder { scale = 1f, mat = 4f };
             for (int s = -1; s <= 1; s += 2) mb.Box(c + new Vector3(s * 1.4f - 0.08f, 0f, -L * 0.5f), c + new Vector3(s * 1.4f + 0.08f, 0.15f, L * 0.5f), C(140, 140, 150));
             for (float z = -L * 0.5f; z < L * 0.5f; z += 1.2f) mb.Box(c + new Vector3(-1.8f, 0f, z), c + new Vector3(1.8f, 0.1f, z + 0.3f), C(90, 70, 50));
             Piece(mb, "Rails", false);
             foreach (float sz in new[] { -120f, 90f })
             {
-                var pm = new MeshBuilder { scale = 1f };
+                var pm = new MeshBuilder { scale = 1f, mat = 4f };
                 pm.Box(c + new Vector3(-W * 0.5f, 0f, sz - 40f), c + new Vector3(-2.6f, 1.1f, sz + 40f), tile, true);
                 pm.Box(c + new Vector3(2.6f, 0f, sz - 40f), c + new Vector3(W * 0.5f, 1.1f, sz + 40f), tile, true);
                 for (float z = sz - 36f; z <= sz + 36f; z += 12f) { pm.Box(c + new Vector3(-4.6f, 1.1f, z - 0.4f), c + new Vector3(-3.8f, H, z + 0.4f), C(100, 100, 108), true); pm.Box(c + new Vector3(3.8f, 1.1f, z - 0.4f), c + new Vector3(4.6f, H, z + 0.4f), C(100, 100, 108), true); }
@@ -110,7 +110,7 @@ namespace BomberBuddies
             {
                 for (int car = 0; car < 2; car++)
                 {
-                    float z0 = tz + car * 19f; var tm = new MeshBuilder { scale = 1f }; var body = C(60, 90, 140);
+                    float z0 = tz + car * 19f; var tm = new MeshBuilder { scale = 1f, mat = 4f }; var body = C(60, 90, 140);
                     tm.Box(c + new Vector3(-1.5f, 0.4f, z0), c + new Vector3(1.5f, 0.7f, z0 + 18f), C(40, 40, 44), true);   // the floor of the car
                     tm.Box(c + new Vector3(-1.5f, 0.7f, z0), c + new Vector3(-1.35f, 3.4f, z0 + 18f), body, true);          // left side
                     for (float z = z0; z < z0 + 18f; z += 6f) tm.Box(c + new Vector3(1.35f, 0.7f, z), c + new Vector3(1.5f, 3.4f, z + 3.5f), body, true);   // right side with door gaps
@@ -129,7 +129,7 @@ namespace BomberBuddies
 
         void LadderShaft(Vector3 at, float H)
         {
-            var mb = new MeshBuilder { scale = 1f };
+            var mb = new MeshBuilder { scale = 1f, mat = 4f };
             mb.Box(at + new Vector3(-0.5f, 0f, -0.2f), at + new Vector3(0.5f, H + 1f, 0.2f), C(160, 140, 90), true);
             for (float y = 0.4f; y < H; y += 0.5f) mb.Box(at + new Vector3(-0.5f, y, -0.3f), at + new Vector3(0.5f, y + 0.08f, 0.3f), C(190, 170, 110));
             Piece(mb, "Ladder", false);
@@ -176,7 +176,7 @@ namespace BomberBuddies
                 var room = (rmin + rmax) * 0.5f;
                 dumps.Add(Breakable("Ammo dump", amin, amax, C(110, 90, 50), 30f, h => { Sfx.Play("expl_huge", 1f, 0.8f, room); if (GalacticMode.Instance != null) GalacticMode.Instance.Shake(1f); if (Projectiles.Instance != null) Projectiles.Instance.Explode(room + Vector3.up, 12f, 22f, 400f * GalacticMode.K, null, 2); if (GameState.Hud != null) GameState.Hud.Comms("The ammo dump went up"); }));
                 Lamp(room + Vector3.up * (H - 0.3f), E(255, 200, 150), 0.4f);
-                for (int k = 0; k < 3; k++) { var cb = new MeshBuilder { scale = 1f }; var p = room + new Vector3(Random.Range(-8f, 8f), 0f, Random.Range(-8f, 8f)); cb.Box(p + new Vector3(-0.8f, 0f, -0.8f), p + new Vector3(0.8f, 1.2f, 0.8f), C(100, 80, 55), true); Piece(cb, "Crate", true); }
+                for (int k = 0; k < 3; k++) { var cb = new MeshBuilder { scale = 1f, mat = 4f }; var p = room + new Vector3(Random.Range(-8f, 8f), 0f, Random.Range(-8f, 8f)); cb.Box(p + new Vector3(-0.8f, 0f, -0.8f), p + new Vector3(0.8f, 1.2f, 0.8f), C(100, 80, 55), true); Piece(cb, "Crate", true); }
                 n++;
             }
             spawn = c + new Vector3(0f, 0.2f, -L * 0.5f + 8f);
@@ -196,7 +196,7 @@ namespace BomberBuddies
             Wall(c + new Vector3(-S * 0.5f, 0f, -S * 0.5f), c + new Vector3(S * 0.5f, 0f, -S * 0.5f), H, c.y, rock, 4f);
             Wall(c + new Vector3(-S * 0.5f, 0f, S * 0.5f), c + new Vector3(S * 0.5f, 0f, S * 0.5f), H, c.y, rock, 4f);
             // lava pools that glow, pillars of rock, fire
-            var lv = new MeshBuilder { scale = 1f };
+            var lv = new MeshBuilder { scale = 1f, mat = 4f };
             for (int i = 0; i < 14; i++)
             {
                 var p = c + new Vector3(Random.Range(-S * 0.42f, S * 0.42f), 0f, Random.Range(-S * 0.42f, S * 0.42f));
@@ -207,7 +207,7 @@ namespace BomberBuddies
             for (int i = 0; i < 18; i++)
             {
                 var p = c + new Vector3(Random.Range(-S * 0.45f, S * 0.45f), 0f, Random.Range(-S * 0.45f, S * 0.45f));
-                var pb = new MeshBuilder { scale = 1f }; float r = Random.Range(2f, 5f), h = Random.Range(12f, H);
+                var pb = new MeshBuilder { scale = 1f, mat = 4f }; float r = Random.Range(2f, 5f), h = Random.Range(12f, H);
                 pb.Prism(p.x, p.y, p.y + h, p.z, r, r * 0.6f, 6, Random.Range(0f, 1f), rock); Piece(pb, "Pillar", true);
             }
             for (int i = 0; i < 24; i++) Lamp(c + new Vector3(Random.Range(-S * 0.45f, S * 0.45f), Random.Range(2f, H - 4f), Random.Range(-S * 0.45f, S * 0.45f)), E(255, 150, 40), 0.8f);

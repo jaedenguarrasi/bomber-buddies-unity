@@ -13,6 +13,9 @@ namespace BomberBuddies
         readonly List<Vector3> verts = new List<Vector3>();
         readonly List<Vector3> normals = new List<Vector3>();
         readonly List<Color32> colors = new List<Color32>();
+        readonly List<Vector2> uvs = new List<Vector2>();
+        /// <summary>The surface written with each corner, as the original's MAT: 1 plain, 2 metal panels, 3 brick, 4 plaster or concrete, 5 roof tiles, 6 wood, 7 grass and ground, 8 water, 9 leaves, 10 glass, 11 rubble and rock, 12 skin, 13 camouflage cloth, 14 scales, 15 leather and kit, 16 fur.</summary>
+        public float mat = 1f;
         readonly List<int> tris = new List<int>();
         public int VertexCount { get { return verts.Count; } }
 
@@ -32,6 +35,18 @@ namespace BomberBuddies
             verts.Add(a * scale); verts.Add(b * scale); verts.Add(c * scale);
             normals.Add(n); normals.Add(n); normals.Add(n);
             colors.Add(col); colors.Add(col); colors.Add(col);
+            var uv = new Vector2(mat, 0f); uvs.Add(uv); uvs.Add(uv); uvs.Add(uv);
+            tris.Add(i); tris.Add(i + 1); tris.Add(i + 2);
+        }
+
+        /// <summary>A triangle with its own colour and normal at each corner (the original's smooth ground).</summary>
+        public void TriSmooth(Vector3 a, Vector3 b, Vector3 c, Color32 ca, Color32 cb, Color32 cc, Vector3 na, Vector3 nb, Vector3 nc)
+        {
+            int i = verts.Count;
+            verts.Add(a * scale); verts.Add(b * scale); verts.Add(c * scale);
+            normals.Add(na); normals.Add(nb); normals.Add(nc);
+            colors.Add(ca); colors.Add(cb); colors.Add(cc);
+            var uv = new Vector2(mat, 0f); uvs.Add(uv); uvs.Add(uv); uvs.Add(uv);
             tris.Add(i); tris.Add(i + 1); tris.Add(i + 2);
         }
 
@@ -122,12 +137,12 @@ namespace BomberBuddies
         {
             var m = new Mesh { name = name };
             m.indexFormat = verts.Count > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
-            m.SetVertices(verts); m.SetNormals(normals); m.SetColors(colors); m.SetTriangles(tris, 0);
+            m.SetVertices(verts); m.SetNormals(normals); m.SetColors(colors); m.SetUVs(3, uvs); m.SetTriangles(tris, 0);
             m.RecalculateBounds();
             return m;
         }
 
-        public void Clear() { verts.Clear(); normals.Clear(); colors.Clear(); tris.Clear(); }
+        public void Clear() { verts.Clear(); normals.Clear(); colors.Clear(); uvs.Clear(); tris.Clear(); }
 
         /// <summary>A game object showing this mesh with the low-poly material, optionally with a mesh collider.</summary>
         public GameObject Spawn(string name, Transform parent, Material mat, bool collider, bool castShadows = true)
