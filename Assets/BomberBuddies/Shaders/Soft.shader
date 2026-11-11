@@ -17,6 +17,7 @@ Shader "BomberBuddies/Soft"
             #pragma fragment frag
             #pragma multi_compile_fog
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
             float4 _NightLight;
             struct Attributes { float4 positionOS : POSITION; float4 color : COLOR; float2 uv : TEXCOORD0; };
             struct Varyings { float4 positionCS : SV_POSITION; float4 color : COLOR; float glow : TEXCOORD0; float fogFactor : TEXCOORD1; };
