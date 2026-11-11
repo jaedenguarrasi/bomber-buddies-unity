@@ -69,7 +69,7 @@ namespace BomberBuddies
             return new Vector2(f(v.x), f(v.y));
         }
         /// <summary>A real controller (not the on-screen one the touch layer drives).</summary>
-        public static bool RealPad(Gamepad gp) { return gp != null && (!string.IsNullOrEmpty(gp.description.interfaceName) || !string.IsNullOrEmpty(gp.description.product)) && gp.description.interfaceName != "OnScreen"; }
+        public static bool RealPad(Gamepad gp) { if (gp != null && gp.name != null && gp.name.StartsWith(XrHands.PadName)) return true; return gp != null && (!string.IsNullOrEmpty(gp.description.interfaceName) || !string.IsNullOrEmpty(gp.description.product)) && gp.description.interfaceName != "OnScreen"; }
         public float stickDegPerSecond = 170f;
         public float touchDegPerPixel = 0.16f;
 
@@ -80,6 +80,7 @@ namespace BomberBuddies
         {
             Instance = this;
             IsTouch = Application.isMobilePlatform;
+            XrHands.Create(transform);
             move = new InputAction("Move", InputActionType.Value);
             move.AddCompositeBinding("2DVector").With("Up", "<Keyboard>/w").With("Down", "<Keyboard>/s").With("Left", "<Keyboard>/a").With("Right", "<Keyboard>/d");
             move.AddCompositeBinding("2DVector").With("Up", "<Keyboard>/upArrow").With("Down", "<Keyboard>/downArrow").With("Left", "<Keyboard>/leftArrow").With("Right", "<Keyboard>/rightArrow");

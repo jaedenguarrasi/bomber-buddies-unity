@@ -22,7 +22,7 @@ namespace BomberBuddies.Editor
     [InitializeOnLoad]
     public static class ProjectBootstrap
     {
-        public const int SetupVersion = 3;
+        public const int SetupVersion = 4;
         const string Root = "Assets/BomberBuddies";
         const string SettingsDir = Root + "/Settings", MaterialsDir = Root + "/Materials", ScenesDir = Root + "/Scenes";
         public const string ScenePath = ScenesDir + "/Island.unity";
@@ -63,6 +63,7 @@ namespace BomberBuddies.Editor
             SetupPlayerSettings();
             SetupIcons();
             SetupLayers();
+            XrSetup.Run();
             bool restart = SetupInputHandler();
 
             if (marker == null) { marker = ScriptableObject.CreateInstance<SetupMarker>(); marker.version = SetupVersion; AssetDatabase.CreateAsset(marker, MarkerPath); }
