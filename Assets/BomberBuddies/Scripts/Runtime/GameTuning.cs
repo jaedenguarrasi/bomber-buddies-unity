@@ -13,7 +13,7 @@ namespace BomberBuddies
     public static class GameTuning
     {
         /// <summary>Movement speed multiplier for aircraft and vehicles (1 = the original's pace).</summary>
-        public static float Pace = 0.75f;
+        public static float Pace = 1f;
         /// <summary>Island spread (1 = the original's island).</summary>
         public static float Spread { get { return World3.Spread; } set { World3.Spread = value; } }
     }
