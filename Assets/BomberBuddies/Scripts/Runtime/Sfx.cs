@@ -43,7 +43,7 @@ namespace BomberBuddies
                 List<AudioClip> l; if (!bank.TryGetValue(key, out l)) { l = new List<AudioClip>(); bank[key] = l; }
                 l.Add(c);
             }
-            for (int i = 0; i < 24; i++) pool.Add(NewSource("voice " + i));
+            for (int i = 0; i < 40; i++) pool.Add(NewSource("voice " + i));
             music = NewSource("music"); music.loop = true; music.spatialBlend = 0f; music.clip = musicClip; music.volume = 0f;
             musicLp = music.gameObject.AddComponent<AudioLowPassFilter>(); musicLp.cutoffFrequency = 22000f;
             if (musicClip != null) music.Play();
@@ -85,12 +85,14 @@ namespace BomberBuddies
             name = Alias(name, ref pitch);
             List<AudioClip> l; if (!bank.TryGetValue(name, out l) || l.Count == 0) return;
             int i = Random.Range(0, l.Count); int prev; if (l.Count > 1 && last.TryGetValue(name, out prev) && prev == i) i = (i + 1) % l.Count; last[name] = i;
+            // the original's att3: a sound fades with distance down to a tenth and no further (nothing ever goes silent), and it
+            // plays straight in your ears, not placed left or right. The island here is stretched sideways, so distance is measured unstretched.
             float at = 1f;
-            if (pos.HasValue && Ear != null) { at = Mathf.Clamp(1f - Vector3.Distance(pos.Value, Ear.position) / 180f, 0.1f, 1f); if (at < 0.11f) return; }
+            if (pos.HasValue && Ear != null) { var d = pos.Value - Ear.position; d.x /= World3.Spread; d.z /= World3.Spread; at = Mathf.Clamp(1f - d.magnitude / 180f, 0.1f, 1f); }
             AudioSource src = null; foreach (var a in pool) if (!a.isPlaying) { src = a; break; }
-            if (src == null) src = pool[Random.Range(0, pool.Count)];
-            src.transform.position = pos.HasValue ? pos.Value : (Ear != null ? Ear.position : Vector3.zero);
-            src.spatialBlend = pos.HasValue ? 0.8f : 0f;
+            if (src == null) { float low = 2f; foreach (var a in pool) if (a.volume < low) { low = a.volume; src = a; } }   // all busy: the quietest one gives way
+            src.transform.position = Ear != null ? Ear.position : Vector3.zero;
+            src.spatialBlend = 0f;
             src.pitch = pitch * Random.Range(0.94f, 1.06f);
             src.volume = Mathf.Clamp01(vol * at);
             src.clip = l[i]; src.Play();
@@ -161,8 +163,9 @@ namespace BomberBuddies
             {
                 boostK = Mathf.Lerp(boostK, Boosting ? 1f : 0f, Mathf.Min(1f, Time.unscaledDeltaTime * 6f));
                 float want = (MusicOn && !Muted) ? 0.5f + 0.22f * boostK : 0f;
-                music.volume = Mathf.Lerp(music.volume, want * 0.55f, Mathf.Min(1f, Time.unscaledDeltaTime * 6f));
-                musicLp.cutoffFrequency = Mathf.Lerp(22000f, 2600f, boostK);
+                music.volume = Mathf.Lerp(music.volume, want, Mathf.Min(1f, Time.unscaledDeltaTime * 6f));
+                // boosting: the original pushes the bass up 12 dB and the top down 5 dB (shelves); the nearest thing here is a gentle roll-off of the top
+                musicLp.cutoffFrequency = Mathf.Lerp(22000f, 5200f, boostK);
                 music.pitch = Mathf.Lerp(music.pitch, MusicRate, Mathf.Min(1f, Time.unscaledDeltaTime * 4f));
                 music.ignoreListenerPause = true;
             }

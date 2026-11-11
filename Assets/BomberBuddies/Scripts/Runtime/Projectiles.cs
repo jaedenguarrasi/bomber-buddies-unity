@@ -263,7 +263,7 @@ namespace BomberBuddies
             if (Fx.Instance != null) Fx.Instance.Explosion(at, Mathf.Clamp(Mathf.Max(coreR, dmgR * 0.25f) / GalacticMode.U, 4f, 90f));
             else Flash(at, Mathf.Max(1f, dmgR * 0.45f));
             if (World3.Instance != null && (team != 2 || fromNet)) World3.Instance.Blast(at, dmgR, dmg);
-            Sfx.Play(dmgR > 20f ? "expl_huge" : dmgR > 6f ? "expl_big" : "expl_small", dmgR > 6f ? 0.9f : 0.7f, 1f, at);
+            { float cr = Mathf.Max(coreR, dmgR * 0.25f) / GalacticMode.U; Sfx.Play(cr < 22f ? "expl_small" : cr < 60f ? "expl_big" : "expl_huge", cr < 22f ? 0.75f : 1f, 1f, at); }   // the original picks the bang by the size of the blast
             if (fromNet) { Shake(at, dmgR); return; }   // another phone's blast: the look and the crater, the damage was done there
             if (NetSync.Instance != null) NetSync.Instance.Explosion(at, coreR, dmgR, dmg);
             var seen = new HashSet<Object>();

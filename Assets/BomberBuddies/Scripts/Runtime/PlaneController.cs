@@ -685,11 +685,8 @@ namespace BomberBuddies
         {
             if (!Active) return;
             if (boosting && docked == null) Sfx.Boosting = true;
-            if (IsSaucer) Sfx.Loop("engine", "ufo_hum", 0.35f, 0.9f + thr * 0.3f);
-            else if (IsBeast) { if (Mathf.Repeat(Time.time, 1.3f) < Time.deltaTime) Sfx.Play("flap", 0.4f, craft == Craft.Ptero ? 1.4f : 0.8f, transform.position); }
-            else if (craft == Craft.Skyjack) Sfx.Loop("engine", "rotor_loop", 0.3f, 1.8f + thr * 0.4f);
-            else if (IsHeli) Sfx.Loop("engine", "rotor_loop", Landed && thr < 0.2f ? 0.25f : 0.5f, 0.85f + thr * 0.35f + (boosting ? 0.15f : 0f));
-            else Sfx.Loop("engine", "engine_loop", docked != null ? 0.2f : 0.45f, 0.7f + thr * 0.5f + Mathf.Clamp01(speedU / 600f) * 0.3f + (boosting ? 0.25f : 0f));
+            // the original has no engine drone at all: only the music, which thickens when you boost
+            if (IsBeast) { if (Mathf.Repeat(Time.time, 1.3f) < Time.deltaTime) Sfx.Play("flap", 0.4f, craft == Craft.Ptero ? 1.4f : 0.8f, transform.position); }
         }
 
         void DropBomb()

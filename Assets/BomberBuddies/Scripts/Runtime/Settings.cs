@@ -133,7 +133,7 @@ namespace BomberBuddies
         /// <summary>Push the ones other systems do not poll: volume, the legacy statics, the layout, the graphics.</summary>
         public static void Apply()
         {
-            AudioListener.volume = Volume;
+            AudioListener.volume = 0.86f * Volume;   // the original's master level
             Sfx.MusicOn = Music;
             PauseMenu.Sensitivity = LookSens; PauseMenu.InvertY = InvertY; PauseMenu.BigButtons = BigButtons; PauseMenu.Lefty = Lefty; PauseMenu.Tilt = Steer == "tilt"; PauseMenu.Detail = Mathf.Min(2, Detail);
             PauseMenu.ApplyDetail();

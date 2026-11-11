@@ -145,7 +145,6 @@ namespace BomberBuddies
             else if (kind == Kind.Arty) { if (input.BombPressed && shellT <= 0f) FireArty(); }
             else if (input.BombPressed && shellT <= 0f) FireShell();
             if (input.InteractPressed && PlayerManager.Instance != null) { PlayerManager.Instance.ExitVehicle(); return; }
-            Sfx.Loop("engine", "engine_loop", 0.35f, (kind == Kind.Tank ? 0.45f : kind == Kind.Bike ? 1.1f : 0.8f) + Mathf.Abs(speedU) / spd * 0.5f);
             Camera(dt);
         }
 
