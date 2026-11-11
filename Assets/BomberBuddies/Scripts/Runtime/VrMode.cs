@@ -88,9 +88,9 @@ namespace BomberBuddies
             {
                 // the headset's own tracking: where the head points and where it has moved to
                 var dev = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(UnityEngine.XR.XRNode.Head);
-                Quaternion q; Vector3 p;
-                if (dev.isValid && dev.TryGetFeatureValue(UnityEngine.XR.CommonUsages.deviceRotation, out q)) gyro = q;
-                if (dev.isValid && dev.TryGetFeatureValue(UnityEngine.XR.CommonUsages.devicePosition, out p)) { headPos = p; if (!havePos) { havePos = true; headPos0 = p; } }
+                Quaternion hq; Vector3 hp;
+                if (dev.isValid && dev.TryGetFeatureValue(UnityEngine.XR.CommonUsages.deviceRotation, out hq)) gyro = hq;
+                if (dev.isValid && dev.TryGetFeatureValue(UnityEngine.XR.CommonUsages.devicePosition, out hp)) { headPos = hp; if (!havePos) { havePos = true; headPos0 = hp; } }
                 return;
             }
             if (!haveGyro) { if (AttitudeSensor.current != null) { InputSystem.EnableDevice(AttitudeSensor.current); haveGyro = true; } else return; }
