@@ -676,15 +676,15 @@ namespace BomberBuddies
 
         void BuildWater()
         {
-            var w = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            w.name = "Sea";
-            w.transform.SetParent(transform, false);
-            w.transform.position = new Vector3(0f, SEA * U, 0f);
-            w.transform.localScale = new Vector3(12000f * U / 10f, 1f, 12000f * U / 10f);
-            Destroy(w.GetComponent<Collider>());
+            // the original's sea: one flat sheet of its water surface (rolling ripples, sky sheen, sun glints) in its own blue
+            mb.Clear(); mb.mat = 8f;
+            const float E = 12000f; var col = MeshBuilder.Rgb(58, 118, 158); var up = Vector3.up;
+            Vector3 p00 = new Vector3(-E, SEA, -E), p10 = new Vector3(E, SEA, -E), p01 = new Vector3(-E, SEA, E), p11 = new Vector3(E, SEA, E);
+            mb.TriSmooth(p00, p11, p10, col, col, col, up, up, up);
+            mb.TriSmooth(p00, p01, p11, col, col, col, up, up, up);
+            var w = mb.Spawn("Sea", transform, lowPoly, false, false); mb.mat = 1f;
             var r = w.GetComponent<Renderer>();
-            if (water != null) { r.sharedMaterial = water; }
-            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
+            if (r != null) { r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; }
         }
 
         void BuildRidges()
