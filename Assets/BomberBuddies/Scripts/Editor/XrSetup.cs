@@ -6,7 +6,6 @@ using UnityEngine;
 using UnityEngine.XR.Management;
 using UnityEngine.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features;
-using UnityEngine.XR.OpenXR.Features.Interaction;
 
 namespace BomberBuddies.Editor
 {
@@ -44,7 +43,7 @@ namespace BomberBuddies.Editor
                     // the game's own shaders draw one eye at a time
                     oxr.renderMode = OpenXRSettings.RenderMode.MultiPass;
                     foreach (var f in oxr.GetFeatures<OpenXRInteractionFeature>())
-                        if (f is ValveIndexControllerProfile || f is HTCViveControllerProfile || f is OculusTouchControllerProfile || f is KHRSimpleControllerProfile) { f.enabled = true; EditorUtility.SetDirty(f); }
+                    { string n = f.GetType().Name; if (n == "ValveIndexControllerProfile" || n == "HTCViveControllerProfile" || n == "OculusTouchControllerProfile" || n == "KHRSimpleControllerProfile") { f.enabled = true; EditorUtility.SetDirty(f); } }
                     EditorUtility.SetDirty(oxr);
                 }
                 EditorUtility.SetDirty(per);
